@@ -112,6 +112,9 @@
       searchResult.textContent = 'Bu TC/VKN ile kayıtlı müşteri bulunamadı.';
       searchResult.classList.remove('text-success');
       searchResult.classList.add('text-danger');
+      if (window.confirm('Bu TC/VKN ile müşteri bulunamadı. Yeni müşteri eklemek ister misiniz?')) {
+        window.open('/customers/new', '_blank');
+      }
     }
   }
 
