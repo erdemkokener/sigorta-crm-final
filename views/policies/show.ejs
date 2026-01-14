@@ -88,7 +88,7 @@
                     <% } %>
                 </div>
             </div>
-            <div class="col-md-6">
+          <div class="col-md-6">
                 <label class="text-muted small">Kalan Gün</label>
                 <div>
                     <% if (policy.days_remaining < 0) { %>
@@ -98,6 +98,76 @@
                     <% } %>
                 </div>
             </div>
+            <% if (policy.policy_type === 'Trafik' || policy.policy_type === 'Kasko') { %>
+              <div class="col-md-6">
+                <label class="text-muted small">Plaka</label>
+                <div class="fw-bold"><%= policy.policy_details && policy.policy_details.plate ? policy.policy_details.plate : '-' %></div>
+              </div>
+              <div class="col-md-6">
+                <label class="text-muted small">Ruhsat Tescil No</label>
+                <div><%= policy.policy_details && policy.policy_details.registration_no ? policy.policy_details.registration_no : '-' %></div>
+              </div>
+              <% if (policy.policy_type === 'Kasko') { %>
+                <div class="col-md-6">
+                  <label class="text-muted small">Meslek</label>
+                  <div><%= policy.policy_details && policy.policy_details.profession ? policy.policy_details.profession : '-' %></div>
+                </div>
+              <% } %>
+            <% } %>
+            <% if (policy.policy_type === 'DASK' || policy.policy_type === 'Konut') { %>
+              <div class="col-md-6">
+                <label class="text-muted small">Metrekare (m²)</label>
+                <div class="fw-bold"><%= policy.policy_details && policy.policy_details.area_sqm ? policy.policy_details.area_sqm : '-' %></div>
+              </div>
+              <div class="col-md-6">
+                <label class="text-muted small">Bina Yaşı</label>
+                <div><%= policy.policy_details && policy.policy_details.building_age ? policy.policy_details.building_age : '-' %></div>
+              </div>
+              <div class="col-md-6">
+                <label class="text-muted small">Binadaki Kat Sayısı</label>
+                <div><%= policy.policy_details && policy.policy_details.total_floors ? policy.policy_details.total_floors : '-' %></div>
+              </div>
+              <div class="col-md-6">
+                <label class="text-muted small">Bulunduğu Kat</label>
+                <div><%= policy.policy_details && policy.policy_details.floor_no ? policy.policy_details.floor_no : '-' %></div>
+              </div>
+              <div class="col-md-12">
+                <label class="text-muted small">Adres Kodu</label>
+                <div><%= policy.policy_details && policy.policy_details.address_code ? policy.policy_details.address_code : '-' %></div>
+              </div>
+            <% } %>
+            <% if (policy.policy_type === 'Sağlık') { %>
+              <% const healthPersons = (policy.policy_details && policy.policy_details.health_persons) || []; %>
+              <div class="col-12">
+                <label class="text-muted small">Sağlık Poliçesindeki Kişiler</label>
+                <% if (healthPersons.length === 0) { %>
+                  <div class="p-2 bg-light rounded border">Kişi eklenmemiş.</div>
+                <% } else { %>
+                  <div class="table-responsive">
+                    <table class="table table-sm table-bordered mb-0">
+                      <thead>
+                        <tr>
+                          <th>Ad Soyad</th>
+                          <th>TCKN</th>
+                          <th>Doğum Tarihi</th>
+                          <th>Yakınlık</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <% healthPersons.forEach(function(hp) { %>
+                          <tr>
+                            <td><%= hp.name || '-' %></td>
+                            <td><%= hp.id_no || '-' %></td>
+                            <td><%= hp.birth_date || '-' %></td>
+                            <td><%= hp.relation || '-' %></td>
+                          </tr>
+                        <% }); %>
+                      </tbody>
+                    </table>
+                  </div>
+                <% } %>
+              </div>
+            <% } %>
             <div class="col-12">
                 <label class="text-muted small">Açıklama / Notlar</label>
                 <div class="p-3 bg-light rounded border"><%= policy.description || 'Not yok.' %></div>

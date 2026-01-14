@@ -28,7 +28,48 @@
 
           <div class="col-md-6">
             <label class="form-label">Sigorta Şirketi <span class="text-danger">*</span></label>
-            <input type="text" class="form-control" name="insurer" required>
+            <input type="text" class="form-control" name="insurer" list="insurerList" required>
+            <datalist id="insurerList">
+              <option value="Quick Sigorta">
+              <option value="Şeker Sigorta">
+              <option value="Turk Pandi Sigorta">
+              <option value="Zurich Sigorta">
+              <option value="Ray Sigorta">
+              <option value="Tmt Sigorta">
+              <option value="Türkiye Sigorta">
+              <option value="Unico Sigorta">
+              <option value="Turk Nippon Sigorta">
+              <option value="Sompo Sigorta">
+              <option value="Ak Sigorta">
+              <option value="Allianz Sigorta">
+              <option value="Ankara Sigorta">
+              <option value="Axa Sigorta">
+              <option value="Bnp Paribas Cardif Sigorta">
+              <option value="Corpus Sigorta">
+              <option value="Anadolu Sigorta">
+              <option value="Atradius Sigorta">
+              <option value="Bereket Sigorta">
+              <option value="Coface Sigorta">
+              <option value="Ana Sigorta">
+              <option value="Atlas Mutel Sigorta">
+              <option value="Bereket Tekafül Sigorta">
+              <option value="Doğa Sigorta">
+              <option value="Dubai Sigorta">
+              <option value="Ethica Sigorta">
+              <option value="Eulerhermes Sigorta">
+              <option value="GRI Sigorta">
+              <option value="HDI Sigorta">
+              <option value="Mapfre Sigorta">
+              <option value="Orient Sigorta">
+              <option value="Neova Sigorta">
+              <option value="Magdeburger Sigorta">
+              <option value="Gulf Sigorta">
+              <option value="Generali Sigorta">
+              <option value="Eurekao Sigorta">
+              <option value="Groupama Sigorta">
+              <option value="Koru Sigorta">
+              <option value="Merkez Sigorta">
+            </datalist>
           </div>
           <div class="col-md-6">
             <label class="form-label">Poliçe Türü</label>
@@ -45,6 +86,60 @@
           <div class="col-md-6">
             <label class="form-label">Poliçe No <span class="text-danger">*</span></label>
             <input type="text" class="form-control" name="policy_number" required>
+          </div>
+
+          <div class="col-md-4 trafik-kasko-field" style="display:none">
+            <label class="form-label">Plaka</label>
+            <input type="text" class="form-control" name="policy_details[plate]">
+          </div>
+          <div class="col-md-4 trafik-kasko-field" style="display:none">
+            <label class="form-label">Ruhsat Tescil No</label>
+            <input type="text" class="form-control" name="policy_details[registration_no]">
+          </div>
+          <div class="col-md-4 kasko-only-field" style="display:none">
+            <label class="form-label">Meslek (Opsiyonel)</label>
+            <input type="text" class="form-control" name="policy_details[profession]">
+          </div>
+
+          <div class="col-md-4 dask-field" style="display:none">
+            <label class="form-label">Metrekare (m²)</label>
+            <input type="text" class="form-control" name="policy_details[area_sqm]">
+          </div>
+          <div class="col-md-4 dask-field" style="display:none">
+            <label class="form-label">Bina Yaşı</label>
+            <input type="text" class="form-control" name="policy_details[building_age]">
+          </div>
+          <div class="col-md-4 dask-field" style="display:none">
+            <label class="form-label">Binadaki Kat Sayısı</label>
+            <input type="text" class="form-control" name="policy_details[total_floors]">
+          </div>
+          <div class="col-md-4 dask-field" style="display:none">
+            <label class="form-label">Bulunduğu Kat</label>
+            <input type="text" class="form-control" name="policy_details[floor_no]">
+          </div>
+          <div class="col-md-8 dask-field" style="display:none">
+            <label class="form-label">Adres Kodu</label>
+            <input type="text" class="form-control" name="policy_details[address_code]">
+          </div>
+          <div class="col-12 health-field" style="display:none">
+            <label class="form-label">Sağlık Poliçesindeki Kişiler</label>
+            <div id="healthPersonsContainer">
+              <div class="row g-2 health-person-row" data-index="0">
+                <div class="col-md-3">
+                  <input type="text" class="form-control" name="policy_details[health_persons][0][name]" placeholder="Ad Soyad">
+                </div>
+                <div class="col-md-3">
+                  <input type="text" class="form-control" name="policy_details[health_persons][0][id_no]" placeholder="TCKN">
+                </div>
+                <div class="col-md-3">
+                  <input type="date" class="form-control" name="policy_details[health_persons][0][birth_date]" placeholder="Doğum Tarihi">
+                </div>
+                <div class="col-md-3">
+                  <input type="text" class="form-control" name="policy_details[health_persons][0][relation]" placeholder="Yakınlık (Örn. Eş)">
+                </div>
+              </div>
+            </div>
+            <button type="button" class="btn btn-sm btn-outline-secondary mt-2" id="addHealthPersonBtn">Kişi Ekle</button>
           </div>
           <div class="col-md-6">
             <label class="form-label">Tanzim Tarihi</label>
@@ -134,6 +229,12 @@
   const startDateInput = document.querySelector('input[name="start_date"]');
   const endDateInput = document.querySelector('input[name="end_date"]');
   const policyTypeSelect = document.querySelector('select[name="policy_type"]');
+  const trafikKaskoFields = document.querySelectorAll('.trafik-kasko-field');
+  const kaskoOnlyFields = document.querySelectorAll('.kasko-only-field');
+  const daskFields = document.querySelectorAll('.dask-field');
+  const healthFields = document.querySelectorAll('.health-field');
+  const healthPersonsContainer = document.getElementById('healthPersonsContainer');
+  const addHealthPersonBtn = document.getElementById('addHealthPersonBtn');
 
   function updateEndDate() {
     const startDateVal = startDateInput.value;
@@ -155,6 +256,54 @@
     endDateInput.value = `${yyyy}-${mm}-${dd}`;
   }
 
+  function updateSpecialFields() {
+    const policyType = policyTypeSelect.value;
+    trafikKaskoFields.forEach(function (el) {
+      el.style.display = (policyType === 'Trafik' || policyType === 'Kasko') ? '' : 'none';
+    });
+    kaskoOnlyFields.forEach(function (el) {
+      el.style.display = policyType === 'Kasko' ? '' : 'none';
+    });
+    daskFields.forEach(function (el) {
+      el.style.display = (policyType === 'DASK' || policyType === 'Konut') ? '' : 'none';
+    });
+    healthFields.forEach(function (el) {
+      el.style.display = policyType === 'Sağlık' ? '' : 'none';
+    });
+  }
+
+  function addHealthPersonRow() {
+    if (!healthPersonsContainer) return;
+    const rows = healthPersonsContainer.querySelectorAll('.health-person-row');
+    const nextIndex = rows.length;
+    const row = document.createElement('div');
+    row.className = 'row g-2 health-person-row';
+    row.setAttribute('data-index', String(nextIndex));
+    row.innerHTML = ''
+      + '<div class="col-md-3">'
+      + '<input type="text" class="form-control" name="policy_details[health_persons][' + nextIndex + '][name]" placeholder="Ad Soyad">'
+      + '</div>'
+      + '<div class="col-md-3">'
+      + '<input type="text" class="form-control" name="policy_details[health_persons][' + nextIndex + '][id_no]" placeholder="TCKN">'
+      + '</div>'
+      + '<div class="col-md-3">'
+      + '<input type="date" class="form-control" name="policy_details[health_persons][' + nextIndex + '][birth_date]" placeholder="Doğum Tarihi">'
+      + '</div>'
+      + '<div class="col-md-3">'
+      + '<input type="text" class="form-control" name="policy_details[health_persons][' + nextIndex + '][relation]" placeholder="Yakınlık (Örn. Eş)">'
+      + '</div>';
+    healthPersonsContainer.appendChild(row);
+  }
+
   startDateInput.addEventListener('change', updateEndDate);
-  policyTypeSelect.addEventListener('change', updateEndDate);
+  policyTypeSelect.addEventListener('change', function () {
+    updateEndDate();
+    updateSpecialFields();
+  });
+
+  if (addHealthPersonBtn) {
+    addHealthPersonBtn.addEventListener('click', addHealthPersonRow);
+  }
+
+  updateSpecialFields();
 </script>
