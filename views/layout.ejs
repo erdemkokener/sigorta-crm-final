@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title><%= title %> · Sigorta CRM</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="container">
+      <a class="brand" href="/policies">Sigorta CRM</a>
+      <nav>
+        <% if (user) { %>
+          <a href="/customers">Müşteriler</a>
+          <a href="/policies">Poliçeler</a>
+          <a href="/settings">Ayarlar</a>
+          <a class="btn" href="/policies/new">Yeni Poliçe</a>
+          <form action="/logout" method="post" style="display:inline">
+            <button class="btn btn-secondary" type="submit">Çıkış</button>
+          </form>
+        <% } else { %>
+          <a class="btn" href="/login">Giriş</a>
+        <% } %>
+      </nav>
+    </div>
+  </header>
+  <main class="container">
+    <%- body %>
+  </main>
+  <footer class="footer">
+    <div class="container">
+      <small>© <%= new Date().getFullYear() %> Sigorta CRM</small>
+    </div>
+  </footer>
+</body>
+</html>

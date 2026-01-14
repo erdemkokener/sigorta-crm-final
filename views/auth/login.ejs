@@ -1,0 +1,22 @@
+<section class="section">
+  <h1>Giriş</h1>
+  <% if (typeof error !== 'undefined') { %>
+    <div class="alert alert-danger"><%= error %></div>
+  <% } %>
+  <form class="form" action="/login" method="post">
+    <div class="grid">
+      <label>
+        <span>Kullanıcı Adı</span>
+        <input name="username" required>
+      </label>
+      <label>
+        <span>Şifre</span>
+        <input type="password" name="password" required>
+      </label>
+    </div>
+    <div class="actions">
+      <button class="btn" type="submit">Giriş Yap</button>
+    </div>
+  </form>
+  <p class="muted" style="margin-top:12px">Varsayılan: admin / admin123</p>
+</section>

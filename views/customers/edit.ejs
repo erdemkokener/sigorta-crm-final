@@ -1,0 +1,31 @@
+<section class="section">
+  <h1>Müşteri Düzenle</h1>
+  <form class="form" action="/customers/<%= customer.id %>" method="post">
+    <div class="grid">
+      <label>
+        <span>Ad Soyad</span>
+        <input name="name" value="<%= customer.name %>" required>
+      </label>
+      <label>
+        <span>Telefon</span>
+        <input name="phone" value="<%= customer.phone || '' %>">
+      </label>
+      <label>
+        <span>TCKN</span>
+        <input name="id_no" value="<%= customer.id_no || '' %>">
+      </label>
+      <label>
+        <span>E-posta</span>
+        <input type="email" name="email" value="<%= customer.email || '' %>">
+      </label>
+      <label>
+        <span>Doğum Tarihi</span>
+        <input type="date" name="birth_date" value="<%= customer.birth_date || '' %>">
+      </label>
+    </div>
+    <div class="actions">
+      <button class="btn" type="submit">Kaydet</button>
+      <a class="btn btn-secondary" href="/customers">İptal</a>
+    </div>
+  </form>
+</section>

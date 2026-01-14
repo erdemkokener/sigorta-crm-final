@@ -1,0 +1,92 @@
+<section class="section">
+  <h1>Yeni Poliçe</h1>
+  <form class="form" action="/policies" method="post">
+    <div class="grid">
+      <label>
+        <span>Müşteri</span>
+        <select name="customer_id" required>
+          <option value="">Seçiniz</option>
+          <% customers.forEach(c => { %>
+            <option value="<%= c.id %>"><%= c.name %> (<%= c.phone || '-' %>)</option>
+          <% }) %>
+        </select>
+      </label>
+      <label>
+        <span>Sigortacı</span>
+        <input name="insurer" required>
+      </label>
+      <label>
+        <span>Poliçe Türü</span>
+        <select name="policy_type">
+          <option value="Trafik">Trafik</option>
+          <option value="Kasko">Kasko</option>
+          <option value="Konut">Konut</option>
+          <option value="DASK">DASK</option>
+          <option value="Sağlık">Sağlık</option>
+          <option value="Kısa Süreli Trafik">Kısa Süreli Trafik</option>
+          <option value="Diğer" selected>Diğer</option>
+        </select>
+      </label>
+      <label>
+        <span>Poliçe No</span>
+        <input name="policy_number" required>
+      </label>
+      <label>
+        <span>Tanzim Tarihi</span>
+        <input type="date" name="issue_date">
+      </label>
+      <label>
+        <span>Başlangıç Tarihi</span>
+        <input type="date" name="start_date" required>
+      </label>
+      <label>
+        <span>Bitiş Tarihi</span>
+        <input type="date" name="end_date" required>
+      </label>
+      <label>
+        <span>Poliçe Bilgileri</span>
+        <input name="description">
+      </label>
+      <label>
+        <span>Durum</span>
+        <select name="status">
+          <option value="active">Aktif</option>
+          <option value="cancelled">İptal</option>
+          <option value="pending">Beklemede</option>
+        </select>
+      </label>
+    </div>
+    <div class="actions">
+      <button class="btn" type="submit">Kaydet</button>
+      <a class="btn btn-secondary" href="/policies">İptal</a>
+    </div>
+  </form>
+</section>
+<script>
+  const startDateInput = document.querySelector('input[name="start_date"]');
+  const endDateInput = document.querySelector('input[name="end_date"]');
+  const policyTypeSelect = document.querySelector('select[name="policy_type"]');
+
+  function updateEndDate() {
+    const startDateVal = startDateInput.value;
+    if (!startDateVal) return;
+
+    const startDate = new Date(startDateVal);
+    const policyType = policyTypeSelect.value;
+    let endDate = new Date(startDate);
+
+    if (policyType === 'Kısa Süreli Trafik') {
+      endDate.setDate(startDate.getDate() + 60);
+    } else {
+      endDate.setFullYear(startDate.getFullYear() + 1);
+    }
+
+    const yyyy = endDate.getFullYear();
+    const mm = String(endDate.getMonth() + 1).padStart(2, '0');
+    const dd = String(endDate.getDate()).padStart(2, '0');
+    endDateInput.value = `${yyyy}-${mm}-${dd}`;
+  }
+
+  startDateInput.addEventListener('change', updateEndDate);
+  policyTypeSelect.addEventListener('change', updateEndDate);
+</script>

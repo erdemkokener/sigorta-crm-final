@@ -1,0 +1,67 @@
+<section class="section">
+  <h1>Poliçe Detay</h1>
+  <div class="actions">
+    <a class="btn btn-secondary" href="/policies">Listeye Dön</a>
+    <a class="btn" href="/policies/<%= policy.id %>/edit">Düzenle</a>
+  </div>
+  <div class="form">
+    <div class="grid">
+      <label>
+        <span>Müşteri</span>
+        <input value="<%= policy.customer_name || '-' %>" readonly>
+      </label>
+      <label>
+        <span>Telefon</span>
+        <input value="<%= policy.customer_phone || '-' %>" readonly>
+      </label>
+      <label>
+        <span>TCKN</span>
+        <input value="<%= policy.customer_id_no || '-' %>" readonly>
+      </label>
+      <label>
+        <span>E-posta</span>
+        <input value="<%= policy.customer_email || '-' %>" readonly>
+      </label>
+      <label>
+        <span>Doğum Tarihi</span>
+        <input value="<%= policy.customer_birth_date || '-' %>" readonly>
+      </label>
+      <label>
+        <span>Sigortacı</span>
+        <input value="<%= policy.insurer %>" readonly>
+      </label>
+      <label>
+        <span>Poliçe Türü</span>
+        <input value="<%= policy.policy_type || 'Diğer' %>" readonly>
+      </label>
+      <label>
+        <span>Poliçe No</span>
+        <input value="<%= policy.policy_number %>" readonly>
+      </label>
+      <label>
+        <span>Tanzim Tarihi</span>
+        <input value="<%= policy.issue_date || '-' %>" readonly>
+      </label>
+      <label>
+        <span>Başlangıç</span>
+        <input value="<%= policy.start_date %>" readonly>
+      </label>
+      <label>
+        <span>Bitiş</span>
+        <input value="<%= policy.end_date %>" readonly>
+      </label>
+      <label>
+        <span>Kalan Gün</span>
+        <input value="<%= policy.days_remaining %>" readonly>
+      </label>
+      <label>
+        <span>Poliçe Bilgileri</span>
+        <input value="<%= policy.description || '-' %>" readonly>
+      </label>
+      <label>
+        <span>Durum</span>
+        <input value="<%= policy.status %>" readonly>
+      </label>
+    </div>
+  </div>
+</section>

@@ -1,0 +1,52 @@
+<section class="section">
+  <h1>Müşteriler</h1>
+  <form class="form" method="get" action="/customers" style="margin-bottom:12px">
+    <div class="grid">
+      <label>
+        <span>Arama (Ad/TCKN/Tel/E-posta)</span>
+        <input name="q" value="<%= q || '' %>">
+      </label>
+    </div>
+    <div class="actions">
+      <button class="btn" type="submit">Ara</button>
+      <a class="btn btn-secondary" href="/customers">Temizle</a>
+    </div>
+  </form>
+  <div class="actions">
+    <a class="btn" href="/customers/new">Yeni Müşteri</a>
+    <a class="btn btn-secondary" href="/customers/export.xlsx">Excel'e Aktar</a>
+    <a class="btn btn-secondary" href="/policies">Poliçeler</a>
+  </div>
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Ad Soyad</th>
+        <th>Telefon</th>
+        <th>TCKN</th>
+        <th>E-posta</th>
+        <th>Doğum Tarihi</th>
+        <th>İşlem</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% if (customers.length === 0) { %>
+        <tr><td colspan="6" class="muted">Henüz müşteri eklenmedi.</td></tr>
+      <% } %>
+      <% customers.forEach(c => { %>
+        <tr>
+          <td><%= c.name %></td>
+          <td><%= c.phone || '-' %></td>
+          <td><%= c.id_no || '-' %></td>
+          <td><%= c.email || '-' %></td>
+          <td><%= c.birth_date || '-' %></td>
+          <td class="nowrap">
+            <a class="btn btn-small" href="/customers/<%= c.id %>/edit">Düzenle</a>
+            <form action="/customers/<%= c.id %>/delete" method="post" style="display:inline" onsubmit="return confirm('Müşteri silinecek. Emin misiniz?')">
+              <button class="btn btn-small btn-danger" type="submit">Sil</button>
+            </form>
+          </td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</section>

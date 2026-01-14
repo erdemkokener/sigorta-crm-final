@@ -1,0 +1,34 @@
+<section class="section">
+  <h1>Kullanıcı Ayarları</h1>
+  
+  <% if (typeof msg !== 'undefined' && msg) { %>
+    <div class="alert alert-success"><%= msg %></div>
+  <% } %>
+  
+  <% if (typeof error !== 'undefined' && error) { %>
+    <div class="alert alert-error"><%= error %></div>
+  <% } %>
+
+  <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); max-width: 500px;">
+    <form action="/settings" method="post" class="form">
+      <div class="field">
+        <label>Mevcut Şifre</label>
+        <input type="password" name="old_password" required>
+      </div>
+      
+      <div class="field">
+        <label>Yeni Kullanıcı Adı</label>
+        <input type="text" name="new_username" required>
+      </div>
+
+      <div class="field">
+        <label>Yeni Şifre</label>
+        <input type="password" name="new_password" required>
+      </div>
+
+      <div class="actions">
+        <button class="btn" type="submit">Bilgileri Güncelle</button>
+      </div>
+    </form>
+  </div>
+</section>

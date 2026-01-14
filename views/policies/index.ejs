@@ -1,0 +1,112 @@
+<section class="section">
+  <h1>Poliçeler</h1>
+
+  <div class="stats-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+    <div class="stat-card" style="background: white; padding: 1rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+      <div style="font-size: 0.9rem; color: #666;">Toplam Müşteri</div>
+      <div style="font-size: 1.5rem; font-weight: bold; color: #333;"><%= typeof totalCustomers !== 'undefined' ? totalCustomers : '-' %></div>
+    </div>
+    <div class="stat-card" style="background: white; padding: 1rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+      <div style="font-size: 0.9rem; color: #666;">Toplam Poliçe</div>
+      <div style="font-size: 1.5rem; font-weight: bold; color: #333;"><%= typeof totalPolicies !== 'undefined' ? totalPolicies : '-' %></div>
+    </div>
+  </div>
+
+  <form class="form" method="get" action="/policies" style="margin-bottom:12px">
+    <div class="grid">
+      <label>
+        <span>Arama (Müşteri/Poliçe No)</span>
+        <input name="q" value="<%= (typeof qs !== 'undefined' && new URLSearchParams(qs).get('q')) || '' %>">
+      </label>
+      <label>
+        <span>Sigortacı</span>
+        <input name="insurer" value="<%= (typeof qs !== 'undefined' && new URLSearchParams(qs).get('insurer')) || '' %>">
+      </label>
+      <label>
+        <span>Durum</span>
+        <select name="status">
+          <% const s = (typeof qs !== 'undefined' && new URLSearchParams(qs).get('status')) || '' %>
+          <option value="" <%= s===''?'selected':'' %>>-</option>
+          <option value="active" <%= s==='active'?'selected':'' %>>Aktif</option>
+          <option value="cancelled" <%= s==='cancelled'?'selected':'' %>>İptal</option>
+          <option value="pending" <%= s==='pending'?'selected':'' %>>Beklemede</option>
+        </select>
+      </label>
+      <label>
+        <span>Bitiş (Başlangıç)</span>
+        <input type="date" name="end_from" value="<%= (typeof qs !== 'undefined' && new URLSearchParams(qs).get('end_from')) || '' %>">
+      </label>
+      <label>
+        <span>Bitiş (Bitiş)</span>
+        <input type="date" name="end_to" value="<%= (typeof qs !== 'undefined' && new URLSearchParams(qs).get('end_to')) || '' %>">
+      </label>
+    </div>
+    <div class="actions">
+      <button class="btn" type="submit">Filtreyi Uygula</button>
+      <a class="btn btn-secondary" href="/policies">Temizle</a>
+      <a class="btn" href="/policies/export.xlsx?<%= qs %>">Excel'e Aktar</a>
+    </div>
+  </form><h1>Poliçeler</h1>
+  <div class="actions">
+    <a class="btn" href="/policies/new">Yeni Poliçe</a>
+    <a class="btn btn-secondary" href="/policies/import">Excel'den Yükle</a>
+    <form action="/api/trigger-notifications" method="post" style="display:inline">
+      <button class="btn btn-secondary">Bildirimleri Şimdi Kontrol Et</button>
+    </form>
+  </div>
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Müşteri</th>
+        <th>Telefon</th>
+        <th>Kimlik No</th>
+        <th>Sigortacı</th>
+        <th>Poliçe Türü</th>
+        <th>Poliçe No</th>
+        <th>Başlangıç</th>
+        <th>Bitiş</th>
+        <th>Doğum Tarihi</th>
+        <th>Kalan Gün</th>
+        <th>Poliçe Bilgileri</th>
+        <th>Durum</th>
+        <th>İşlem</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% if (policies.length === 0) { %>
+        <tr>
+          <td colspan="12" class="muted" style="text-align:center; padding: 20px;">
+            <% if (typeof qs !== 'undefined' && new URLSearchParams(qs).get('q')) { %>
+              Aradığınız kriterlere uygun poliçe bulunamadı.
+            <% } else { %>
+              Henüz poliçe eklenmedi.
+            <% } %>
+          </td>
+        </tr>
+      <% } %>
+      <% policies.forEach(p => { %>
+        <tr class="<%= p.is_expired ? 'row-expired' : (p.is_expiring_soon ? 'row-warning' : '') %>">
+          <td><%= p.customer_name || '-' %></td>
+          <td><%= p.customer_phone || '-' %></td>
+          <td><%= p.customer_id_no || '-' %></td>
+          <td><%= p.insurer %></td>
+          <td><%= p.policy_type || 'Diğer' %></td>
+          <td><%= p.policy_number %></td>
+          <td><%= p.start_date %></td>
+          <td><%= p.end_date %></td>
+          <td><%= p.customer_birth_date || '-' %></td>
+          <td><%= p.days_remaining %></td>
+          <td><%= p.description || '-' %></td>
+          <td><%= p.status %></td>
+          <td class="nowrap">
+            <a class="btn btn-small" href="/policies/<%= p.id %>">Detay</a>
+            <a class="btn btn-small" href="/policies/<%= p.id %>/edit">Düzenle</a>
+            <form action="/policies/<%= p.id %>/delete" method="post" style="display:inline">
+              <button class="btn btn-small btn-danger" onclick="return confirm('Silmek istediğinize emin misiniz?')">Sil</button>
+            </form>
+          </td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</section>

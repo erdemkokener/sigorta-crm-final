@@ -1,0 +1,32 @@
+services:
+  - type: web
+    name: sigorta-crm
+    env: node
+    plan: free
+    autoDeploy: true
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /
+    envVars:
+      - key: SESSION_SECRET
+        sync: false
+      - key: APP_USER
+        sync: false
+      - key: APP_PASS
+        sync: false
+      - key: MAIL_MODE
+        sync: false
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        sync: false
+      - key: SMTP_SECURE
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: MAIL_FROM
+        sync: false
+      - key: MAIL_TO
+        sync: false

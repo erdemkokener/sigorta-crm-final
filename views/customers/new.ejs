@@ -1,0 +1,31 @@
+<section class="section">
+  <h1>Yeni Müşteri</h1>
+  <form class="form" action="/customers" method="post">
+    <div class="grid">
+      <label>
+        <span>Ad Soyad</span>
+        <input name="name" required>
+      </label>
+      <label>
+        <span>Telefon</span>
+        <input name="phone" placeholder="+90 5xx xxx xx xx">
+      </label>
+      <label>
+        <span>TCKN</span>
+        <input name="id_no">
+      </label>
+      <label>
+        <span>E-posta</span>
+        <input type="email" name="email">
+      </label>
+      <label>
+        <span>Doğum Tarihi</span>
+        <input type="date" name="birth_date">
+      </label>
+    </div>
+    <div class="actions">
+      <button class="btn" type="submit">Kaydet</button>
+      <a class="btn btn-secondary" href="/customers">İptal</a>
+    </div>
+  </form>
+</section>
