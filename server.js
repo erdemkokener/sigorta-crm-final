@@ -158,15 +158,17 @@ async function filterPolicies(query) {
 async function sendMail(subject, text, html) {
   if (!mailer) {
     console.log('Mailer kurulu değil, e-posta atlanıyor.');
-    return;
+    return { ok: false, error: 'Mailer not configured' };
   }
-  const to = MAIL_TO || (process.env.APP_USER_EMAIL || '');
-  const envelope = { from: MAIL_FROM, to: to || MAIL_FROM, subject, text, html };
+  const to = MAIL_TO || (process.env.APP_USER_EMAIL || SMTP_USER || MAIL_FROM);
+  const envelope = { from: MAIL_FROM, to, subject, text, html };
   try {
     const info = await mailer.sendMail(envelope);
     console.log('E-posta gönderildi:', info.messageId);
+    return { ok: true, info };
   } catch (err) {
     console.error('E-posta hatası:', err);
+    return { ok: false, error: err.message || 'E-posta gönderilemedi' };
   }
 }
 
@@ -248,11 +250,14 @@ app.post('/forgot-password', async (req, res) => {
   if (username) info.push(`Kullanıcı adı: ${username}`);
   if (note) info.push(`Not: ${note}`);
   const bodyText = info.join('\n') || 'Kullanıcı şifresini unuttu.';
-  await sendMail(
+  const result = await sendMail(
     'Şifre sıfırlama talebi',
     bodyText,
     `<p>Şifre sıfırlama talebi alındı.</p><p>${info.join('<br>') || 'Kullanıcı şifresini unuttu.'}</p>`
   );
+  if (!result || !result.ok) {
+    return res.render('auth/forgot-password', { title: 'Şifremi Unuttum', msg: null, error: 'Şu anda e-posta gönderilemedi. Lütfen daha sonra tekrar deneyin.' });
+  }
   res.render('auth/forgot-password', { title: 'Şifremi Unuttum', msg: 'Talebiniz alındı. En kısa sürede sizinle iletişime geçilecektir.', error: null });
 });
 
