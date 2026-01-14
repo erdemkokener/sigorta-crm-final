@@ -1,25 +1,39 @@
-<section class="section">
-  <h1>Excel'den Poliçe Yükle</h1>
-  <p>Excel dosyanızdaki poliçe listesini buradan topluca yükleyebilirsiniz.</p>
-  
-  <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
-    <h3>Nasıl Kullanılır?</h3>
-    <ol style="margin-left: 20px; line-height: 1.6;">
-      <li>Önce doğru formatta veri girişi yapmak için <a href="/policies/template.xlsx" style="font-weight:bold; text-decoration:underline;">Örnek Şablonu İndirin</a>.</li>
-      <li>Verilerinizi bu şablona uygun şekilde kopyalayıp yapıştırın.</li>
-      <li>Sütun sırasını değiştirmeyin (Adı, Telefon, TC, Doğum Tarihi, Sigorta Şirketi, Poliçe Türü...).</li>
-      <li>Dosyayı kaydedin ve aşağıdaki alandan seçip "Yükle" butonuna basın.</li>
-    </ol>
-  </div>
+<div class="row justify-content-center">
+  <div class="col-md-8">
+    <h1 class="h3 mb-4">Excel'den Poliçe Yükle</h1>
 
-  <form action="/policies/import" method="post" enctype="multipart/form-data" class="form">
-    <label>
-      <span>Excel Dosyası (.xlsx)</span>
-      <input type="file" name="file" accept=".xlsx" required>
-    </label>
-    <div class="actions">
-      <button class="btn" type="submit">Yükle</button>
-      <a class="btn btn-secondary" href="/policies">Geri Dön</a>
+    <div class="card shadow-sm mb-4">
+      <div class="card-body">
+        <h5 class="card-title"><i class="bi bi-info-circle"></i> Nasıl Kullanılır?</h5>
+        <p class="card-text text-muted">Toplu poliçe yüklemek için aşağıdaki adımları takip edin:</p>
+        <ol class="list-group list-group-numbered mb-3">
+          <li class="list-group-item">Önce doğru formatta veri girişi yapmak için <a href="/policies/template.xlsx" class="fw-bold">Örnek Şablonu İndirin</a>.</li>
+          <li class="list-group-item">Verilerinizi bu şablona uygun şekilde doldurun.</li>
+          <li class="list-group-item">Sütun sırasını değiştirmeyin (Adı, Telefon, TC, Sigorta Şirketi vb.).</li>
+          <li class="list-group-item">Dosyayı kaydedin ve aşağıdaki alandan seçip "Yükle" butonuna basın.</li>
+        </ol>
+        <div class="alert alert-warning py-2">
+            <small><i class="bi bi-exclamation-triangle"></i> Aynı poliçe numarasına sahip kayıtlar tekrar eklenmez.</small>
+        </div>
+      </div>
     </div>
-  </form>
-</section>
+
+    <div class="card shadow-sm">
+      <div class="card-header bg-light">
+        <h5 class="mb-0">Dosya Seçimi</h5>
+      </div>
+      <div class="card-body">
+        <form action="/policies/import" method="post" enctype="multipart/form-data">
+          <div class="mb-4">
+            <label class="form-label">Excel Dosyası (.xlsx)</label>
+            <input type="file" class="form-control" name="file" accept=".xlsx" required>
+          </div>
+          <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+            <a href="/policies" class="btn btn-secondary me-md-2">İptal</a>
+            <button type="submit" class="btn btn-success"><i class="bi bi-upload"></i> Yükle</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>

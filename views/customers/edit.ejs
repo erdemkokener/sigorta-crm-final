@@ -1,31 +1,38 @@
-<section class="section">
-  <h1>Müşteri Düzenle</h1>
-  <form class="form" action="/customers/<%= customer.id %>" method="post">
-    <div class="grid">
-      <label>
-        <span>Ad Soyad</span>
-        <input name="name" value="<%= customer.name %>" required>
-      </label>
-      <label>
-        <span>Telefon</span>
-        <input name="phone" value="<%= customer.phone || '' %>">
-      </label>
-      <label>
-        <span>TCKN</span>
-        <input name="id_no" value="<%= customer.id_no || '' %>">
-      </label>
-      <label>
-        <span>E-posta</span>
-        <input type="email" name="email" value="<%= customer.email || '' %>">
-      </label>
-      <label>
-        <span>Doğum Tarihi</span>
-        <input type="date" name="birth_date" value="<%= customer.birth_date || '' %>">
-      </label>
+<div class="row justify-content-center">
+  <div class="col-md-8">
+    <div class="card shadow-sm">
+      <div class="card-header bg-light">
+        <h5 class="mb-0">Müşteri Düzenle: <%= customer.name %></h5>
+      </div>
+      <div class="card-body">
+        <form action="/customers/<%= customer.id %>" method="post" class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label">Ad Soyad <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" name="name" value="<%= customer.name %>" required>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Telefon</label>
+            <input type="tel" class="form-control" name="phone" value="<%= customer.phone || '' %>">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">TCKN / Vergi No</label>
+            <input type="text" class="form-control" name="id_no" value="<%= customer.id_no || '' %>">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">E-posta</label>
+            <input type="email" class="form-control" name="email" value="<%= customer.email || '' %>">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Doğum Tarihi</label>
+            <input type="date" class="form-control" name="birth_date" value="<%= customer.birth_date || '' %>">
+          </div>
+          
+          <div class="col-12 mt-4 text-end">
+            <button type="submit" class="btn btn-warning"><i class="bi bi-pencil-square"></i> Güncelle</button>
+            <a href="/customers" class="btn btn-secondary"><i class="bi bi-x"></i> İptal</a>
+          </div>
+        </form>
+      </div>
     </div>
-    <div class="actions">
-      <button class="btn" type="submit">Kaydet</button>
-      <a class="btn btn-secondary" href="/customers">İptal</a>
-    </div>
-  </form>
-</section>
+  </div>
+</div>

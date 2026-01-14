@@ -1,34 +1,60 @@
-<section class="section">
-  <h1>Kullanıcı Ayarları</h1>
-  
-  <% if (typeof msg !== 'undefined' && msg) { %>
-    <div class="alert alert-success"><%= msg %></div>
-  <% } %>
-  
-  <% if (typeof error !== 'undefined' && error) { %>
-    <div class="alert alert-error"><%= error %></div>
-  <% } %>
+<div class="row justify-content-center">
+  <div class="col-md-6">
+    <h1 class="h3 mb-4">Kullanıcı Ayarları</h1>
 
-  <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); max-width: 500px;">
-    <form action="/settings" method="post" class="form">
-      <div class="field">
-        <label>Mevcut Şifre</label>
-        <input type="password" name="old_password" required>
+    <% if (typeof msg !== 'undefined' && msg) { %>
+      <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="bi bi-check-circle-fill"></i> <%= msg %>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
       </div>
-      
-      <div class="field">
-        <label>Yeni Kullanıcı Adı</label>
-        <input type="text" name="new_username" required>
+    <% } %>
+    
+    <% if (typeof error !== 'undefined' && error) { %>
+      <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-triangle-fill"></i> <%= error %>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
       </div>
+    <% } %>
 
-      <div class="field">
-        <label>Yeni Şifre</label>
-        <input type="password" name="new_password" required>
+    <div class="card shadow-sm">
+      <div class="card-header bg-light">
+        <h5 class="mb-0"><i class="bi bi-person-gear"></i> Hesap Bilgileri</h5>
       </div>
+      <div class="card-body">
+        <form action="/settings" method="post">
+          <div class="mb-3">
+            <label class="form-label">Mevcut Şifre <span class="text-danger">*</span></label>
+            <input type="password" class="form-control" name="old_password" required>
+            <div class="form-text">Güvenlik için mevcut şifrenizi girmelisiniz.</div>
+          </div>
+          
+          <div class="mb-3">
+            <label class="form-label">Yeni Kullanıcı Adı</label>
+            <input type="text" class="form-control" name="new_username" required>
+          </div>
 
-      <div class="actions">
-        <button class="btn" type="submit">Bilgileri Güncelle</button>
+          <div class="mb-4">
+            <label class="form-label">Yeni Şifre</label>
+            <input type="password" class="form-control" name="new_password" required>
+          </div>
+
+          <div class="d-grid">
+            <button type="submit" class="btn btn-primary">Bilgileri Güncelle</button>
+          </div>
+        </form>
       </div>
-    </form>
+    </div>
+    
+    <div class="card shadow-sm mt-4 border-danger">
+        <div class="card-header bg-danger text-white">
+            <h5 class="mb-0"><i class="bi bi-exclamation-octagon"></i> Tehlikeli Bölge</h5>
+        </div>
+        <div class="card-body">
+            <p>Tüm verileri (müşteriler, poliçeler) kalıcı olarak silmek için:</p>
+            <form action="/policies/reset-data" method="post" onsubmit="return confirm('DİKKAT! Tüm veriler silinecek. Bu işlem geri alınamaz. Emin misiniz?')">
+                <button type="submit" class="btn btn-outline-danger w-100">Tüm Verileri Sıfırla</button>
+            </form>
+        </div>
+    </div>
   </div>
-</section>
+</div>

@@ -1,31 +1,38 @@
-<section class="section">
-  <h1>Yeni Müşteri</h1>
-  <form class="form" action="/customers" method="post">
-    <div class="grid">
-      <label>
-        <span>Ad Soyad</span>
-        <input name="name" required>
-      </label>
-      <label>
-        <span>Telefon</span>
-        <input name="phone" placeholder="+90 5xx xxx xx xx">
-      </label>
-      <label>
-        <span>TCKN</span>
-        <input name="id_no">
-      </label>
-      <label>
-        <span>E-posta</span>
-        <input type="email" name="email">
-      </label>
-      <label>
-        <span>Doğum Tarihi</span>
-        <input type="date" name="birth_date">
-      </label>
+<div class="row justify-content-center">
+  <div class="col-md-8">
+    <div class="card shadow-sm">
+      <div class="card-header bg-light">
+        <h5 class="mb-0">Yeni Müşteri Ekle</h5>
+      </div>
+      <div class="card-body">
+        <form action="/customers" method="post" class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label">Ad Soyad <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" name="name" required>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Telefon</label>
+            <input type="tel" class="form-control" name="phone" placeholder="+90 5xx xxx xx xx">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">TCKN / Vergi No</label>
+            <input type="text" class="form-control" name="id_no">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">E-posta</label>
+            <input type="email" class="form-control" name="email">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Doğum Tarihi</label>
+            <input type="date" class="form-control" name="birth_date">
+          </div>
+          
+          <div class="col-12 mt-4 text-end">
+            <button type="submit" class="btn btn-primary"><i class="bi bi-save"></i> Kaydet</button>
+            <a href="/customers" class="btn btn-secondary"><i class="bi bi-x"></i> İptal</a>
+          </div>
+        </form>
+      </div>
     </div>
-    <div class="actions">
-      <button class="btn" type="submit">Kaydet</button>
-      <a class="btn btn-secondary" href="/customers">İptal</a>
-    </div>
-  </form>
-</section>
+  </div>
+</div>

@@ -1,112 +1,161 @@
-<section class="section">
-  <h1>Poliçeler</h1>
-
-  <div class="stats-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
-    <div class="stat-card" style="background: white; padding: 1rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-      <div style="font-size: 0.9rem; color: #666;">Toplam Müşteri</div>
-      <div style="font-size: 1.5rem; font-weight: bold; color: #333;"><%= typeof totalCustomers !== 'undefined' ? totalCustomers : '-' %></div>
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+  <h1 class="h2">Poliçeler</h1>
+  <div class="btn-toolbar mb-2 mb-md-0">
+    <div class="btn-group me-2">
+      <a href="/policies/export.xlsx?<%= qs %>" class="btn btn-sm btn-outline-secondary"><i class="bi bi-file-earmark-excel"></i> Excel'e Aktar</a>
+      <a href="/policies/import" class="btn btn-sm btn-outline-secondary"><i class="bi bi-upload"></i> Excel Yükle</a>
     </div>
-    <div class="stat-card" style="background: white; padding: 1rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-      <div style="font-size: 0.9rem; color: #666;">Toplam Poliçe</div>
-      <div style="font-size: 1.5rem; font-weight: bold; color: #333;"><%= typeof totalPolicies !== 'undefined' ? totalPolicies : '-' %></div>
+    <a href="/policies/new" class="btn btn-sm btn-primary"><i class="bi bi-plus-lg"></i> Yeni Poliçe</a>
+  </div>
+</div>
+
+<div class="row mb-4">
+  <div class="col-md-3">
+    <div class="card border-left-primary shadow-sm h-100 py-2">
+      <div class="card-body">
+        <div class="row no-gutters align-items-center">
+          <div class="col mr-2">
+            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Toplam Müşteri</div>
+            <div class="h5 mb-0 font-weight-bold text-gray-800"><%= typeof totalCustomers !== 'undefined' ? totalCustomers : '-' %></div>
+          </div>
+          <div class="col-auto">
+            <i class="bi bi-people fa-2x text-gray-300"></i>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
-  <form class="form" method="get" action="/policies" style="margin-bottom:12px">
-    <div class="grid">
-      <label>
-        <span>Arama (Müşteri/Poliçe No)</span>
-        <input name="q" value="<%= (typeof qs !== 'undefined' && new URLSearchParams(qs).get('q')) || '' %>">
-      </label>
-      <label>
-        <span>Sigortacı</span>
-        <input name="insurer" value="<%= (typeof qs !== 'undefined' && new URLSearchParams(qs).get('insurer')) || '' %>">
-      </label>
-      <label>
-        <span>Durum</span>
-        <select name="status">
+  <div class="col-md-3">
+    <div class="card border-left-success shadow-sm h-100 py-2">
+      <div class="card-body">
+        <div class="row no-gutters align-items-center">
+          <div class="col mr-2">
+            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Toplam Poliçe</div>
+            <div class="h5 mb-0 font-weight-bold text-gray-800"><%= typeof totalPolicies !== 'undefined' ? totalPolicies : '-' %></div>
+          </div>
+          <div class="col-auto">
+            <i class="bi bi-file-text fa-2x text-gray-300"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card shadow-sm mb-4">
+  <div class="card-header bg-light">
+    <h6 class="mb-0">Filtrele</h6>
+  </div>
+  <div class="card-body">
+    <form class="row g-3" method="get" action="/policies">
+      <div class="col-md-3">
+        <label class="form-label">Arama</label>
+        <input type="text" class="form-control" name="q" placeholder="Müşteri, Poliçe No..." value="<%= (typeof qs !== 'undefined' && new URLSearchParams(qs).get('q')) || '' %>">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Sigortacı</label>
+        <input type="text" class="form-control" name="insurer" value="<%= (typeof qs !== 'undefined' && new URLSearchParams(qs).get('insurer')) || '' %>">
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">Durum</label>
+        <select class="form-select" name="status">
           <% const s = (typeof qs !== 'undefined' && new URLSearchParams(qs).get('status')) || '' %>
-          <option value="" <%= s===''?'selected':'' %>>-</option>
+          <option value="" <%= s===''?'selected':'' %>>Tümü</option>
           <option value="active" <%= s==='active'?'selected':'' %>>Aktif</option>
           <option value="cancelled" <%= s==='cancelled'?'selected':'' %>>İptal</option>
           <option value="pending" <%= s==='pending'?'selected':'' %>>Beklemede</option>
         </select>
-      </label>
-      <label>
-        <span>Bitiş (Başlangıç)</span>
-        <input type="date" name="end_from" value="<%= (typeof qs !== 'undefined' && new URLSearchParams(qs).get('end_from')) || '' %>">
-      </label>
-      <label>
-        <span>Bitiş (Bitiş)</span>
-        <input type="date" name="end_to" value="<%= (typeof qs !== 'undefined' && new URLSearchParams(qs).get('end_to')) || '' %>">
-      </label>
-    </div>
-    <div class="actions">
-      <button class="btn" type="submit">Filtreyi Uygula</button>
-      <a class="btn btn-secondary" href="/policies">Temizle</a>
-      <a class="btn" href="/policies/export.xlsx?<%= qs %>">Excel'e Aktar</a>
-    </div>
-  </form><h1>Poliçeler</h1>
-  <div class="actions">
-    <a class="btn" href="/policies/new">Yeni Poliçe</a>
-    <a class="btn btn-secondary" href="/policies/import">Excel'den Yükle</a>
-    <form action="/api/trigger-notifications" method="post" style="display:inline">
-      <button class="btn btn-secondary">Bildirimleri Şimdi Kontrol Et</button>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">Bitiş (Başlangıç)</label>
+        <input type="date" class="form-control" name="end_from" value="<%= (typeof qs !== 'undefined' && new URLSearchParams(qs).get('end_from')) || '' %>">
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">Bitiş (Bitiş)</label>
+        <input type="date" class="form-control" name="end_to" value="<%= (typeof qs !== 'undefined' && new URLSearchParams(qs).get('end_to')) || '' %>">
+      </div>
+      <div class="col-12 text-end">
+        <button type="submit" class="btn btn-primary"><i class="bi bi-funnel"></i> Filtrele</button>
+        <a href="/policies" class="btn btn-outline-secondary">Temizle</a>
+      </div>
     </form>
   </div>
-  <table class="table">
-    <thead>
+</div>
+
+<div class="d-flex justify-content-end mb-3">
+    <form action="/api/trigger-notifications" method="post">
+      <button class="btn btn-warning btn-sm"><i class="bi bi-bell"></i> Bildirimleri Kontrol Et</button>
+    </form>
+</div>
+
+<div class="table-responsive">
+  <table class="table table-hover align-middle shadow-sm rounded overflow-hidden">
+    <thead class="table-dark">
       <tr>
         <th>Müşteri</th>
         <th>Telefon</th>
         <th>Kimlik No</th>
         <th>Sigortacı</th>
-        <th>Poliçe Türü</th>
+        <th>Tür</th>
         <th>Poliçe No</th>
         <th>Başlangıç</th>
         <th>Bitiş</th>
-        <th>Doğum Tarihi</th>
-        <th>Kalan Gün</th>
-        <th>Poliçe Bilgileri</th>
+        <th>Kalan</th>
         <th>Durum</th>
-        <th>İşlem</th>
+        <th class="text-end">İşlem</th>
       </tr>
     </thead>
     <tbody>
       <% if (policies.length === 0) { %>
         <tr>
-          <td colspan="12" class="muted" style="text-align:center; padding: 20px;">
-            <% if (typeof qs !== 'undefined' && new URLSearchParams(qs).get('q')) { %>
-              Aradığınız kriterlere uygun poliçe bulunamadı.
-            <% } else { %>
-              Henüz poliçe eklenmedi.
-            <% } %>
+          <td colspan="11" class="text-center py-5 text-muted">
+            <i class="bi bi-inbox display-4 d-block mb-3"></i>
+            Kayıt bulunamadı.
           </td>
         </tr>
       <% } %>
       <% policies.forEach(p => { %>
-        <tr class="<%= p.is_expired ? 'row-expired' : (p.is_expiring_soon ? 'row-warning' : '') %>">
-          <td><%= p.customer_name || '-' %></td>
+        <tr class="<%= p.is_expired ? 'table-danger' : (p.is_expiring_soon ? 'table-warning' : '') %>">
+          <td>
+             <a href="/customers/<%= p.customer_id %>" class="text-decoration-none fw-bold text-dark">
+               <%= p.customer_name || '-' %>
+             </a>
+          </td>
           <td><%= p.customer_phone || '-' %></td>
           <td><%= p.customer_id_no || '-' %></td>
           <td><%= p.insurer %></td>
-          <td><%= p.policy_type || 'Diğer' %></td>
+          <td><span class="badge bg-info text-dark"><%= p.policy_type || 'Diğer' %></span></td>
           <td><%= p.policy_number %></td>
           <td><%= p.start_date %></td>
           <td><%= p.end_date %></td>
-          <td><%= p.customer_birth_date || '-' %></td>
-          <td><%= p.days_remaining %></td>
-          <td><%= p.description || '-' %></td>
-          <td><%= p.status %></td>
-          <td class="nowrap">
-            <a class="btn btn-small" href="/policies/<%= p.id %>">Detay</a>
-            <a class="btn btn-small" href="/policies/<%= p.id %>/edit">Düzenle</a>
-            <form action="/policies/<%= p.id %>/delete" method="post" style="display:inline">
-              <button class="btn btn-small btn-danger" onclick="return confirm('Silmek istediğinize emin misiniz?')">Sil</button>
-            </form>
+          <td>
+            <% if (p.days_remaining < 0) { %>
+                <span class="badge bg-danger">Süresi Doldu</span>
+            <% } else { %>
+                <span class="fw-bold"><%= p.days_remaining %> gün</span>
+            <% } %>
+          </td>
+          <td>
+             <% if (p.status === 'active' || p.status === 'Aktif') { %>
+               <span class="badge bg-success">Aktif</span>
+             <% } else if (p.status === 'cancelled' || p.status === 'İptal') { %>
+               <span class="badge bg-danger">İptal</span>
+             <% } else { %>
+               <span class="badge bg-secondary"><%= p.status %></span>
+             <% } %>
+          </td>
+          <td class="text-end">
+            <div class="btn-group btn-group-sm">
+              <a href="/policies/<%= p.id %>" class="btn btn-outline-primary" title="Detay"><i class="bi bi-eye"></i></a>
+              <a href="/policies/<%= p.id %>/edit" class="btn btn-outline-warning" title="Düzenle"><i class="bi bi-pencil"></i></a>
+              <form action="/policies/<%= p.id %>/delete" method="post" class="d-inline" onsubmit="return confirm('Silmek istediğinize emin misiniz?')">
+                <button class="btn btn-outline-danger" title="Sil"><i class="bi bi-trash"></i></button>
+              </form>
+            </div>
           </td>
         </tr>
       <% }) %>
     </tbody>
   </table>
-</section>
+</div>

@@ -1,0 +1,117 @@
+<div class="row mb-4">
+  <div class="col-md-8">
+    <h1 class="h3"><i class="bi bi-person-circle"></i> Müşteri Detayı: <%= customer.name %></h1>
+  </div>
+  <div class="col-md-4 text-end">
+    <a href="/customers/<%= customer.id %>/edit" class="btn btn-warning"><i class="bi bi-pencil"></i> Düzenle</a>
+    <a href="/customers" class="btn btn-secondary"><i class="bi bi-arrow-left"></i> Listeye Dön</a>
+  </div>
+</div>
+
+<div class="row mb-4">
+  <!-- Müşteri Bilgi Kartı -->
+  <div class="col-md-4">
+    <div class="card shadow-sm h-100">
+      <div class="card-header bg-light">
+        <h5 class="card-title mb-0">İletişim Bilgileri</h5>
+      </div>
+      <div class="card-body">
+        <p><strong>Telefon:</strong> <%= customer.phone || '-' %></p>
+        <p><strong>E-posta:</strong> <%= customer.email || '-' %></p>
+        <p><strong>TC/Vergi No:</strong> <%= customer.id_no || '-' %></p>
+        <p><strong>Doğum Tarihi:</strong> <%= customer.birth_date || '-' %></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Özet İstatistikler -->
+  <div class="col-md-8">
+    <div class="row g-3">
+      <div class="col-md-4">
+        <div class="card bg-primary text-white h-100">
+          <div class="card-body text-center">
+            <h6 class="card-title">Toplam Poliçe</h6>
+            <h2 class="display-4"><%= stats.totalPolicies %></h2>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card bg-success text-white h-100">
+          <div class="card-body text-center">
+            <h6 class="card-title">Aktif Poliçeler</h6>
+            <h2 class="display-4"><%= stats.activePolicies %></h2>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card bg-danger text-white h-100">
+          <div class="card-body text-center">
+            <h6 class="card-title">Süresi Bitenler</h6>
+            <h2 class="display-4"><%= stats.expiredPolicies %></h2>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card shadow-sm">
+  <div class="card-header bg-light d-flex justify-content-between align-items-center">
+    <h5 class="mb-0">Poliçe Geçmişi</h5>
+    <a href="/policies/new?customer_id=<%= customer.id %>" class="btn btn-sm btn-primary"><i class="bi bi-plus-lg"></i> Yeni Poliçe Ekle</a>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>Poliçe No</th>
+            <th>Şirket</th>
+            <th>Tür</th>
+            <th>Başlangıç</th>
+            <th>Bitiş</th>
+            <th>Kalan Gün</th>
+            <th>Durum</th>
+            <th>İşlem</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% if (policies.length === 0) { %>
+            <tr><td colspan="8" class="text-center py-4">Kayıtlı poliçe bulunamadı.</td></tr>
+          <% } else { %>
+            <% policies.forEach(p => { %>
+              <tr>
+                <td><a href="/policies/<%= p.id %>" class="text-decoration-none fw-bold"><%= p.policy_number %></a></td>
+                <td><%= p.insurer %></td>
+                <td><span class="badge bg-secondary"><%= p.policy_type %></span></td>
+                <td><%= p.start_date %></td>
+                <td><%= p.end_date %></td>
+                <td>
+                  <% if (p.days_remaining < 0) { %>
+                    <span class="text-danger">Süresi Doldu</span>
+                  <% } else if (p.days_remaining <= 30) { %>
+                    <span class="text-warning fw-bold"><%= p.days_remaining %> gün</span>
+                  <% } else { %>
+                    <span class="text-success"><%= p.days_remaining %> gün</span>
+                  <% } %>
+                </td>
+                <td>
+                  <% if (p.status === 'active' || p.status === 'Aktif') { %>
+                    <span class="badge bg-success">Aktif</span>
+                  <% } else if (p.status === 'cancelled' || p.status === 'İptal') { %>
+                    <span class="badge bg-danger">İptal</span>
+                  <% } else { %>
+                    <span class="badge bg-secondary"><%= p.status %></span>
+                  <% } %>
+                </td>
+                <td>
+                  <a href="/policies/<%= p.id %>" class="btn btn-sm btn-outline-primary"><i class="bi bi-eye"></i></a>
+                </td>
+              </tr>
+            <% }) %>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

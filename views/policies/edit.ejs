@@ -1,66 +1,74 @@
-<section class="section">
-  <h1>Poliçe Düzenle</h1>
-  <form class="form" action="/policies/<%= policy.id %>" method="post">
-    <div class="grid">
-      <label>
-        <span>Müşteri</span>
-        <select name="customer_id" required>
-          <% customers.forEach(c => { %>
-            <option value="<%= c.id %>" <%= (policy.customer_id===c.id)?'selected':'' %>><%= c.name %> (<%= c.phone || '-' %>)</option>
-          <% }) %>
-        </select>
-      </label>
-      <label>
-        <span>Sigortacı</span>
-        <input name="insurer" value="<%= policy.insurer %>" required>
-      </label>
-      <label>
-        <span>Poliçe Türü</span>
-        <select name="policy_type">
-          <option value="Trafik" <%= policy.policy_type === 'Trafik' ? 'selected' : '' %>>Trafik</option>
-          <option value="Kasko" <%= policy.policy_type === 'Kasko' ? 'selected' : '' %>>Kasko</option>
-          <option value="Konut" <%= policy.policy_type === 'Konut' ? 'selected' : '' %>>Konut</option>
-          <option value="DASK" <%= policy.policy_type === 'DASK' ? 'selected' : '' %>>DASK</option>
-          <option value="Sağlık" <%= policy.policy_type === 'Sağlık' ? 'selected' : '' %>>Sağlık</option>
-          <option value="Kısa Süreli Trafik" <%= policy.policy_type === 'Kısa Süreli Trafik' ? 'selected' : '' %>>Kısa Süreli Trafik</option>
-          <option value="Diğer" <%= (!policy.policy_type || policy.policy_type === 'Diğer') ? 'selected' : '' %>>Diğer</option>
-        </select>
-      </label>
-      <label>
-        <span>Poliçe No</span>
-        <input name="policy_number" value="<%= policy.policy_number %>" required>
-      </label>
-      <label>
-        <span>Tanzim Tarihi</span>
-        <input type="date" name="issue_date" value="<%= policy.issue_date || '' %>">
-      </label>
-      <label>
-        <span>Başlangıç Tarihi</span>
-        <input type="date" name="start_date" value="<%= policy.start_date %>" required>
-      </label>
-      <label>
-        <span>Bitiş Tarihi</span>
-        <input type="date" name="end_date" value="<%= policy.end_date %>" required>
-      </label>
-      <label>
-        <span>Poliçe Bilgileri</span>
-        <input name="description" value="<%= policy.description || '' %>">
-      </label>
-      <label>
-        <span>Durum</span>
-        <select name="status">
-          <option value="active" <%= policy.status === 'active' ? 'selected' : '' %>>Aktif</option>
-          <option value="cancelled" <%= policy.status === 'cancelled' ? 'selected' : '' %>>İptal</option>
-          <option value="pending" <%= policy.status === 'pending' ? 'selected' : '' %>>Beklemede</option>
-        </select>
-      </label>
+<div class="row justify-content-center">
+  <div class="col-md-8">
+    <div class="card shadow-sm">
+      <div class="card-header bg-light">
+        <h5 class="mb-0">Poliçe Düzenle: <%= policy.policy_number %></h5>
+      </div>
+      <div class="card-body">
+        <form action="/policies/<%= policy.id %>" method="post" class="row g-3">
+          <div class="col-md-12">
+            <label class="form-label">Müşteri <span class="text-danger">*</span></label>
+            <select class="form-select" name="customer_id" required>
+              <% customers.forEach(c => { %>
+                <option value="<%= c.id %>" <%= (policy.customer_id===c.id)?'selected':'' %>><%= c.name %> (<%= c.phone || '-' %>)</option>
+              <% }) %>
+            </select>
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label">Sigorta Şirketi <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" name="insurer" value="<%= policy.insurer %>" required>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Poliçe Türü</label>
+            <select class="form-select" name="policy_type">
+              <option value="Trafik" <%= policy.policy_type === 'Trafik' ? 'selected' : '' %>>Trafik</option>
+              <option value="Kasko" <%= policy.policy_type === 'Kasko' ? 'selected' : '' %>>Kasko</option>
+              <option value="Konut" <%= policy.policy_type === 'Konut' ? 'selected' : '' %>>Konut</option>
+              <option value="DASK" <%= policy.policy_type === 'DASK' ? 'selected' : '' %>>DASK</option>
+              <option value="Sağlık" <%= policy.policy_type === 'Sağlık' ? 'selected' : '' %>>Sağlık</option>
+              <option value="Kısa Süreli Trafik" <%= policy.policy_type === 'Kısa Süreli Trafik' ? 'selected' : '' %>>Kısa Süreli Trafik</option>
+              <option value="Diğer" <%= (!policy.policy_type || policy.policy_type === 'Diğer') ? 'selected' : '' %>>Diğer</option>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Poliçe No <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" name="policy_number" value="<%= policy.policy_number %>" required>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Tanzim Tarihi</label>
+            <input type="date" class="form-control" name="issue_date" value="<%= policy.issue_date || '' %>">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Başlangıç Tarihi <span class="text-danger">*</span></label>
+            <input type="date" class="form-control" name="start_date" value="<%= policy.start_date %>" required>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Bitiş Tarihi <span class="text-danger">*</span></label>
+            <input type="date" class="form-control" name="end_date" value="<%= policy.end_date %>" required>
+          </div>
+          <div class="col-md-12">
+            <label class="form-label">Poliçe Bilgileri / Açıklama</label>
+            <textarea class="form-control" name="description" rows="2"><%= policy.description || '' %></textarea>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Durum</label>
+            <select class="form-select" name="status">
+              <option value="active" <%= policy.status === 'active' ? 'selected' : '' %>>Aktif</option>
+              <option value="cancelled" <%= policy.status === 'cancelled' ? 'selected' : '' %>>İptal</option>
+              <option value="pending" <%= policy.status === 'pending' ? 'selected' : '' %>>Beklemede</option>
+            </select>
+          </div>
+
+          <div class="col-12 mt-4 text-end">
+            <button type="submit" class="btn btn-warning"><i class="bi bi-pencil-square"></i> Güncelle</button>
+            <a href="/policies/<%= policy.id %>" class="btn btn-secondary"><i class="bi bi-x"></i> İptal</a>
+          </div>
+        </form>
+      </div>
     </div>
-    <div class="actions">
-      <button class="btn" type="submit">Kaydet</button>
-      <a class="btn btn-secondary" href="/policies">İptal</a>
-    </div>
-  </form>
-</section>
+  </div>
+</div>
 <script>
   const startDateInput = document.querySelector('input[name="start_date"]');
   const endDateInput = document.querySelector('input[name="end_date"]');

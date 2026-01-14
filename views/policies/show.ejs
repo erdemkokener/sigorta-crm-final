@@ -1,67 +1,109 @@
-<section class="section">
-  <h1>Poliçe Detay</h1>
-  <div class="actions">
-    <a class="btn btn-secondary" href="/policies">Listeye Dön</a>
-    <a class="btn" href="/policies/<%= policy.id %>/edit">Düzenle</a>
+<div class="row mb-4">
+  <div class="col-md-8">
+    <h1 class="h3"><i class="bi bi-file-earmark-text"></i> Poliçe Detayı: <%= policy.policy_number %></h1>
   </div>
-  <div class="form">
-    <div class="grid">
-      <label>
-        <span>Müşteri</span>
-        <input value="<%= policy.customer_name || '-' %>" readonly>
-      </label>
-      <label>
-        <span>Telefon</span>
-        <input value="<%= policy.customer_phone || '-' %>" readonly>
-      </label>
-      <label>
-        <span>TCKN</span>
-        <input value="<%= policy.customer_id_no || '-' %>" readonly>
-      </label>
-      <label>
-        <span>E-posta</span>
-        <input value="<%= policy.customer_email || '-' %>" readonly>
-      </label>
-      <label>
-        <span>Doğum Tarihi</span>
-        <input value="<%= policy.customer_birth_date || '-' %>" readonly>
-      </label>
-      <label>
-        <span>Sigortacı</span>
-        <input value="<%= policy.insurer %>" readonly>
-      </label>
-      <label>
-        <span>Poliçe Türü</span>
-        <input value="<%= policy.policy_type || 'Diğer' %>" readonly>
-      </label>
-      <label>
-        <span>Poliçe No</span>
-        <input value="<%= policy.policy_number %>" readonly>
-      </label>
-      <label>
-        <span>Tanzim Tarihi</span>
-        <input value="<%= policy.issue_date || '-' %>" readonly>
-      </label>
-      <label>
-        <span>Başlangıç</span>
-        <input value="<%= policy.start_date %>" readonly>
-      </label>
-      <label>
-        <span>Bitiş</span>
-        <input value="<%= policy.end_date %>" readonly>
-      </label>
-      <label>
-        <span>Kalan Gün</span>
-        <input value="<%= policy.days_remaining %>" readonly>
-      </label>
-      <label>
-        <span>Poliçe Bilgileri</span>
-        <input value="<%= policy.description || '-' %>" readonly>
-      </label>
-      <label>
-        <span>Durum</span>
-        <input value="<%= policy.status %>" readonly>
-      </label>
+  <div class="col-md-4 text-end">
+    <a href="/policies/<%= policy.id %>/edit" class="btn btn-warning"><i class="bi bi-pencil"></i> Düzenle</a>
+    <a href="/policies?<%= typeof qs !== 'undefined' ? qs : '' %>" class="btn btn-secondary"><i class="bi bi-arrow-left"></i> Listeye Dön</a>
+  </div>
+</div>
+
+<div class="row">
+  <!-- Müşteri Bilgileri -->
+  <div class="col-md-4 mb-4">
+    <div class="card shadow-sm h-100">
+      <div class="card-header bg-light">
+        <h5 class="card-title mb-0"><i class="bi bi-person"></i> Müşteri Bilgileri</h5>
+      </div>
+      <div class="card-body">
+        <div class="mb-3">
+            <label class="text-muted small">Ad Soyad</label>
+            <div class="fw-bold fs-5">
+              <a href="/customers/<%= policy.customer_id %>" class="text-decoration-none">
+                <%= policy.customer_name || '-' %>
+              </a>
+            </div>
+        </div>
+        <div class="mb-3">
+            <label class="text-muted small">Telefon</label>
+            <div><%= policy.customer_phone || '-' %></div>
+        </div>
+        <div class="mb-3">
+            <label class="text-muted small">TCKN / Vergi No</label>
+            <div><%= policy.customer_id_no || '-' %></div>
+        </div>
+        <div class="mb-3">
+            <label class="text-muted small">E-posta</label>
+            <div><%= policy.customer_email || '-' %></div>
+        </div>
+        <div class="mb-3">
+            <label class="text-muted small">Doğum Tarihi</label>
+            <div><%= policy.customer_birth_date || '-' %></div>
+        </div>
+      </div>
     </div>
   </div>
-</section>
+
+  <!-- Poliçe Detayları -->
+  <div class="col-md-8 mb-4">
+    <div class="card shadow-sm h-100">
+      <div class="card-header bg-light">
+        <h5 class="card-title mb-0"><i class="bi bi-shield-check"></i> Poliçe Detayları</h5>
+      </div>
+      <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label class="text-muted small">Sigorta Şirketi</label>
+                <div class="fw-bold"><%= policy.insurer %></div>
+            </div>
+            <div class="col-md-6">
+                <label class="text-muted small">Poliçe Türü</label>
+                <div><span class="badge bg-info text-dark"><%= policy.policy_type || 'Diğer' %></span></div>
+            </div>
+            <div class="col-md-6">
+                <label class="text-muted small">Poliçe No</label>
+                <div class="fw-bold font-monospace"><%= policy.policy_number %></div>
+            </div>
+            <div class="col-md-6">
+                <label class="text-muted small">Tanzim Tarihi</label>
+                <div><%= policy.issue_date || '-' %></div>
+            </div>
+            <div class="col-md-6">
+                <label class="text-muted small">Başlangıç Tarihi</label>
+                <div class="fw-bold text-success"><%= policy.start_date %></div>
+            </div>
+            <div class="col-md-6">
+                <label class="text-muted small">Bitiş Tarihi</label>
+                <div class="fw-bold text-danger"><%= policy.end_date %></div>
+            </div>
+            <div class="col-md-6">
+                <label class="text-muted small">Durum</label>
+                <div>
+                    <% if (policy.status === 'active' || policy.status === 'Aktif') { %>
+                        <span class="badge bg-success">Aktif</span>
+                    <% } else if (policy.status === 'cancelled' || policy.status === 'İptal') { %>
+                        <span class="badge bg-danger">İptal</span>
+                    <% } else { %>
+                        <span class="badge bg-secondary"><%= policy.status %></span>
+                    <% } %>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <label class="text-muted small">Kalan Gün</label>
+                <div>
+                    <% if (policy.days_remaining < 0) { %>
+                        <span class="badge bg-danger">Süresi Doldu</span>
+                    <% } else { %>
+                        <span class="fw-bold"><%= policy.days_remaining %> gün</span>
+                    <% } %>
+                </div>
+            </div>
+            <div class="col-12">
+                <label class="text-muted small">Açıklama / Notlar</label>
+                <div class="p-3 bg-light rounded border"><%= policy.description || 'Not yok.' %></div>
+            </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -279,6 +279,34 @@ app.post('/customers', requireAuth, async (req, res) => {
   res.redirect('/customers');
 });
 
+app.get('/customers/:id', requireAuth, async (req, res) => {
+  const id = Number(req.params.id);
+  const data = await getContext();
+  const customer = data.customers.find(x => x.id === id);
+  
+  if (!customer) return res.status(404).send('Müşteri bulunamadı');
+
+  // Müşteriye ait poliçeleri bul ve hesaplamaları yap
+  const policies = data.policies
+    .filter(p => p.customer_id === id)
+    .map(p => policyWithComputed(p))
+    .sort((a, b) => a.end_date.localeCompare(b.end_date) || b.id - a.id);
+
+  // İstatistikler
+  const stats = {
+    totalPolicies: policies.length,
+    activePolicies: policies.filter(p => !p.is_expired && (p.status === 'active' || p.status === 'Aktif')).length,
+    expiredPolicies: policies.filter(p => p.is_expired).length
+  };
+
+  res.render('customers/show', { 
+    title: 'Müşteri Detayı', 
+    customer, 
+    policies,
+    stats 
+  });
+});
+
 app.get('/customers/:id/edit', requireAuth, async (req, res) => {
   const id = Number(req.params.id);
   const data = await getContext();
