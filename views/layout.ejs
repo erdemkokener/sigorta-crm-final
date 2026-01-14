@@ -21,7 +21,10 @@
           <% if (user) { %>
             <li class="nav-item"><a class="nav-link" href="/customers">Müşteriler</a></li>
             <li class="nav-item"><a class="nav-link" href="/policies">Poliçeler</a></li>
-            <li class="nav-item"><a class="nav-link" href="/settings">Ayarlar</a></li>
+            <% if (user.isAdmin) { %>
+              <li class="nav-item"><a class="nav-link" href="/users">Kullanıcılar</a></li>
+              <li class="nav-item"><a class="nav-link" href="/settings">Ayarlar</a></li>
+            <% } %>
             <li class="nav-item ms-2"><a class="btn btn-success btn-sm mt-1" href="/policies/new">Yeni Poliçe</a></li>
             <li class="nav-item ms-2">
               <form action="/logout" method="post" class="d-inline">

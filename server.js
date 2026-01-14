@@ -6,6 +6,7 @@ const dayjs = require('dayjs');
 const session = require('express-session');
 const expressLayouts = require('express-ejs-layouts');
 const ExcelJS = require('exceljs');
+const bcrypt = require('bcryptjs');
 const db = require('./db');
 const dataService = require('./services/dataService');
 
@@ -85,6 +86,13 @@ app.use((req, res, next) => {
 
 function requireAuth(req, res, next) {
   if (!req.session.user) return res.redirect('/login');
+  next();
+}
+
+function requireAdmin(req, res, next) {
+  if (!req.session.user || !req.session.user.isAdmin) {
+    return res.status(403).send('Bu işlem için yetkiniz yok');
+  }
   next();
 }
 
@@ -214,12 +222,38 @@ app.post('/login', async (req, res) => {
   const data = await getContext();
   const validUser = data.settings?.admin_user || USER;
   const validPass = data.settings?.admin_pass || PASS;
-
+  const users = await dataService.getUsers();
+  const existingUser = users.find(u => u.username === username && u.is_active !== false);
+  if (existingUser) {
+    const ok = await bcrypt.compare(password, existingUser.password_hash);
+    if (ok) {
+      req.session.user = { id: existingUser._id || existingUser.id, username: existingUser.username, role: existingUser.role, isAdmin: existingUser.role === 'owner' || existingUser.role === 'admin' };
+      return res.redirect('/policies');
+    }
+  }
   if (username === validUser && password === validPass) {
-    req.session.user = { username };
+    req.session.user = { username: validUser, role: 'owner', isAdmin: true };
     return res.redirect('/policies');
   }
   res.status(401).render('auth/login', { title: 'Giriş', error: 'Kullanıcı adı veya şifre hatalı' });
+});
+
+app.get('/forgot-password', (req, res) => {
+  res.render('auth/forgot-password', { title: 'Şifremi Unuttum', msg: null, error: null });
+});
+
+app.post('/forgot-password', async (req, res) => {
+  const { username, note } = req.body;
+  const info = [];
+  if (username) info.push(`Kullanıcı adı: ${username}`);
+  if (note) info.push(`Not: ${note}`);
+  const bodyText = info.join('\n') || 'Kullanıcı şifresini unuttu.';
+  await sendMail(
+    'Şifre sıfırlama talebi',
+    bodyText,
+    `<p>Şifre sıfırlama talebi alındı.</p><p>${info.join('<br>') || 'Kullanıcı şifresini unuttu.'}</p>`
+  );
+  res.render('auth/forgot-password', { title: 'Şifremi Unuttum', msg: 'Talebiniz alındı. En kısa sürede sizinle iletişime geçilecektir.', error: null });
 });
 
 app.post('/logout', (req, res) => {
@@ -228,22 +262,94 @@ app.post('/logout', (req, res) => {
   });
 });
 
-app.get('/settings', requireAuth, (req, res) => {
+app.get('/settings', requireAuth, requireAdmin, (req, res) => {
   res.render('settings', { title: 'Ayarlar', msg: req.query.msg, error: req.query.error });
 });
 
-app.post('/settings', requireAuth, async (req, res) => {
+app.post('/settings', requireAuth, requireAdmin, async (req, res) => {
   const { old_password, new_username, new_password } = req.body;
   const data = await getContext();
+  const currentUser = req.session.user;
   const currentPass = data.settings?.admin_pass || PASS;
 
-  if (old_password !== currentPass) {
+  if (!old_password || old_password !== currentPass) {
     return res.redirect('/settings?error=' + encodeURIComponent('Mevcut şifre hatalı.'));
   }
 
-  await dataService.updateSettings(new_username, new_password);
-  req.session.user.username = new_username;
+  const finalUsername = new_username && new_username.trim() ? new_username.trim() : (data.settings?.admin_user || USER);
+  const finalPassword = new_password && new_password.trim() ? new_password.trim() : currentPass;
+
+  await dataService.updateSettings(finalUsername, finalPassword);
+  req.session.user.username = finalUsername;
   res.redirect('/settings?msg=' + encodeURIComponent('Bilgiler başarıyla güncellendi.'));
+});
+
+app.get('/users', requireAuth, requireAdmin, async (req, res) => {
+  const users = await dataService.getUsers();
+  res.render('users/index', { title: 'Kullanıcılar', users, msg: req.query.msg, error: req.query.error });
+});
+
+app.get('/users/new', requireAuth, requireAdmin, (req, res) => {
+  res.render('users/new', { title: 'Yeni Kullanıcı' });
+});
+
+app.post('/users', requireAuth, requireAdmin, async (req, res) => {
+  const { username, password, role } = req.body;
+  if (!username || !password) {
+    return res.redirect('/users?error=' + encodeURIComponent('Kullanıcı adı ve şifre zorunlu.'));
+  }
+  const existing = await dataService.getUserByUsername(username.trim());
+  if (existing) {
+    return res.redirect('/users?error=' + encodeURIComponent('Bu kullanıcı adı zaten kullanılıyor.'));
+  }
+  const hash = await bcrypt.hash(password, 10);
+  await dataService.createUser({
+    username: username.trim(),
+    password_hash: hash,
+    role: role === 'admin' ? 'admin' : 'user',
+    is_active: true
+  });
+  res.redirect('/users?msg=' + encodeURIComponent('Kullanıcı oluşturuldu.'));
+});
+
+app.get('/users/:id/edit', requireAuth, requireAdmin, async (req, res) => {
+  const users = await dataService.getUsers();
+  const user = users.find(u => String(u._id || u.id) === req.params.id);
+  if (!user) return res.status(404).send('Kullanıcı bulunamadı');
+  res.render('users/edit', { title: 'Kullanıcı Düzenle', user });
+});
+
+app.post('/users/:id', requireAuth, requireAdmin, async (req, res) => {
+  const users = await dataService.getUsers();
+  const user = users.find(u => String(u._id || u.id) === req.params.id);
+  if (!user) return res.status(404).send('Kullanıcı bulunamadı');
+  const updates = {};
+  if (user.role !== 'owner') {
+    if (req.body.username && req.body.username.trim()) {
+      updates.username = req.body.username.trim();
+    }
+    if (req.body.role === 'admin' || req.body.role === 'user') {
+      updates.role = req.body.role;
+    }
+  }
+  if (req.body.password && req.body.password.trim()) {
+    const hash = await bcrypt.hash(req.body.password.trim(), 10);
+    updates.password_hash = hash;
+  }
+  updates.is_active = req.body.is_active === 'false' ? false : true;
+  await dataService.updateUser(user._id || user.id, updates);
+  res.redirect('/users?msg=' + encodeURIComponent('Kullanıcı güncellendi.'));
+});
+
+app.post('/users/:id/delete', requireAuth, requireAdmin, async (req, res) => {
+  const users = await dataService.getUsers();
+  const user = users.find(u => String(u._id || u.id) === req.params.id);
+  if (!user) return res.status(404).send('Kullanıcı bulunamadı');
+  if (user.role === 'owner') {
+    return res.redirect('/users?error=' + encodeURIComponent('Ana kullanıcı silinemez.'));
+  }
+  await dataService.deleteUser(user._id || user.id);
+  res.redirect('/users?msg=' + encodeURIComponent('Kullanıcı silindi.'));
 });
 
 app.get('/customers', requireAuth, async (req, res) => {
@@ -327,17 +433,24 @@ app.get('/customers/:id/edit', requireAuth, async (req, res) => {
 
 app.post('/customers/:id', requireAuth, async (req, res) => {
   const id = Number(req.params.id);
-  await dataService.updateCustomer(id, {
-    name: req.body.name,
-    phone: req.body.phone,
-    id_no: req.body.id_no,
-    email: req.body.email,
-    birth_date: req.body.birth_date
-  });
+  const currentUser = req.session.user;
+  if (currentUser && currentUser.isAdmin) {
+    await dataService.updateCustomer(id, {
+      name: req.body.name,
+      phone: req.body.phone,
+      id_no: req.body.id_no,
+      email: req.body.email,
+      birth_date: req.body.birth_date
+    });
+  } else {
+    await dataService.updateCustomer(id, {
+      phone: req.body.phone
+    });
+  }
   res.redirect('/customers');
 });
 
-app.post('/customers/:id/delete', requireAuth, async (req, res) => {
+app.post('/customers/:id/delete', requireAuth, requireAdmin, async (req, res) => {
   const id = Number(req.params.id);
   const data = await getContext();
   const anyPolicy = data.policies.some(p => p.customer_id === id);

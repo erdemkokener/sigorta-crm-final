@@ -1,0 +1,31 @@
+<div class="row justify-content-center">
+  <div class="col-md-6">
+    <h1 class="h3 mb-4">Yeni Kullanıcı Ekle</h1>
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <form action="/users" method="post" class="row g-3">
+          <div class="col-12">
+            <label class="form-label">Kullanıcı Adı <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" name="username" required>
+          </div>
+          <div class="col-12">
+            <label class="form-label">Şifre <span class="text-danger">*</span></label>
+            <input type="password" class="form-control" name="password" required>
+          </div>
+          <div class="col-12">
+            <label class="form-label">Rol</label>
+            <select class="form-select" name="role">
+              <option value="user">Normal Kullanıcı</option>
+              <option value="admin">Yönetici</option>
+            </select>
+          </div>
+          <div class="col-12 text-end">
+            <a href="/users" class="btn btn-secondary">İptal</a>
+            <button type="submit" class="btn btn-primary">Kaydet</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+

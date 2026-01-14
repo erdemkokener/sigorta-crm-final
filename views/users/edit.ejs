@@ -1,0 +1,40 @@
+<div class="row justify-content-center">
+  <div class="col-md-6">
+    <h1 class="h3 mb-4">Kullanıcı Düzenle</h1>
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <form action="/users/<%= user._id || user.id %>" method="post" class="row g-3">
+          <div class="col-12">
+            <label class="form-label">Kullanıcı Adı <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" name="username" value="<%= user.username %>" <%= user.role === 'owner' ? 'readonly' : '' %> required>
+          </div>
+          <div class="col-12">
+            <label class="form-label">Yeni Şifre</label>
+            <input type="password" class="form-control" name="password">
+            <div class="form-text">Boş bırakırsanız şifre değişmez.</div>
+          </div>
+          <div class="col-12">
+            <label class="form-label">Rol</label>
+            <select class="form-select" name="role" <%= user.role === 'owner' ? 'disabled' : '' %>>
+              <option value="user" <%= user.role === 'user' ? 'selected' : '' %>>Normal Kullanıcı</option>
+              <option value="admin" <%= user.role === 'admin' ? 'selected' : '' %>>Yönetici</option>
+              <option value="owner" <%= user.role === 'owner' ? 'selected' : '' %>>Ana Yönetici</option>
+            </select>
+          </div>
+          <div class="col-12">
+            <label class="form-label">Durum</label>
+            <select class="form-select" name="is_active">
+              <option value="true" <%= user.is_active !== false ? 'selected' : '' %>>Aktif</option>
+              <option value="false" <%= user.is_active === false ? 'selected' : '' %>>Pasif</option>
+            </select>
+          </div>
+          <div class="col-12 text-end">
+            <a href="/users" class="btn btn-secondary">İptal</a>
+            <button type="submit" class="btn btn-primary">Güncelle</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+

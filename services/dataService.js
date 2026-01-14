@@ -4,19 +4,22 @@ const db = require('../db');
 const Customer = require('../models/Customer');
 const Policy = require('../models/Policy');
 const Settings = require('../models/Settings');
+const User = require('../models/User');
 
 const dataFile = path.join(__dirname, '../data.json');
 
 // Helper to read file data
 function loadFile() {
   if (!fs.existsSync(dataFile)) {
-    return { policies: [], nextId: 1, customers: [], nextCustomerId: 1, settings: {} };
+    return { policies: [], nextId: 1, customers: [], nextCustomerId: 1, settings: {}, users: [], nextUserId: 1 };
   }
   const raw = fs.readFileSync(dataFile, 'utf8');
   const data = JSON.parse(raw);
   if (!data.customers) data.customers = [];
   if (!data.nextCustomerId) data.nextCustomerId = 1;
   if (!data.settings) data.settings = {};
+  if (!data.users) data.users = [];
+  if (!data.nextUserId) data.nextUserId = 1;
   return data;
 }
 
@@ -158,6 +161,65 @@ const DataService = {
       if (!data.settings) data.settings = {};
       data.settings.admin_user = username;
       data.settings.admin_pass = password;
+      saveFile(data);
+    }
+  },
+
+  async getUsers() {
+    if (db.isConnected()) {
+      const users = await User.find({});
+      return users.map(u => u.toObject());
+    } else {
+      const data = loadFile();
+      return data.users || [];
+    }
+  },
+
+  async getUserByUsername(username) {
+    if (db.isConnected()) {
+      const user = await User.findOne({ username });
+      return user ? user.toObject() : null;
+    } else {
+      const data = loadFile();
+      const user = (data.users || []).find(u => u.username === username);
+      return user || null;
+    }
+  },
+
+  async createUser(userData) {
+    if (db.isConnected()) {
+      const user = new User(userData);
+      await user.save();
+      return user.toObject();
+    } else {
+      const data = loadFile();
+      const id = data.nextUserId++;
+      const newUser = { ...userData, id };
+      data.users.push(newUser);
+      saveFile(data);
+      return newUser;
+    }
+  },
+
+  async updateUser(id, updateData) {
+    if (db.isConnected()) {
+      await User.findByIdAndUpdate(id, updateData);
+    } else {
+      const data = loadFile();
+      const idx = (data.users || []).findIndex(u => u.id === id);
+      if (idx !== -1) {
+        data.users[idx] = { ...data.users[idx], ...updateData };
+        saveFile(data);
+      }
+    }
+  },
+
+  async deleteUser(id) {
+    if (db.isConnected()) {
+      await User.findByIdAndDelete(id);
+    } else {
+      const data = loadFile();
+      data.users = (data.users || []).filter(u => u.id !== id);
       saveFile(data);
     }
   },
