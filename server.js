@@ -18,7 +18,7 @@ try {
 }
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001;
 
 const USER = process.env.APP_USER || 'admin';
 const PASS = process.env.APP_PASS || 'admin123';
