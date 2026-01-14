@@ -11,10 +11,19 @@
             <select class="form-select" name="customer_id" required>
               <option value="">Seçiniz</option>
               <% customers.forEach(c => { %>
-                <option value="<%= c.id %>"><%= c.name %> (<%= c.phone || '-' %>)</option>
+                <option value="<%= c.id %>" data-id-no="<%= c.id_no || '' %>"><%= c.name %> (<%= c.phone || '-' %>)</option>
               <% }) %>
             </select>
             <div class="form-text">Listede yoksa önce <a href="/customers/new">yeni müşteri ekleyin</a>.</div>
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label">TC/VKN ile Müşteri Bul</label>
+            <div class="input-group">
+              <input type="text" class="form-control" id="customerSearchIdNo" placeholder="TC veya Vergi No yazın">
+              <button type="button" class="btn btn-outline-secondary" id="customerSearchBtn">Bul</button>
+            </div>
+            <div class="form-text" id="customerSearchResult"></div>
           </div>
 
           <div class="col-md-6">
@@ -62,13 +71,60 @@
             </select>
           </div>
 
-          <div class="col-12 mt-4 text-end">
-            <button type="submit" class="btn btn-primary"><i class="bi bi-save"></i> Kaydet</button>
-            <a href="/policies" class="btn btn-secondary"><i class="bi bi-x"></i> İptal</a>
-          </div>
-        </form>
+      <div class="col-12 mt-4 text-end">
+        <button type="submit" class="btn btn-primary"><i class="bi bi-save"></i> Kaydet</button>
+        <a href="/policies" class="btn btn-secondary"><i class="bi bi-x"></i> İptal</a>
       </div>
-    </div>
+    </form>
+  </div>
+</div>
+</div>
+
+<script>
+  const customerSelect = document.querySelector('select[name="customer_id"]');
+  const searchInput = document.getElementById('customerSearchIdNo');
+  const searchBtn = document.getElementById('customerSearchBtn');
+  const searchResult = document.getElementById('customerSearchResult');
+
+  function findCustomerByIdNo() {
+    if (!customerSelect || !searchInput || !searchResult) return;
+    const raw = (searchInput.value || '').trim();
+    if (!raw) {
+      searchResult.textContent = '';
+      searchResult.classList.remove('text-success', 'text-danger');
+      return;
+    }
+    const normalized = raw.replace(/\D/g, '');
+    let foundOption = null;
+    customerSelect.querySelectorAll('option').forEach(opt => {
+      const idNo = (opt.getAttribute('data-id-no') || '').replace(/\D/g, '');
+      if (idNo && idNo === normalized) {
+        foundOption = opt;
+      }
+    });
+    if (foundOption) {
+      customerSelect.value = foundOption.value;
+      searchResult.textContent = 'Müşteri bulundu ve seçildi: ' + foundOption.textContent;
+      searchResult.classList.remove('text-danger');
+      searchResult.classList.add('text-success');
+    } else {
+      customerSelect.value = '';
+      searchResult.textContent = 'Bu TC/VKN ile kayıtlı müşteri bulunamadı.';
+      searchResult.classList.remove('text-success');
+      searchResult.classList.add('text-danger');
+    }
+  }
+
+  if (searchBtn && searchInput) {
+    searchBtn.addEventListener('click', findCustomerByIdNo);
+    searchInput.addEventListener('keypress', function (e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        findCustomerByIdNo();
+      }
+    });
+  }
+</script>
   </div>
 </div>
 <script>
