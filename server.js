@@ -249,6 +249,7 @@ app.post('/settings', requireAuth, async (req, res) => {
 app.get('/customers', requireAuth, async (req, res) => {
   const data = await getContext();
   const q = (req.query.q || '').toLocaleLowerCase('tr-TR');
+  const birthdaysFilter = req.query.birthdays === 'today';
   let customers = data.customers.slice();
   if (q) {
     customers = customers.filter(c =>
@@ -258,7 +259,16 @@ app.get('/customers', requireAuth, async (req, res) => {
       (c.email || '').toLocaleLowerCase('tr-TR').includes(q)
     );
   }
-  res.render('customers/index', { title: 'Müşteriler', customers, q });
+  if (birthdaysFilter) {
+    const today = dayjs();
+    customers = customers.filter(c => {
+      if (!c.birth_date) return false;
+      const d = dayjs(c.birth_date);
+      if (!d.isValid()) return false;
+      return d.date() === today.date() && d.month() === today.month();
+    });
+  }
+  res.render('customers/index', { title: birthdaysFilter ? 'Doğum Günü Olan Müşteriler' : 'Müşteriler', customers, q, birthdaysFilter });
 });
 
 app.get('/customers/new', requireAuth, (req, res) => {
