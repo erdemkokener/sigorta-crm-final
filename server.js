@@ -418,8 +418,8 @@ app.post('/policies/import', requireAuth, (req, res, next) => {
       const policyNumber = row.getCell(7).text;
       const startDate = row.getCell(8).text;
       const endDate = row.getCell(9).text;
-      const description = row.getCell(11).text;
-      const status = row.getCell(12).text;
+      const description = row.getCell(10).text;
+      const status = row.getCell(11).text;
 
       if (!customerName || !policyNumber) continue;
 
@@ -508,7 +508,7 @@ app.get('/policies/template.xlsx', requireAuth, async (req, res) => {
     { header: 'Poliçe No', key: 'policy_number', width: 20 },
     { header: 'Başlangıç Tarihi', key: 'start_date', width: 15 },
     { header: 'Bitiş Tarihi', key: 'end_date', width: 15 },
-    { header: 'Açıklama', key: 'description', width: 30 },
+    { header: 'Poliçe Detayları', key: 'description', width: 30 },
     { header: 'Durum (Aktif/İptal)', key: 'status', width: 15 }
   ];
   ws.addRow({
@@ -597,24 +597,32 @@ app.get('/policies/export.xlsx', requireAuth, async (req, res) => {
   const ws = wb.addWorksheet('Poliçeler');
   ws.columns = [
     { header: 'Müşteri', key: 'customer_name', width: 25 },
+    { header: 'Telefon', key: 'customer_phone', width: 16 },
+    { header: 'TC/Vergi No', key: 'customer_id_no', width: 18 },
+    { header: 'Doğum Tarihi', key: 'customer_birth_date', width: 15 },
     { header: 'Sigorta Şirketi', key: 'insurer', width: 20 },
     { header: 'Poliçe Türü', key: 'policy_type', width: 15 },
     { header: 'Poliçe No', key: 'policy_number', width: 20 },
-    { header: 'Başlangıç', key: 'start_date', width: 15 },
-    { header: 'Bitiş', key: 'end_date', width: 15 },
-    { header: 'Kalan Gün', key: 'days_left', width: 10 },
-    { header: 'Durum', key: 'status', width: 15 }
+    { header: 'Başlangıç Tarihi', key: 'start_date', width: 15 },
+    { header: 'Bitiş Tarihi', key: 'end_date', width: 15 },
+    { header: 'Poliçe Detayları', key: 'description', width: 30 },
+    { header: 'Durum', key: 'status', width: 15 },
+    { header: 'Kalan Gün', key: 'days_left', width: 10 }
   ];
   
   for (const p of items) {
     const comp = policyWithComputed(p);
     ws.addRow({
       customer_name: comp.customer_name,
+      customer_phone: comp.customer_phone,
+      customer_id_no: comp.customer_id_no,
+      customer_birth_date: comp.customer_birth_date,
       insurer: comp.insurer,
       policy_type: comp.policy_type,
       policy_number: comp.policy_number,
       start_date: comp.start_date,
       end_date: comp.end_date,
+      description: comp.description,
       days_left: comp.days_remaining,
       status: comp.status === 'active' ? 'Aktif' : (comp.status === 'cancelled' ? 'İptal' : comp.status)
     });
