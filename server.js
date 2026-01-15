@@ -491,22 +491,12 @@ app.get('/customers/:id', requireAuth, async (req, res) => {
     activePolicies: policies.filter(p => !p.is_expired && (p.status === 'active' || p.status === 'Aktif')).length,
     expiredPolicies: policies.filter(p => p.is_expired).length,
     totalPremium: policies.reduce((sum, p) => sum + Number(p.premium_total || 0), 0),
-    totalPaidPolicy: policies.reduce((sum, p) => sum + Number(p.premium_paid || 0), 0), // Poliçeye işlenen
-    totalCollections, // Fatura/Tahsilat ekranından girilen
+    totalPaidPolicy: policies.reduce((sum, p) => sum + Number(p.premium_paid || 0), 0),
+    totalCollections,
     manualDebt
   };
-  
-  // Toplam Borç = (Poliçeler Toplamı + Manuel Borç)
-  // Toplam Ödenen = (Poliçeye İşlenen + Tahsilat Kayıtları)
-  // Not: Eğer poliçeye işlenen tutarlar ile tahsilat kayıtları aynı şeyi ifade ediyorsa burada çift sayma riski var.
-  // Ancak kullanıcı "Manuel borç girip kalanı hesaplatmak istiyorum" dediği için,
-  // Manuel Borç + (Poliçe Borçları) - (Tüm Ödemeler) mantığını kuruyoruz.
-  // Kullanıcı poliçe ödemelerini "poliçe içine" giriyorsa, tahsilat ekranından girmemeli veya tam tersi.
-  // Şimdilik topluyoruz, kullanıcıya dökümde gösteriyoruz.
-  
-  stats.totalReceivable = stats.totalPremium + stats.manualDebt;
-  stats.totalPaidAll = stats.totalPaidPolicy + stats.totalCollections;
-  stats.totalRemaining = stats.totalReceivable - stats.totalPaidAll;
+
+  stats.totalRemaining = stats.manualDebt - stats.totalCollections;
 
   res.render('customers/show', { 
     title: 'Müşteri Detayı', 
@@ -542,8 +532,8 @@ app.get('/customers/:id/invoice', requireAuth, async (req, res) => {
     manualDebt
   };
   
-  stats.totalReceivable = stats.totalPremium + stats.manualDebt;
-  stats.totalPaidAll = stats.totalPaidPolicy + stats.totalCollections;
+  stats.totalReceivable = stats.manualDebt;
+  stats.totalPaidAll = stats.totalCollections;
   stats.totalRemaining = stats.totalReceivable - stats.totalPaidAll;
 
   res.render('customers/invoice', {
