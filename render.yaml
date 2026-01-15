@@ -32,3 +32,5 @@ services:
         sync: false
       - key: EMERGENCY_RESET_CODE
         sync: false
+      - key: MONGODB_URI
+        sync: false

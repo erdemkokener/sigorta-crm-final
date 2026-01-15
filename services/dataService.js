@@ -6,7 +6,7 @@ const Policy = require('../models/Policy');
 const Settings = require('../models/Settings');
 const User = require('../models/User');
 
-const dataFile = path.join(__dirname, '../data.json');
+const dataFile = process.env.DATA_FILE || path.join(__dirname, '../data.json');
 
 // Helper to read file data
 function loadFile() {
@@ -26,6 +26,17 @@ function loadFile() {
 // Helper to save file data
 function saveFile(data) {
   fs.writeFileSync(dataFile, JSON.stringify(data, null, 2));
+  try {
+    const baseDir = path.dirname(dataFile);
+    const backupsDir = path.join(baseDir, 'backups');
+    if (!fs.existsSync(backupsDir)) {
+      fs.mkdirSync(backupsDir, { recursive: true });
+    }
+    const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const backupFile = path.join(backupsDir, `data-${stamp}.json`);
+    fs.writeFileSync(backupFile, JSON.stringify(data, null, 2));
+  } catch (e) {
+  }
 }
 
 const DataService = {

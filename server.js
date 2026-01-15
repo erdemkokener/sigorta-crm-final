@@ -82,6 +82,7 @@ app.use(session({
 
 app.use((req, res, next) => {
   res.locals.user = req.session.user || null;
+  res.locals.fileMode = !db.isConnected();
   next();
 });
 
@@ -754,6 +755,9 @@ app.post('/policies/delete-cancelled', requireAuth, async (req, res) => {
 });
 
 app.post('/policies/reset-data', requireAuth, async (req, res) => {
+  if (process.env.ALLOW_RESET !== 'true') {
+    return res.status(403).send('Veri sıfırlama devre dışı');
+  }
   await dataService.resetData();
   res.redirect('/policies?msg=' + encodeURIComponent('Tüm veriler başarıyla sıfırlandı.'));
 });

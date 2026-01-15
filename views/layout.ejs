@@ -39,6 +39,15 @@
     </div>
   </header>
   <main class="container">
+    <% if (typeof fileMode !== 'undefined' && fileMode) { %>
+      <div class="alert alert-warning d-flex align-items-center" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+        <div>
+          Şu an veriler dosyada tutuluyor. Bulutta (Render) deploy sonrası dosyalar sıfırlanabilir.
+          Kalıcı kayıt için Render ortamında <b>MONGODB_URI</b> ayarlayın.
+        </div>
+      </div>
+    <% } %>
     <%- body %>
   </main>
   <footer class="footer mt-auto py-3 bg-light text-center">
