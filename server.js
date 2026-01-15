@@ -34,6 +34,7 @@ const SMTP_USER = process.env.SMTP_USER || '';
 const SMTP_PASS = process.env.SMTP_PASS || '';
 const MAIL_FROM = process.env.MAIL_FROM || 'no-reply@example.com';
 const MAIL_TO = process.env.MAIL_TO || '';
+const EMERGENCY_RESET_CODE = process.env.EMERGENCY_RESET_CODE || '';
 
 let mailer = null;
 function initMailer() {
@@ -259,6 +260,64 @@ app.post('/forgot-password', async (req, res) => {
     return res.render('auth/forgot-password', { title: 'Şifremi Unuttum', msg: null, error: 'Şu anda e-posta gönderilemedi. Lütfen daha sonra tekrar deneyin.' });
   }
   res.render('auth/forgot-password', { title: 'Şifremi Unuttum', msg: 'Talebiniz alındı. En kısa sürede sizinle iletişime geçilecektir.', error: null });
+});
+
+app.get('/emergency-reset', (req, res) => {
+  res.render('auth/emergency-reset', {
+    title: 'Acil Şifre Sıfırlama',
+    msg: null,
+    error: null,
+    isConfigured: !!EMERGENCY_RESET_CODE
+  });
+});
+
+app.post('/emergency-reset', async (req, res) => {
+  const { code, new_username, new_password, new_password_confirm } = req.body;
+
+  if (!EMERGENCY_RESET_CODE) {
+    return res.render('auth/emergency-reset', {
+      title: 'Acil Şifre Sıfırlama',
+      msg: null,
+      error: 'Acil şifre sıfırlama kodu tanımlı değil. Lütfen sistem yöneticinizle görüşün.',
+      isConfigured: false
+    });
+  }
+
+  if (!code || !new_username || !new_password || !new_password_confirm) {
+    return res.render('auth/emergency-reset', {
+      title: 'Acil Şifre Sıfırlama',
+      msg: null,
+      error: 'Tüm alanları doldurmalısınız.',
+      isConfigured: true
+    });
+  }
+
+  if (new_password !== new_password_confirm) {
+    return res.render('auth/emergency-reset', {
+      title: 'Acil Şifre Sıfırlama',
+      msg: null,
+      error: 'Yeni şifre ve tekrarı uyuşmuyor.',
+      isConfigured: true
+    });
+  }
+
+  if (code !== EMERGENCY_RESET_CODE) {
+    return res.render('auth/emergency-reset', {
+      title: 'Acil Şifre Sıfırlama',
+      msg: null,
+      error: 'Girdiğiniz acil kod hatalı.',
+      isConfigured: true
+    });
+  }
+
+  await dataService.updateSettings(new_username.trim(), new_password.trim());
+
+  res.render('auth/emergency-reset', {
+    title: 'Acil Şifre Sıfırlama',
+    msg: 'Yönetici kullanıcı adı ve şifresi başarıyla güncellendi. Giriş ekranından yeni bilgilerinizle giriş yapabilirsiniz.',
+    error: null,
+    isConfigured: true
+  });
 });
 
 app.post('/logout', (req, res) => {

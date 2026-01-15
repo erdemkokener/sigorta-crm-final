@@ -30,3 +30,5 @@ services:
         sync: false
       - key: MAIL_TO
         sync: false
+      - key: EMERGENCY_RESET_CODE
+        sync: false

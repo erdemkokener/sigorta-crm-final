@@ -1,0 +1,52 @@
+<div class="row justify-content-center mt-5">
+  <div class="col-md-5">
+    <div class="card shadow-lg">
+      <div class="card-header bg-danger text-white text-center py-3">
+        <h4 class="mb-0"><i class="bi bi-exclamation-octagon"></i> Acil Şifre Sıfırlama</h4>
+      </div>
+      <div class="card-body p-4">
+        <% if (!isConfigured) { %>
+          <div class="alert alert-warning" role="alert">
+            <i class="bi bi-info-circle-fill"></i>
+            Bu özelliği kullanmak için önce sunucu tarafında <code>EMERGENCY_RESET_CODE</code> tanımlanmalıdır.
+          </div>
+        <% } %>
+        <% if (typeof msg !== 'undefined' && msg) { %>
+          <div class="alert alert-success" role="alert">
+            <i class="bi bi-check-circle-fill"></i> <%= msg %>
+          </div>
+        <% } %>
+        <% if (typeof error !== 'undefined' && error) { %>
+          <div class="alert alert-danger" role="alert">
+            <i class="bi bi-exclamation-circle-fill"></i> <%= error %>
+          </div>
+        <% } %>
+        <form action="/emergency-reset" method="post" class="row g-3">
+          <div class="col-12">
+            <label class="form-label">Acil Şifre Sıfırlama Kodu</label>
+            <input type="password" class="form-control" name="code" <%= isConfigured ? '' : 'disabled' %> required>
+          </div>
+          <div class="col-12">
+            <label class="form-label">Yeni Yönetici Kullanıcı Adı</label>
+            <input type="text" class="form-control" name="new_username" <%= isConfigured ? '' : 'disabled' %> required>
+          </div>
+          <div class="col-12">
+            <label class="form-label">Yeni Şifre</label>
+            <input type="password" class="form-control" name="new_password" <%= isConfigured ? '' : 'disabled' %> required>
+          </div>
+          <div class="col-12">
+            <label class="form-label">Yeni Şifre (Tekrar)</label>
+            <input type="password" class="form-control" name="new_password_confirm" <%= isConfigured ? '' : 'disabled' %> required>
+          </div>
+          <div class="col-12 d-grid">
+            <button type="submit" class="btn btn-danger" <%= isConfigured ? '' : 'disabled' %>>Şifreyi Sıfırla</button>
+          </div>
+        </form>
+      </div>
+      <div class="card-footer text-center">
+        <a href="/login" class="small text-muted">Giriş sayfasına dön</a>
+      </div>
+    </div>
+  </div>
+</div>
+

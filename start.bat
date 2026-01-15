@@ -11,6 +11,7 @@ set SMTP_USER=erdemkokener@gmail.com
 set SMTP_PASS=bznfvszqqhasczon
 set MAIL_FROM=erdemkokener@gmail.com
 set MAIL_TO=erdemkokener@gmail.com
+set EMERGENCY_RESET_CODE=ornekKod123
 
 echo Starting Sigorta CRM...
 node server.js
