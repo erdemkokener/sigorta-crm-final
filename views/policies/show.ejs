@@ -88,6 +88,22 @@
                     <% } %>
                 </div>
             </div>
+            <div class="col-md-6">
+                <label class="text-muted small">Toplam Prim</label>
+                <div><%= typeof policy.premium_total !== 'undefined' && policy.premium_total !== null ? policy.premium_total.toFixed ? policy.premium_total.toFixed(2) : policy.premium_total : '-' %></div>
+            </div>
+            <div class="col-md-6">
+                <label class="text-muted small">Ödenen Tutar</label>
+                <div><%= typeof policy.premium_paid !== 'undefined' && policy.premium_paid !== null ? policy.premium_paid.toFixed ? policy.premium_paid.toFixed(2) : policy.premium_paid : '-' %></div>
+            </div>
+            <div class="col-md-6">
+                <label class="text-muted small">Kalan Tutar</label>
+                <div><%= typeof policy.premium_remaining !== 'undefined' && policy.premium_remaining !== null ? policy.premium_remaining.toFixed ? policy.premium_remaining.toFixed(2) : policy.premium_remaining : '-' %></div>
+            </div>
+            <div class="col-md-6">
+                <label class="text-muted small">Ödeme Dekontu / Açıklama</label>
+                <div><%= policy.payment_note || '-' %></div>
+            </div>
           <div class="col-md-6">
                 <label class="text-muted small">Kalan Gün</label>
                 <div>

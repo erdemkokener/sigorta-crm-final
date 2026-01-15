@@ -12,6 +12,8 @@ const PolicySchema = new mongoose.Schema({
   description: String,
   status: { type: String, default: 'active' },
   premium: Number,
+  premium_paid: Number,
+  payment_note: String,
   notified_14: { type: Boolean, default: false },
   notified_end: { type: Boolean, default: false },
   policy_details: {

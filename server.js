@@ -102,12 +102,18 @@ function policyWithComputed(p) {
   const today = dayjs();
   const end = dayjs(p.end_date);
   const start = dayjs(p.start_date);
+  const totalPremium = Number(p.premium || 0);
+  const paidPremium = Number(p.premium_paid || 0);
+  const remainingPremium = totalPremium - paidPremium;
   return {
     ...p,
     days_remaining: end.diff(today, 'day'),
     days_total: end.diff(start, 'day'),
     is_expiring_soon: end.diff(today, 'day') <= 30,
-    is_expired: end.isBefore(today, 'day')
+    is_expired: end.isBefore(today, 'day'),
+    premium_total: totalPremium,
+    premium_paid: paidPremium,
+    premium_remaining: remainingPremium
   };
 }
 
@@ -477,8 +483,11 @@ app.get('/customers/:id', requireAuth, async (req, res) => {
   const stats = {
     totalPolicies: policies.length,
     activePolicies: policies.filter(p => !p.is_expired && (p.status === 'active' || p.status === 'Aktif')).length,
-    expiredPolicies: policies.filter(p => p.is_expired).length
+    expiredPolicies: policies.filter(p => p.is_expired).length,
+    totalPremium: policies.reduce((sum, p) => sum + Number(p.premium_total || 0), 0),
+    totalPaid: policies.reduce((sum, p) => sum + Number(p.premium_paid || 0), 0)
   };
+  stats.totalRemaining = stats.totalPremium - stats.totalPaid;
 
   res.render('customers/show', { 
     title: 'Müşteri Detayı', 
@@ -651,7 +660,7 @@ app.get('/policies/new', requireAuth, async (req, res) => {
 });
 
 app.post('/policies', requireAuth, async (req, res) => {
-  const { customer_id, insurer, policy_number, start_date, end_date, description, status, issue_date, policy_type } = req.body;
+  const { customer_id, insurer, policy_number, start_date, end_date, description, status, issue_date, policy_type, premium, premium_paid, payment_note } = req.body;
   if (!customer_id || !insurer || !policy_number || !start_date || !end_date) {
     return res.status(400).send('Eksik alanlar mevcut');
   }
@@ -665,6 +674,9 @@ app.post('/policies', requireAuth, async (req, res) => {
     end_date,
     description: description || '',
     policy_type: policy_type || 'Diğer',
+    premium: premium ? Number(premium) : undefined,
+    premium_paid: premium_paid ? Number(premium_paid) : undefined,
+    payment_note: payment_note || '',
     status: status || 'active',
     created_at,
     notified_14: false,
@@ -719,7 +731,7 @@ app.get('/policies/:id/edit', requireAuth, async (req, res) => {
 
 app.post('/policies/:id', requireAuth, async (req, res) => {
   const id = Number(req.params.id);
-  const { customer_id, insurer, policy_number, start_date, end_date, description, status, issue_date, policy_type } = req.body;
+  const { customer_id, insurer, policy_number, start_date, end_date, description, status, issue_date, policy_type, premium, premium_paid, payment_note } = req.body;
   await dataService.updatePolicy(id, {
     customer_id: Number(customer_id),
     insurer,
@@ -729,6 +741,9 @@ app.post('/policies/:id', requireAuth, async (req, res) => {
     end_date,
     description: description || '',
     policy_type: policy_type || 'Diğer',
+    premium: premium ? Number(premium) : undefined,
+    premium_paid: premium_paid ? Number(premium_paid) : undefined,
+    payment_note: payment_note || '',
     status: status || 'active'
   });
   res.redirect('/policies/' + id);
