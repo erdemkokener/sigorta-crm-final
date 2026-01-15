@@ -269,6 +269,16 @@ const DataService = {
     }
   },
   
+  async deletePayment(id) {
+    if (db.isConnected()) {
+      await Payment.findOneAndDelete({ id });
+    } else {
+      const data = loadFile();
+      data.payments = (data.payments || []).filter(p => p.id !== id);
+      saveFile(data);
+    }
+  },
+  
   // Bulk import helper for Mongo
   async bulkCreatePolicies(policies, customers) {
     if (db.isConnected()) {

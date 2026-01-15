@@ -572,6 +572,16 @@ app.post('/customers/:id/invoice', requireAuth, async (req, res) => {
   res.redirect('/customers/' + id + '/invoice?msg=' + encodeURIComponent('Tahsilat kaydedildi.'));
 });
 
+app.post('/payments/:id/delete', requireAuth, requireAdmin, async (req, res) => {
+  const id = Number(req.params.id);
+  const customerId = Number(req.body.customer_id);
+  if (!customerId) {
+    return res.status(400).send('Geçersiz istek');
+  }
+  await dataService.deletePayment(id);
+  res.redirect('/customers/' + customerId);
+});
+
 app.get('/customers/:id/edit', requireAuth, async (req, res) => {
   const id = Number(req.params.id);
   const data = await getContext();

@@ -155,12 +155,15 @@
             <th>Tarih</th>
             <th class="text-end">Tutar</th>
             <th>Açıklama</th>
+            <% if (user && user.isAdmin) { %>
+              <th class="text-end">İşlem</th>
+            <% } %>
           </tr>
         </thead>
         <tbody>
           <% if (!payments || payments.length === 0) { %>
             <tr>
-              <td colspan="3" class="text-center py-3 text-muted">Kayıtlı tahsilat bulunamadı.</td>
+              <td colspan="<%= (user && user.isAdmin) ? 4 : 3 %>" class="text-center py-3 text-muted">Kayıtlı tahsilat bulunamadı.</td>
             </tr>
           <% } else { %>
             <% payments.forEach(function(p) { %>
@@ -168,6 +171,14 @@
                 <td><%= p.date || '-' %></td>
                 <td class="text-end"><%= p.amount && p.amount.toFixed ? p.amount.toFixed(2) : p.amount %></td>
                 <td><%= p.note || '-' %></td>
+                <% if (user && user.isAdmin) { %>
+                  <td class="text-end">
+                    <form action="/payments/<%= p.id %>/delete" method="post" class="d-inline" onsubmit="return confirm('Bu tahsilat silinecek. Emin misiniz?');">
+                      <input type="hidden" name="customer_id" value="<%= customer.id %>">
+                      <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                    </form>
+                  </td>
+                <% } %>
               </tr>
             <% }) %>
           <% } %>
