@@ -69,6 +69,20 @@
               </tr>
             <% }) %>
           <% } %>
+          <% if (stats.manualDebt > 0) { %>
+            <tr>
+              <td colspan="5"><strong>Manuel Eklenen Borç / Devir Bakiyesi</strong></td>
+              <td class="text-end"><strong><%= stats.manualDebt.toFixed(2) %></strong></td>
+              <td class="text-end">-</td>
+              <td class="text-end"><strong><%= stats.manualDebt.toFixed(2) %></strong></td>
+            </tr>
+          <% } %>
+          <tr class="table-dark">
+            <td colspan="5" class="text-end"><strong>GENEL TOPLAM</strong></td>
+            <td class="text-end"><strong><%= stats.totalReceivable.toFixed(2) %></strong></td>
+            <td class="text-end"><strong><%= stats.totalPaidAll.toFixed(2) %></strong></td>
+            <td class="text-end"><strong><%= stats.totalRemaining.toFixed(2) %></strong></td>
+          </tr>
         </tbody>
       </table>
     </div>

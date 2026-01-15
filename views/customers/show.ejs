@@ -54,16 +54,18 @@
       <div class="col-md-4">
         <div class="card bg-dark text-white h-100">
           <div class="card-body text-center">
-            <h6 class="card-title">Toplam Prim</h6>
-            <h2 class="display-6"><%= stats.totalPremium.toFixed ? stats.totalPremium.toFixed(2) : stats.totalPremium %></h2>
+            <h6 class="card-title">Toplam Alacak</h6>
+            <h2 class="display-6"><%= stats.totalReceivable.toFixed ? stats.totalReceivable.toFixed(2) : stats.totalReceivable %></h2>
+            <small>Poliçeler: <%= stats.totalPremium %> + Manuel: <%= stats.manualDebt %></small>
           </div>
         </div>
       </div>
       <div class="col-md-4">
         <div class="card bg-info text-white h-100">
           <div class="card-body text-center">
-            <h6 class="card-title">Ödenen</h6>
-            <h2 class="display-6"><%= stats.totalPaid.toFixed ? stats.totalPaid.toFixed(2) : stats.totalPaid %></h2>
+            <h6 class="card-title">Toplam Ödenen</h6>
+            <h2 class="display-6"><%= stats.totalPaidAll.toFixed ? stats.totalPaidAll.toFixed(2) : stats.totalPaidAll %></h2>
+             <small>Poliçe: <%= stats.totalPaidPolicy %> + Tahsilat: <%= stats.totalCollections %></small>
           </div>
         </div>
       </div>

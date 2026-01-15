@@ -461,7 +461,8 @@ app.post('/customers', requireAuth, async (req, res) => {
     phone: phone || '',
     id_no: id_no || '',
     email: email || '',
-    birth_date: birth_date || ''
+    birth_date: birth_date || '',
+    manual_debt: Number(req.body.manual_debt) || 0
   });
   res.redirect('/customers');
 });
@@ -482,14 +483,30 @@ app.get('/customers/:id', requireAuth, async (req, res) => {
   const payments = await dataService.getPaymentsByCustomer(id);
 
   // İstatistikler
+  const totalCollections = payments.reduce((sum, pay) => sum + Number(pay.amount || 0), 0);
+  const manualDebt = Number(customer.manual_debt || 0);
+
   const stats = {
     totalPolicies: policies.length,
     activePolicies: policies.filter(p => !p.is_expired && (p.status === 'active' || p.status === 'Aktif')).length,
     expiredPolicies: policies.filter(p => p.is_expired).length,
     totalPremium: policies.reduce((sum, p) => sum + Number(p.premium_total || 0), 0),
-    totalPaid: policies.reduce((sum, p) => sum + Number(p.premium_paid || 0), 0)
+    totalPaidPolicy: policies.reduce((sum, p) => sum + Number(p.premium_paid || 0), 0), // Poliçeye işlenen
+    totalCollections, // Fatura/Tahsilat ekranından girilen
+    manualDebt
   };
-  stats.totalRemaining = stats.totalPremium - stats.totalPaid;
+  
+  // Toplam Borç = (Poliçeler Toplamı + Manuel Borç)
+  // Toplam Ödenen = (Poliçeye İşlenen + Tahsilat Kayıtları)
+  // Not: Eğer poliçeye işlenen tutarlar ile tahsilat kayıtları aynı şeyi ifade ediyorsa burada çift sayma riski var.
+  // Ancak kullanıcı "Manuel borç girip kalanı hesaplatmak istiyorum" dediği için,
+  // Manuel Borç + (Poliçe Borçları) - (Tüm Ödemeler) mantığını kuruyoruz.
+  // Kullanıcı poliçe ödemelerini "poliçe içine" giriyorsa, tahsilat ekranından girmemeli veya tam tersi.
+  // Şimdilik topluyoruz, kullanıcıya dökümde gösteriyoruz.
+  
+  stats.totalReceivable = stats.totalPremium + stats.manualDebt;
+  stats.totalPaidAll = stats.totalPaidPolicy + stats.totalCollections;
+  stats.totalRemaining = stats.totalReceivable - stats.totalPaidAll;
 
   res.render('customers/show', { 
     title: 'Müşteri Detayı', 
@@ -511,14 +528,23 @@ app.get('/customers/:id/invoice', requireAuth, async (req, res) => {
     .map(p => policyWithComputed(p))
     .sort((a, b) => a.end_date.localeCompare(b.end_date) || b.id - a.id);
 
+  const payments = await dataService.getPaymentsByCustomer(id);
+  const totalCollections = payments.reduce((sum, pay) => sum + Number(pay.amount || 0), 0);
+  const manualDebt = Number(customer.manual_debt || 0);
+
   const stats = {
     totalPolicies: policies.length,
     activePolicies: policies.filter(p => !p.is_expired && (p.status === 'active' || p.status === 'Aktif')).length,
     expiredPolicies: policies.filter(p => p.is_expired).length,
     totalPremium: policies.reduce((sum, p) => sum + Number(p.premium_total || 0), 0),
-    totalPaid: policies.reduce((sum, p) => sum + Number(p.premium_paid || 0), 0)
+    totalPaidPolicy: policies.reduce((sum, p) => sum + Number(p.premium_paid || 0), 0),
+    totalCollections,
+    manualDebt
   };
-  stats.totalRemaining = stats.totalPremium - stats.totalPaid;
+  
+  stats.totalReceivable = stats.totalPremium + stats.manualDebt;
+  stats.totalPaidAll = stats.totalPaidPolicy + stats.totalCollections;
+  stats.totalRemaining = stats.totalReceivable - stats.totalPaidAll;
 
   res.render('customers/invoice', {
     title: 'Fatura / Tahsilat',
@@ -573,7 +599,8 @@ app.post('/customers/:id', requireAuth, async (req, res) => {
       phone: req.body.phone,
       id_no: req.body.id_no,
       email: req.body.email,
-      birth_date: req.body.birth_date
+      birth_date: req.body.birth_date,
+      manual_debt: Number(req.body.manual_debt) || 0
     });
   } else {
     await dataService.updateCustomer(id, {
