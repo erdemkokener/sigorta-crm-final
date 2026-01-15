@@ -479,6 +479,8 @@ app.get('/customers/:id', requireAuth, async (req, res) => {
     .map(p => policyWithComputed(p))
     .sort((a, b) => a.end_date.localeCompare(b.end_date) || b.id - a.id);
 
+  const payments = await dataService.getPaymentsByCustomer(id);
+
   // İstatistikler
   const stats = {
     totalPolicies: policies.length,
@@ -493,8 +495,65 @@ app.get('/customers/:id', requireAuth, async (req, res) => {
     title: 'Müşteri Detayı', 
     customer, 
     policies,
-    stats 
+    stats,
+    payments
   });
+});
+
+app.get('/customers/:id/invoice', requireAuth, async (req, res) => {
+  const id = Number(req.params.id);
+  const data = await getContext();
+  const customer = data.customers.find(x => x.id === id);
+  if (!customer) return res.status(404).send('Müşteri bulunamadı');
+
+  const policies = data.policies
+    .filter(p => p.customer_id === id)
+    .map(p => policyWithComputed(p))
+    .sort((a, b) => a.end_date.localeCompare(b.end_date) || b.id - a.id);
+
+  const stats = {
+    totalPolicies: policies.length,
+    activePolicies: policies.filter(p => !p.is_expired && (p.status === 'active' || p.status === 'Aktif')).length,
+    expiredPolicies: policies.filter(p => p.is_expired).length,
+    totalPremium: policies.reduce((sum, p) => sum + Number(p.premium_total || 0), 0),
+    totalPaid: policies.reduce((sum, p) => sum + Number(p.premium_paid || 0), 0)
+  };
+  stats.totalRemaining = stats.totalPremium - stats.totalPaid;
+
+  res.render('customers/invoice', {
+    title: 'Fatura / Tahsilat',
+    customer,
+    policies,
+    stats,
+    msg: req.query.msg || null,
+    error: req.query.error || null
+  });
+});
+
+app.post('/customers/:id/invoice', requireAuth, async (req, res) => {
+  const id = Number(req.params.id);
+  const data = await getContext();
+  const customer = data.customers.find(x => x.id === id);
+  if (!customer) return res.status(404).send('Müşteri bulunamadı');
+
+  const paidRaw = req.body.paid || '';
+  const note = req.body.note || '';
+  const date = req.body.date || '';
+  const amount = parseFloat(String(paidRaw).replace(',', '.')) || 0;
+
+  if (!amount || amount <= 0) {
+    return res.redirect('/customers/' + id + '/invoice?error=' + encodeURIComponent('Geçerli bir tahsilat tutarı girin.'));
+  }
+
+  const finalDate = date || new Date().toISOString().slice(0, 10);
+  await dataService.createPayment({
+    customer_id: id,
+    amount,
+    note,
+    date: finalDate
+  });
+
+  res.redirect('/customers/' + id + '/invoice?msg=' + encodeURIComponent('Tahsilat kaydedildi.'));
 });
 
 app.get('/customers/:id/edit', requireAuth, async (req, res) => {

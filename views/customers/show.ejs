@@ -82,7 +82,10 @@
 <div class="card shadow-sm">
   <div class="card-header bg-light d-flex justify-content-between align-items-center">
     <h5 class="mb-0">Poliçe Geçmişi</h5>
-    <a href="/policies/new?customer_id=<%= customer.id %>" class="btn btn-sm btn-primary"><i class="bi bi-plus-lg"></i> Yeni Poliçe Ekle</a>
+    <div class="btn-group">
+      <a href="/customers/<%= customer.id %>/invoice" class="btn btn-sm btn-outline-secondary"><i class="bi bi-printer"></i> Fatura Yazdır</a>
+      <a href="/policies/new?customer_id=<%= customer.id %>" class="btn btn-sm btn-primary"><i class="bi bi-plus-lg"></i> Yeni Poliçe Ekle</a>
+    </div>
   </div>
   <div class="card-body p-0">
     <div class="table-responsive">
@@ -131,6 +134,40 @@
                 <td>
                   <a href="/policies/<%= p.id %>" class="btn btn-sm btn-outline-primary"><i class="bi bi-eye"></i></a>
                 </td>
+              </tr>
+            <% }) %>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="card shadow-sm mt-4">
+  <div class="card-header bg-light d-flex justify-content-between align-items-center">
+    <h5 class="mb-0">Tahsilat Geçmişi</h5>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-sm mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>Tarih</th>
+            <th class="text-end">Tutar</th>
+            <th>Açıklama</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% if (!payments || payments.length === 0) { %>
+            <tr>
+              <td colspan="3" class="text-center py-3 text-muted">Kayıtlı tahsilat bulunamadı.</td>
+            </tr>
+          <% } else { %>
+            <% payments.forEach(function(p) { %>
+              <tr>
+                <td><%= p.date || '-' %></td>
+                <td class="text-end"><%= p.amount && p.amount.toFixed ? p.amount.toFixed(2) : p.amount %></td>
+                <td><%= p.note || '-' %></td>
               </tr>
             <% }) %>
           <% } %>

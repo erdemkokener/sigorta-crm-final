@@ -5,13 +5,14 @@ const Customer = require('../models/Customer');
 const Policy = require('../models/Policy');
 const Settings = require('../models/Settings');
 const User = require('../models/User');
+const Payment = require('../models/Payment');
 
 const dataFile = process.env.DATA_FILE || path.join(__dirname, '../data.json');
 
 // Helper to read file data
 function loadFile() {
   if (!fs.existsSync(dataFile)) {
-    return { policies: [], nextId: 1, customers: [], nextCustomerId: 1, settings: {}, users: [], nextUserId: 1 };
+    return { policies: [], nextId: 1, customers: [], nextCustomerId: 1, settings: {}, users: [], nextUserId: 1, payments: [], nextPaymentId: 1 };
   }
   const raw = fs.readFileSync(dataFile, 'utf8');
   const data = JSON.parse(raw);
@@ -20,6 +21,8 @@ function loadFile() {
   if (!data.settings) data.settings = {};
   if (!data.users) data.users = [];
   if (!data.nextUserId) data.nextUserId = 1;
+  if (!data.payments) data.payments = [];
+  if (!data.nextPaymentId) data.nextPaymentId = 1;
   return data;
 }
 
@@ -232,6 +235,37 @@ const DataService = {
       const data = loadFile();
       data.users = (data.users || []).filter(u => u.id !== id);
       saveFile(data);
+    }
+  },
+
+  async getPaymentsByCustomer(customerId) {
+    if (db.isConnected()) {
+      const payments = await Payment.find({ customer_id: customerId }).sort({ date: -1, id: -1 });
+      return payments.map(p => p.toObject());
+    } else {
+      const data = loadFile();
+      const list = (data.payments || []).filter(p => p.customer_id === customerId);
+      return list.sort((a, b) => {
+        if (a.date && b.date && a.date !== b.date) return a.date < b.date ? 1 : -1;
+        return (b.id || 0) - (a.id || 0);
+      });
+    }
+  },
+
+  async createPayment(paymentData) {
+    if (db.isConnected()) {
+      const last = await Payment.findOne().sort({ id: -1 });
+      const id = (last && last.id) ? last.id + 1 : 1;
+      const payment = new Payment({ ...paymentData, id });
+      await payment.save();
+      return payment.toObject();
+    } else {
+      const data = loadFile();
+      const id = data.nextPaymentId++;
+      const newPayment = { ...paymentData, id };
+      data.payments.push(newPayment);
+      saveFile(data);
+      return newPayment;
     }
   },
   
