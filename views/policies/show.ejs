@@ -188,8 +188,28 @@
                 <label class="text-muted small">Açıklama / Notlar</label>
                 <div class="p-3 bg-light rounded border"><%= policy.description || 'Not yok.' %></div>
             </div>
+            
+            <div class="col-12 mt-3">
+                <div class="alert alert-info">
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-alarm me-2 fs-4"></i>
+                        <div>
+                            <strong>Özel Hatırlatma:</strong>
+                            <% if (policy.custom_reminder_date) { %>
+                                <span><%= policy.custom_reminder_date %></span>
+                                <% if (policy.custom_reminder_note) { %>
+                                    <br><span class="small"><%= policy.custom_reminder_note %></span>
+                                <% } %>
+                            <% } else { %>
+                                <span class="text-muted fst-italic">Ayarlanmamış</span>
+                            <% } %>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
       </div>
     </div>
   </div>
 </div>
+

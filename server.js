@@ -136,8 +136,23 @@ async function filterPolicies(query) {
   const q = (query.q || '').toLocaleLowerCase('tr-TR');
   const insurer = (query.insurer || '').toLocaleLowerCase('tr-TR');
   const status = (query.status || '').toLocaleLowerCase('tr-TR');
+  const filter = query.filter; // today, tomorrow, week
   const endFrom = query.end_from ? dayjs(query.end_from) : null;
   const endTo = query.end_to ? dayjs(query.end_to) : null;
+  
+  const today = dayjs();
+
+  if (filter === 'today') {
+    items = items.filter(x => dayjs(x.end_date).isSame(today, 'day'));
+  } else if (filter === 'tomorrow') {
+    items = items.filter(x => dayjs(x.end_date).isSame(today.add(1, 'day'), 'day'));
+  } else if (filter === 'week') {
+    const endOfWeek = today.endOf('week');
+    items = items.filter(x => {
+        const d = dayjs(x.end_date);
+        return d.isSame(today, 'day') || (d.isAfter(today, 'day') && d.isBefore(endOfWeek.add(1, 'day'), 'day'));
+    });
+  }
   
   if (q) {
     items = items.filter(x =>
@@ -218,9 +233,53 @@ setInterval(checkExpirationsAndNotify, 60 * 60 * 1000);
 checkExpirationsAndNotify();
 
 // Routes
-app.get('/', (req, res) => {
+app.get('/', async (req, res) => {
   if (!req.session.user) return res.redirect('/login');
-  res.redirect('/policies');
+  
+  const data = await getContext();
+  const today = dayjs();
+  const startOfWeek = today.startOf('week'); // Note: dayjs startOf week depends on locale, but typically Sunday/Monday
+  const endOfWeek = today.endOf('week');
+  
+  // Dashboard Data
+  const policiesEndingToday = data.policies
+    .filter(p => dayjs(p.end_date).isSame(today, 'day'))
+    .map(p => attachCustomer(p, data));
+    
+  const policiesEndingThisWeek = data.policies
+    .filter(p => {
+      const d = dayjs(p.end_date);
+      return d.isAfter(today, 'day') && d.isBefore(endOfWeek.add(1, 'day'), 'day');
+    })
+    .map(p => attachCustomer(p, data));
+
+  const policiesStartingToday = data.policies
+    .filter(p => dayjs(p.start_date).isSame(today, 'day'))
+    .map(p => attachCustomer(p, data));
+
+  // Custom Reminders (Today or approaching within 3 days maybe? Or just today?)
+  // User asked for "specific reminder date". Let's show reminders for today and next 7 days.
+  const reminders = data.policies
+    .filter(p => p.custom_reminder_date)
+    .map(p => ({...attachCustomer(p, data), reminder_date_obj: dayjs(p.custom_reminder_date)}))
+    .filter(p => {
+       // Show if today or future
+       const diff = p.reminder_date_obj.diff(today, 'day');
+       return diff >= 0 && diff <= 7;
+    })
+    .map(p => ({
+      ...p, 
+      isToday: p.reminder_date_obj.isSame(today, 'day')
+    }))
+    .sort((a, b) => a.reminder_date_obj.diff(b.reminder_date_obj));
+
+  res.render('dashboard', { 
+    title: 'Panel', 
+    policiesEndingToday, 
+    policiesEndingThisWeek, 
+    policiesStartingToday,
+    reminders
+  });
 });
 
 app.get('/login', (req, res) => {
@@ -433,7 +492,14 @@ app.get('/customers', requireAuth, async (req, res) => {
       (c.name || '').toLocaleLowerCase('tr-TR').includes(q) ||
       (c.phone || '').toLocaleLowerCase('tr-TR').includes(q) ||
       (c.id_no || '').toLocaleLowerCase('tr-TR').includes(q) ||
-      (c.email || '').toLocaleLowerCase('tr-TR').includes(q)
+      (c.email || '').toLocaleLowerCase('tr-TR').includes(q) ||
+      (c.plate || '').toLocaleLowerCase('tr-TR').includes(q) ||
+      data.policies.some(p =>
+        p.customer_id === c.id && (
+          (p.policy_number || '').toLocaleLowerCase('tr-TR').includes(q) ||
+          (p.policy_details && p.policy_details.plate && p.policy_details.plate.toLocaleLowerCase('tr-TR').includes(q))
+        )
+      )
     );
   }
   if (birthdaysFilter) {
@@ -462,7 +528,8 @@ app.post('/customers', requireAuth, async (req, res) => {
     id_no: id_no || '',
     email: email || '',
     birth_date: birth_date || '',
-    manual_debt: Number(req.body.manual_debt) || 0
+    manual_debt: Number(req.body.manual_debt) || 0,
+    note: req.body.note || ''
   });
   res.redirect('/customers');
 });
@@ -600,7 +667,8 @@ app.post('/customers/:id', requireAuth, async (req, res) => {
       id_no: req.body.id_no,
       email: req.body.email,
       birth_date: req.body.birth_date,
-      manual_debt: Number(req.body.manual_debt) || 0
+      manual_debt: Number(req.body.manual_debt) || 0,
+      note: req.body.note || ''
     });
   } else {
     await dataService.updateCustomer(id, {
@@ -746,7 +814,7 @@ app.get('/policies/new', requireAuth, async (req, res) => {
 });
 
 app.post('/policies', requireAuth, async (req, res) => {
-  const { customer_id, insurer, policy_number, start_date, end_date, description, status, issue_date, policy_type, premium, premium_paid, payment_note } = req.body;
+  const { customer_id, insurer, policy_number, start_date, end_date, description, status, issue_date, policy_type, premium, premium_paid, payment_note, custom_reminder_date, custom_reminder_note } = req.body;
   if (!customer_id || !insurer || !policy_number || !start_date || !end_date) {
     return res.status(400).send('Eksik alanlar mevcut');
   }
@@ -763,6 +831,8 @@ app.post('/policies', requireAuth, async (req, res) => {
     premium: premium ? Number(premium) : undefined,
     premium_paid: premium_paid ? Number(premium_paid) : undefined,
     payment_note: payment_note || '',
+    custom_reminder_date: custom_reminder_date || '',
+    custom_reminder_note: custom_reminder_note || '',
     status: status || 'active',
     created_at,
     notified_14: false,
@@ -817,7 +887,7 @@ app.get('/policies/:id/edit', requireAuth, async (req, res) => {
 
 app.post('/policies/:id', requireAuth, async (req, res) => {
   const id = Number(req.params.id);
-  const { customer_id, insurer, policy_number, start_date, end_date, description, status, issue_date, policy_type, premium, premium_paid, payment_note } = req.body;
+  const { customer_id, insurer, policy_number, start_date, end_date, description, status, issue_date, policy_type, premium, premium_paid, payment_note, custom_reminder_date, custom_reminder_note } = req.body;
   await dataService.updatePolicy(id, {
     customer_id: Number(customer_id),
     insurer,
@@ -830,6 +900,8 @@ app.post('/policies/:id', requireAuth, async (req, res) => {
     premium: premium ? Number(premium) : undefined,
     premium_paid: premium_paid ? Number(premium_paid) : undefined,
     payment_note: payment_note || '',
+    custom_reminder_date: custom_reminder_date || '',
+    custom_reminder_note: custom_reminder_note || '',
     status: status || 'active'
   });
   res.redirect('/policies/' + id);

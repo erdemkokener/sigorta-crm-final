@@ -1,0 +1,127 @@
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+  <h1 class="h2">Panel</h1>
+</div>
+
+<div class="row g-3 mb-4">
+  <!-- Bugün Bitenler -->
+  <div class="col-md-4">
+    <div class="card h-100 border-primary">
+      <div class="card-header bg-primary text-white">
+        <h5 class="card-title mb-0"><i class="bi bi-calendar-check"></i> Bugün Biten Poliçeler</h5>
+      </div>
+      <div class="card-body">
+        <% if (policiesEndingToday.length === 0) { %>
+          <p class="text-muted mb-0">Bugün biten poliçe yok.</p>
+        <% } else { %>
+          <ul class="list-group list-group-flush">
+            <% policiesEndingToday.forEach(p => { %>
+              <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                <div>
+                  <a href="/policies/<%= p.id %>" class="fw-bold text-decoration-none"><%= p.policy_number %></a>
+                  <div class="small text-muted"><%= p.customer_name %></div>
+                </div>
+                <span class="badge bg-danger">Bitiyor</span>
+              </li>
+            <% }) %>
+          </ul>
+        <% } %>
+      </div>
+      <div class="card-footer bg-transparent border-top-0">
+        <a href="/policies?filter=today" class="btn btn-sm btn-outline-primary w-100">Tümünü Gör</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bu Hafta Bitenler -->
+  <div class="col-md-4">
+    <div class="card h-100 border-warning">
+      <div class="card-header bg-warning text-dark">
+        <h5 class="card-title mb-0"><i class="bi bi-calendar-week"></i> Bu Hafta Bitenler</h5>
+      </div>
+      <div class="card-body">
+        <% if (policiesEndingThisWeek.length === 0) { %>
+          <p class="text-muted mb-0">Bu hafta biten poliçe yok.</p>
+        <% } else { %>
+          <div class="display-6 text-center my-3"><%= policiesEndingThisWeek.length %></div>
+          <p class="text-center text-muted">adet poliçe bitiyor</p>
+        <% } %>
+      </div>
+      <div class="card-footer bg-transparent border-top-0">
+        <a href="/policies?filter=week" class="btn btn-sm btn-outline-warning w-100">Listele</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bugün Tahsil Edilmesi Planlananlar (Poliçe Başlangıcı Bugün Olanlar) -->
+  <div class="col-md-4">
+    <div class="card h-100 border-success">
+      <div class="card-header bg-success text-white">
+        <h5 class="card-title mb-0"><i class="bi bi-cash-coin"></i> Bugün Tahsilat Planı</h5>
+      </div>
+      <div class="card-body">
+        <p class="small text-muted">Bugün başlayan poliçeler (Tahsilat bekleniyor)</p>
+        <% if (policiesStartingToday.length === 0) { %>
+          <p class="text-muted mb-0">Bugün başlayan poliçe yok.</p>
+        <% } else { %>
+          <ul class="list-group list-group-flush">
+            <% policiesStartingToday.forEach(p => { %>
+              <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                <div>
+                  <a href="/policies/<%= p.id %>" class="fw-bold text-decoration-none"><%= p.policy_number %></a>
+                  <div class="small text-muted"><%= p.customer_name %></div>
+                </div>
+                <span class="badge bg-success"><%= p.premium %> TL</span>
+              </li>
+            <% }) %>
+          </ul>
+        <% } %>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col-12">
+    <div class="card shadow-sm">
+      <div class="card-header bg-light">
+        <h5 class="mb-0">Hatırlatmalar</h5>
+      </div>
+      <div class="card-body">
+         <% if (reminders.length === 0) { %>
+            <p class="text-muted">Yaklaşan özel hatırlatma yok.</p>
+         <% } else { %>
+            <div class="table-responsive">
+              <table class="table table-hover">
+                <thead>
+                  <tr>
+                    <th>Tarih</th>
+                    <th>Poliçe</th>
+                    <th>Müşteri</th>
+                    <th>Not</th>
+                    <th>İşlem</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <% reminders.forEach(r => { %>
+                    <tr>
+                      <td>
+                        <% if (r.isToday) { %>
+                          <span class="badge bg-danger">Bugün</span>
+                        <% } else { %>
+                          <%= r.custom_reminder_date %>
+                        <% } %>
+                      </td>
+                      <td><a href="/policies/<%= r.id %>"><%= r.policy_number %></a></td>
+                      <td><%= r.customer_name %></td>
+                      <td><%= r.custom_reminder_note %></td>
+                      <td><a href="/policies/<%= r.id %>" class="btn btn-sm btn-outline-primary">Git</a></td>
+                    </tr>
+                  <% }) %>
+                </tbody>
+              </table>
+            </div>
+         <% } %>
+      </div>
+    </div>
+  </div>
+</div>

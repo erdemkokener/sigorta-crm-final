@@ -2,6 +2,8 @@
   <h1 class="h2">Poliçeler</h1>
   <div class="btn-toolbar mb-2 mb-md-0">
     <div class="btn-group me-2">
+      <a href="/policies?filter=today" class="btn btn-sm btn-outline-danger">Bugün Bitenler</a>
+      <a href="/policies?filter=tomorrow" class="btn btn-sm btn-outline-warning">Yarın Bitenler</a>
       <a href="/policies/export.xlsx?<%= qs %>" class="btn btn-sm btn-outline-secondary"><i class="bi bi-file-earmark-excel"></i> Excel'e Aktar</a>
       <a href="/policies/import" class="btn btn-sm btn-outline-secondary"><i class="bi bi-upload"></i> Excel Yükle</a>
     </div>

@@ -31,7 +31,11 @@
             <input type="number" step="0.01" class="form-control" name="manual_debt" value="<%= customer.manual_debt || 0 %>" <%= user && !user.isAdmin ? 'readonly' : '' %>>
             <div class="form-text">Poliçelerden bağımsız borç girmek için kullanın.</div>
           </div>
-          
+          <div class="col-md-12">
+            <label class="form-label">Müşteri Notu</label>
+            <textarea class="form-control" name="note" rows="2" <%= user && !user.isAdmin ? 'readonly' : '' %>><%= customer.note || '' %></textarea>
+          </div>
+         
           <div class="col-12 mt-4 text-end">
             <button type="submit" class="btn btn-warning"><i class="bi bi-pencil-square"></i> Güncelle</button>
             <a href="/customers" class="btn btn-secondary"><i class="bi bi-x"></i> İptal</a>

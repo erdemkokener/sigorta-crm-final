@@ -187,6 +187,21 @@
             </select>
           </div>
 
+          <div class="col-md-12 border-top pt-3 mt-3">
+            <h6>Özel Hatırlatma</h6>
+            <div class="row g-3">
+              <div class="col-md-4">
+                <label class="form-label">Hatırlatma Tarihi</label>
+                <input type="date" class="form-control" name="custom_reminder_date" value="<%= policy.custom_reminder_date || '' %>">
+              </div>
+              <div class="col-md-8">
+                <label class="form-label">Hatırlatma Notu</label>
+                <input type="text" class="form-control" name="custom_reminder_note" placeholder="Örn: Yenileme teklifini 14 gün önce hatırlat" value="<%= policy.custom_reminder_note || '' %>">
+              </div>
+            </div>
+          </div>
+
+
           <div class="col-12 mt-4 text-end">
             <button type="submit" class="btn btn-warning"><i class="bi bi-pencil-square"></i> Güncelle</button>
             <a href="/policies/<%= policy.id %>" class="btn btn-secondary"><i class="bi bi-x"></i> İptal</a>

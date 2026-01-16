@@ -14,6 +14,8 @@ const PolicySchema = new mongoose.Schema({
   premium: Number,
   premium_paid: Number,
   payment_note: String,
+  custom_reminder_date: String, // YYYY-MM-DD
+  custom_reminder_note: String,
   notified_14: { type: Boolean, default: false },
   notified_end: { type: Boolean, default: false },
   policy_details: {

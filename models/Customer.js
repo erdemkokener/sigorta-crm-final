@@ -7,7 +7,8 @@ const CustomerSchema = new mongoose.Schema({
   id_no: String,
   email: String,
   birth_date: String,
-  manual_debt: { type: Number, default: 0 }
+  manual_debt: { type: Number, default: 0 },
+  note: String
 }, { timestamps: true });
 
 module.exports = mongoose.model('Customer', CustomerSchema);
