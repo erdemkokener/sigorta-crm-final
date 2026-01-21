@@ -139,6 +139,8 @@ async function filterPolicies(query) {
   const filter = query.filter; // today, tomorrow, week
   const endFrom = query.end_from ? dayjs(query.end_from) : null;
   const endTo = query.end_to ? dayjs(query.end_to) : null;
+  const issueFrom = query.issue_from ? dayjs(query.issue_from) : null;
+  const issueTo = query.issue_to ? dayjs(query.issue_to) : null;
   
   const today = dayjs();
 
@@ -173,6 +175,12 @@ async function filterPolicies(query) {
   }
   if (endTo) {
     items = items.filter(x => dayjs(x.end_date).isSame(endTo) || dayjs(x.end_date).isBefore(endTo));
+  }
+  if (issueFrom) {
+    items = items.filter(x => x.issue_date && (dayjs(x.issue_date).isSame(issueFrom) || dayjs(x.issue_date).isAfter(issueFrom)));
+  }
+  if (issueTo) {
+    items = items.filter(x => x.issue_date && (dayjs(x.issue_date).isSame(issueTo) || dayjs(x.issue_date).isBefore(issueTo)));
   }
   items = items.sort((a, b) => a.end_date.localeCompare(b.end_date) || b.id - a.id);
   return items;

@@ -77,6 +77,14 @@
         <label class="form-label">Bitiş (Bitiş)</label>
         <input type="date" class="form-control" name="end_to" value="<%= (typeof qs !== 'undefined' && new URLSearchParams(qs).get('end_to')) || '' %>">
       </div>
+      <div class="col-md-2">
+        <label class="form-label">Tanzim (Başlangıç)</label>
+        <input type="date" class="form-control" name="issue_from" value="<%= (typeof qs !== 'undefined' && new URLSearchParams(qs).get('issue_from')) || '' %>">
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">Tanzim (Bitiş)</label>
+        <input type="date" class="form-control" name="issue_to" value="<%= (typeof qs !== 'undefined' && new URLSearchParams(qs).get('issue_to')) || '' %>">
+      </div>
       <div class="col-12 text-end">
         <button type="submit" class="btn btn-primary"><i class="bi bi-funnel"></i> Filtrele</button>
         <a href="/policies" class="btn btn-outline-secondary">Temizle</a>
