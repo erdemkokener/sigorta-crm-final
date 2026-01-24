@@ -49,10 +49,11 @@ const DataService = {
 
   async getAllData() {
     if (db.isConnected()) {
-      const [customers, policies, settingsDocs] = await Promise.all([
+      const [customers, policies, settingsDocs, payments] = await Promise.all([
         Customer.find({}),
         Policy.find({}),
-        Settings.find({})
+        Settings.find({}),
+        Payment.find({})
       ]);
 
       // Convert settings array to object
@@ -67,13 +68,16 @@ const DataService = {
       // Calculate nextIds
       const maxPolicyId = policies.reduce((max, p) => Math.max(max, p.id || 0), 0);
       const maxCustomerId = customers.reduce((max, c) => Math.max(max, c.id || 0), 0);
+      const maxPaymentId = payments.reduce((max, p) => Math.max(max, p.id || 0), 0);
 
       return {
         policies: policies.map(p => p.toObject()),
         customers: customers.map(c => c.toObject()),
+        payments: payments.map(p => p.toObject()),
         settings,
         nextId: maxPolicyId + 1,
-        nextCustomerId: maxCustomerId + 1
+        nextCustomerId: maxCustomerId + 1,
+        nextPaymentId: maxPaymentId + 1
       };
     } else {
       return loadFile();

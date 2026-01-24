@@ -494,7 +494,22 @@ app.get('/customers', requireAuth, async (req, res) => {
   const data = await getContext();
   const q = (req.query.q || '').toLocaleLowerCase('tr-TR');
   const birthdaysFilter = req.query.birthdays === 'today';
-  let customers = data.customers.slice();
+  const debtorsFilter = req.query.filter === 'debtors';
+
+  let customers = data.customers.map(c => {
+    // Hesaplama: (Toplam Poliçe Primi - Poliçe Ödenen) + Manuel Borç - Genel Tahsilatlar
+    const cPolicies = data.policies.filter(p => p.customer_id === c.id);
+    const cPayments = data.payments ? data.payments.filter(p => p.customer_id === c.id) : [];
+    
+    const totalPremium = cPolicies.reduce((sum, p) => sum + Number(p.premium || 0), 0);
+    const totalPaidPolicy = cPolicies.reduce((sum, p) => sum + Number(p.premium_paid || 0), 0);
+    const totalCollections = cPayments.reduce((sum, pay) => sum + Number(pay.amount || 0), 0);
+    const manualDebt = Number(c.manual_debt || 0);
+
+    const balance = (totalPremium - totalPaidPolicy) + manualDebt - totalCollections;
+    return { ...c, balance };
+  });
+
   if (q) {
     customers = customers.filter(c =>
       (c.name || '').toLocaleLowerCase('tr-TR').includes(q) ||
@@ -519,7 +534,11 @@ app.get('/customers', requireAuth, async (req, res) => {
       return d.date() === today.date() && d.month() === today.month();
     });
   }
-  res.render('customers/index', { title: birthdaysFilter ? 'Doğum Günü Olan Müşteriler' : 'Müşteriler', customers, q, birthdaysFilter });
+  if (debtorsFilter) {
+    customers = customers.filter(c => c.balance > 0);
+  }
+
+  res.render('customers/index', { title: debtorsFilter ? 'Borçlu Müşteriler' : (birthdaysFilter ? 'Doğum Günü Olan Müşteriler' : 'Müşteriler'), customers, q, birthdaysFilter, debtorsFilter });
 });
 
 app.get('/customers/new', requireAuth, (req, res) => {
@@ -571,10 +590,17 @@ app.get('/customers/:id', requireAuth, async (req, res) => {
     manualDebt
   };
 
-  stats.totalRemaining = stats.manualDebt - stats.totalCollections;
+  // Eski (Hatalı) Kod:
+  // stats.totalRemaining = stats.manualDebt - stats.totalCollections;
+
+  // Yeni (Doğru) Kod:
+  // Toplam Poliçe Borcu = (Toplam Prim - Poliçe Bazlı Ödenen)
+  const totalPolicyDebt = stats.totalPremium - stats.totalPaidPolicy;
+  // Genel Kalan = Poliçe Borçları + Manuel Borç - Genel Tahsilatlar
+  stats.totalRemaining = totalPolicyDebt + stats.manualDebt - stats.totalCollections;
 
   res.render('customers/show', { 
-    title: 'Müşteri Detayı', 
+    title: 'Müşteri Detayı',  
     customer, 
     policies,
     stats,
@@ -607,15 +633,23 @@ app.get('/customers/:id/invoice', requireAuth, async (req, res) => {
     manualDebt
   };
   
-  stats.totalReceivable = stats.manualDebt;
-  stats.totalPaidAll = stats.totalCollections;
+  // Yeni (Doğru) Hesaplama:
+  // Toplam Alacak = Tüm Poliçe Primleri + Manuel Borç
+  stats.totalReceivable = stats.totalPremium + stats.manualDebt;
+
+  // Toplam Ödenen = Poliçe Bazlı Ödenenler + Genel Tahsilatlar
+  stats.totalPaidAll = stats.totalPaidPolicy + stats.totalCollections;
+
+  // Kalan Bakiye
   stats.totalRemaining = stats.totalReceivable - stats.totalPaidAll;
 
   res.render('customers/invoice', {
     title: 'Fatura / Tahsilat',
     customer,
     policies,
+    payments,
     stats,
+    today: dayjs().format('YYYY-MM-DD'),
     msg: req.query.msg || null,
     error: req.query.error || null
   });

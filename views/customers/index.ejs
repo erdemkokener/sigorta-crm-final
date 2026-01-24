@@ -5,10 +5,22 @@
       <a href="/customers/export.xlsx" class="btn btn-sm btn-outline-secondary"><i class="bi bi-file-earmark-excel"></i> Excel'e Aktar</a>
       <a href="/policies" class="btn btn-sm btn-outline-secondary"><i class="bi bi-file-text"></i> Poliçeler</a>
     </div>
+    <a href="/customers?filter=debtors" class="btn btn-sm btn-outline-danger me-2"><i class="bi bi-wallet2"></i> Borçlu Müşteriler</a>
     <a href="/customers?birthdays=today" class="btn btn-sm btn-outline-success me-2"><i class="bi bi-gift"></i> Doğum Günü Olanlar</a>
     <a href="/customers/new" class="btn btn-sm btn-primary"><i class="bi bi-person-plus"></i> Yeni Müşteri</a>
   </div>
 </div>
+
+<% if (typeof debtorsFilter !== 'undefined' && debtorsFilter) { %>
+  <div class="alert alert-danger d-flex justify-content-between align-items-center">
+    <div>
+      <i class="bi bi-exclamation-circle-fill me-2"></i>
+      <strong>Borçlu Müşteriler Listeleniyor</strong>
+      <span class="ms-2 badge bg-light text-danger"><%= customers.length %> Kişi</span>
+    </div>
+    <a href="/customers" class="btn btn-sm btn-outline-danger">Filtreyi Temizle</a>
+  </div>
+<% } %>
 
 <% if (birthdaysFilter && customers.length > 0) { %>
   <div class="alert alert-success d-flex justify-content-between align-items-start">
@@ -63,6 +75,7 @@
     <thead class="table-light">
       <tr>
         <th>Ad Soyad</th>
+        <th>Bakiye</th>
         <th>Telefon</th>
         <th>TCKN</th>
         <th>E-posta</th>
@@ -72,7 +85,7 @@
     </thead>
     <tbody>
       <% if (customers.length === 0) { %>
-        <tr><td colspan="6" class="text-center py-4 text-muted">Kayıtlı müşteri bulunamadı.</td></tr>
+        <tr><td colspan="7" class="text-center py-4 text-muted">Kayıtlı müşteri bulunamadı.</td></tr>
       <% } %>
       <% customers.forEach(c => { %>
         <tr>
@@ -80,6 +93,15 @@
             <a href="/customers/<%= c.id %>" class="text-decoration-none fw-bold">
               <i class="bi bi-person"></i> <%= c.name %>
             </a>
+          </td>
+          <td>
+             <% if (c.balance && c.balance > 0) { %>
+               <span class="badge bg-danger"><%= c.balance.toFixed(2) %> TL</span>
+             <% } else if (c.balance && c.balance < 0) { %>
+               <span class="badge bg-success"><%= Math.abs(c.balance).toFixed(2) %> TL (Alacak)</span>
+             <% } else { %>
+               <span class="text-muted">-</span>
+             <% } %>
           </td>
           <td><%= c.phone || '-' %></td>
           <td><%= c.id_no || '-' %></td>
