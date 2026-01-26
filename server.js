@@ -538,6 +538,8 @@ app.get('/customers', requireAuth, async (req, res) => {
     customers = customers.filter(c => Math.abs(c.balance) > 0.01);
   }
 
+  const qs = new URLSearchParams(req.query).toString();
+
   // Borçlular/Alacaklılar Sayfası için İstatistikler
   let totalReceivable = 0; // Bizim alacağımız (Müşterinin borcu) -> balance > 0
   let totalPayable = 0;    // Bizim borcumuz (Müşterinin alacağı) -> balance < 0
@@ -558,9 +560,83 @@ app.get('/customers', requireAuth, async (req, res) => {
     q, 
     birthdaysFilter, 
     debtorsFilter,
+    qs,
     totalReceivable,
     totalPayable
   });
+});
+
+app.get('/customers/export.xlsx', requireAuth, async (req, res) => {
+  const data = await getContext();
+  const q = (req.query.q || '').toLocaleLowerCase('tr-TR');
+  const birthdaysFilter = req.query.birthdays === 'today';
+  const debtorsFilter = req.query.filter === 'debtors';
+
+  let customers = data.customers.map(c => {
+    const cPolicies = data.policies.filter(p => p.customer_id === c.id);
+    const cPayments = data.payments ? data.payments.filter(p => p.customer_id === c.id) : [];
+    
+    const totalPremium = cPolicies.reduce((sum, p) => sum + Number(p.premium || 0), 0);
+    const totalPaidPolicy = cPolicies.reduce((sum, p) => sum + Number(p.premium_paid || 0), 0);
+    const totalCollections = cPayments.reduce((sum, pay) => sum + Number(pay.amount || 0), 0);
+    const manualDebt = Number(c.manual_debt || 0);
+
+    const balance = (totalPremium - totalPaidPolicy) + manualDebt - totalCollections;
+    return { ...c, balance };
+  });
+
+  if (q) {
+    customers = customers.filter(c =>
+      (c.name || '').toLocaleLowerCase('tr-TR').includes(q) ||
+      (c.phone || '').toLocaleLowerCase('tr-TR').includes(q) ||
+      (c.id_no || '').toLocaleLowerCase('tr-TR').includes(q) ||
+      (c.email || '').toLocaleLowerCase('tr-TR').includes(q) ||
+      (c.plate || '').toLocaleLowerCase('tr-TR').includes(q) ||
+      data.policies.some(p =>
+        p.customer_id === c.id && (
+          (p.policy_number || '').toLocaleLowerCase('tr-TR').includes(q) ||
+          (p.policy_details && p.policy_details.plate && p.policy_details.plate.toLocaleLowerCase('tr-TR').includes(q))
+        )
+      )
+    );
+  }
+  if (birthdaysFilter) {
+    const today = dayjs();
+    customers = customers.filter(c => {
+      if (!c.birth_date) return false;
+      const d = dayjs(c.birth_date);
+      if (!d.isValid()) return false;
+      return d.date() === today.date() && d.month() === today.month();
+    });
+  }
+  if (debtorsFilter) {
+    customers = customers.filter(c => Math.abs(c.balance) > 0.01);
+  }
+
+  const wb = new ExcelJS.Workbook();
+  const ws = wb.addWorksheet('Müşteriler');
+  ws.columns = [
+    { header: 'Adı Soyadı', key: 'name', width: 25 },
+    { header: 'Telefon', key: 'phone', width: 16 },
+    { header: 'Kimlik No', key: 'id_no', width: 16 },
+    { header: 'E-posta', key: 'email', width: 25 },
+    { header: 'Doğum Tarihi', key: 'birth_date', width: 14 },
+    { header: 'Bakiye', key: 'balance', width: 15 }
+  ];
+  for (const c of customers) {
+    ws.addRow({
+      name: c.name,
+      phone: c.phone,
+      id_no: c.id_no,
+      email: c.email,
+      birth_date: c.birth_date,
+      balance: c.balance
+    });
+  }
+  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  res.setHeader('Content-Disposition', 'attachment; filename=\"musteriler.xlsx\"');
+  await wb.xlsx.write(res);
+  res.end();
 });
 
 app.get('/customers/new', requireAuth, (req, res) => {
