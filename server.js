@@ -1118,35 +1118,52 @@ app.get('/policies/export.xlsx', requireAuth, async (req, res) => {
   const wb = new ExcelJS.Workbook();
   const ws = wb.addWorksheet('Poliçeler');
   ws.columns = [
-    { header: 'Müşteri', key: 'customer_name', width: 25 },
-    { header: 'Telefon', key: 'customer_phone', width: 16 },
-    { header: 'TC/Vergi No', key: 'customer_id_no', width: 18 },
-    { header: 'Doğum Tarihi', key: 'customer_birth_date', width: 15 },
+    { header: 'Adı Soyadı', key: 'name', width: 25 },
+    { header: 'TC Kimlik No', key: 'id_no', width: 16 },
+    { header: 'Telefon', key: 'phone', width: 16 },
+    { header: 'Tanzim Tarihi', key: 'issue_date', width: 15 },
+    { header: 'Bitiş Tarihi', key: 'end_date', width: 15 },
+    { header: 'Plaka', key: 'plate', width: 15 },
+    { header: 'Ruhsat Tescil No', key: 'registration_no', width: 20 },
+    { header: 'Meslek', key: 'profession', width: 20 },
     { header: 'Sigorta Şirketi', key: 'insurer', width: 20 },
     { header: 'Poliçe Türü', key: 'policy_type', width: 15 },
     { header: 'Poliçe No', key: 'policy_number', width: 20 },
-    { header: 'Başlangıç Tarihi', key: 'start_date', width: 15 },
-    { header: 'Bitiş Tarihi', key: 'end_date', width: 15 },
-    { header: 'Poliçe Detayları', key: 'description', width: 30 },
     { header: 'Durum', key: 'status', width: 15 },
     { header: 'Kalan Gün', key: 'days_left', width: 10 }
   ];
   
   for (const p of items) {
     const comp = policyWithComputed(p);
+    const details = p.policy_details || {};
+    
+    // Plaka: Detaylarda varsa oradan, yoksa açıklamadan bulmaya çalış
+    let plate = details.plate || '';
+    if (!plate && p.description) {
+      const match = p.description.match(/Plaka:\s*([^\s,]+)/i);
+      if (match) plate = match[1];
+    }
+
+    // Ruhsat No
+    let registration_no = details.registration_no || '';
+
+    // Meslek (Sadece Kasko ise veya varsa)
+    let profession = details.profession || '';
+
     ws.addRow({
-      customer_name: comp.customer_name,
-      customer_phone: comp.customer_phone,
-      customer_id_no: comp.customer_id_no,
-      customer_birth_date: comp.customer_birth_date,
+      name: comp.customer_name,
+      id_no: comp.customer_id_no,
+      phone: comp.customer_phone,
+      issue_date: p.issue_date || p.start_date || '', // Tanzim Tarihi
+      end_date: comp.end_date,
+      plate: plate,
+      registration_no: registration_no,
+      profession: profession,
       insurer: comp.insurer,
       policy_type: comp.policy_type,
       policy_number: comp.policy_number,
-      start_date: comp.start_date,
-      end_date: comp.end_date,
-      description: comp.description,
-      days_left: comp.days_remaining,
-      status: comp.status === 'active' ? 'Aktif' : (comp.status === 'cancelled' ? 'İptal' : comp.status)
+      status: comp.status === 'active' ? 'Aktif' : (comp.status === 'cancelled' ? 'İptal' : comp.status),
+      days_left: comp.days_remaining
     });
   }
   res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
