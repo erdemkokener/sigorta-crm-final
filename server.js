@@ -640,6 +640,9 @@ app.get('/customers/export.xlsx', requireAuth, async (req, res) => {
         plate: '',
         registration_no: '',
         profession: c.profession || '',
+        building_age: '',
+        area_sqm: '',
+        address_code: '',
         balance: c.balance
       });
     } else {
@@ -659,6 +662,11 @@ app.get('/customers/export.xlsx', requireAuth, async (req, res) => {
 
         // Meslek: Önce müşterinin kendi mesleği, yoksa poliçe detayı
         let profession = c.profession || details.profession || '';
+        
+        // DASK/Konut alanları
+        let building_age = details.building_age || '';
+        let area_sqm = details.area_sqm || '';
+        let address_code = details.address_code || '';
 
         exportRows.push({
           name: c.name,
@@ -669,6 +677,9 @@ app.get('/customers/export.xlsx', requireAuth, async (req, res) => {
           plate: plate,
           registration_no: registration_no,
           profession: profession,
+          building_age: building_age,
+          area_sqm: area_sqm,
+          address_code: address_code,
           balance: c.balance
         });
       }
@@ -684,6 +695,9 @@ app.get('/customers/export.xlsx', requireAuth, async (req, res) => {
     { header: 'Plaka', key: 'plate', width: 15 },
     { header: 'Ruhsat Tescil No', key: 'registration_no', width: 20 },
     { header: 'Meslek', key: 'profession', width: 20 },
+    { header: 'Bina Yaşı', key: 'building_age', width: 10 },
+    { header: 'Metrekare', key: 'area_sqm', width: 10 },
+    { header: 'Adres Kodu', key: 'address_code', width: 15 },
     { header: 'Bakiye', key: 'balance', width: 15 }
   ];
 
@@ -1132,6 +1146,9 @@ app.get('/policies/export.xlsx', requireAuth, async (req, res) => {
     { header: 'Plaka', key: 'plate', width: 15 },
     { header: 'Ruhsat Tescil No', key: 'registration_no', width: 20 },
     { header: 'Meslek', key: 'profession', width: 20 },
+    { header: 'Bina Yaşı', key: 'building_age', width: 10 },
+    { header: 'Metrekare', key: 'area_sqm', width: 10 },
+    { header: 'Adres Kodu', key: 'address_code', width: 15 },
     { header: 'Poliçe Türü', key: 'policy_type', width: 15 },
     { header: 'Poliçe No', key: 'policy_number', width: 20 },
     { header: 'Durum', key: 'status', width: 15 },
@@ -1155,6 +1172,11 @@ app.get('/policies/export.xlsx', requireAuth, async (req, res) => {
     // Meslek (Sadece Kasko ise veya varsa)
     let profession = details.profession || '';
 
+    // DASK/Konut alanları
+    let building_age = details.building_age || '';
+    let area_sqm = details.area_sqm || '';
+    let address_code = details.address_code || '';
+
     ws.addRow({
       name: comp.customer_name,
       id_no: comp.customer_id_no,
@@ -1164,6 +1186,9 @@ app.get('/policies/export.xlsx', requireAuth, async (req, res) => {
       plate: plate,
       registration_no: registration_no,
       profession: profession,
+      building_age: building_age,
+      area_sqm: area_sqm,
+      address_code: address_code,
       policy_type: comp.policy_type,
       policy_number: comp.policy_number,
       status: comp.status === 'active' ? 'Aktif' : (comp.status === 'cancelled' ? 'İptal' : comp.status),
