@@ -18,6 +18,7 @@
       <div class="card-body">
         <p><strong>Telefon:</strong> <%= customer.phone || '-' %></p>
         <p><strong>E-posta:</strong> <%= customer.email || '-' %></p>
+        <p><strong>Meslek:</strong> <%= customer.profession || '-' %></p>
         <p><strong>TC/Vergi No:</strong> <%= customer.id_no || '-' %></p>
         <p><strong>Doğum Tarihi:</strong> <%= customer.birth_date || '-' %></p>
         <% if (customer.note) { %>
