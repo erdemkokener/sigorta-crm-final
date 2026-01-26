@@ -59,9 +59,13 @@ async function init() {
   await dataService.init();
   initMailer();
 }
-init();
 
-// Helper to get everything needed for a request (backward compatibility)
+// Start Server
+init().then(() => {
+  app.listen(PORT, () => {
+    console.log(`Sigorta CRM sunucu çalışıyor: http://localhost:${PORT}`);
+  });
+});
 async function getContext() {
   return await dataService.getAllData();
 }
@@ -1182,8 +1186,4 @@ app.get('/policies/:id', requireAuth, async (req, res) => {
 
 app.use((req, res) => {
   res.status(404).send('Sayfa bulunamadı');
-});
-
-app.listen(PORT, () => {
-  console.log(`Sigorta CRM sunucu çalışıyor: http://localhost:${PORT}`);
 });
