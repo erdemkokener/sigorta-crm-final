@@ -829,33 +829,6 @@ app.post('/customers/:id/delete', requireAuth, requireAdmin, async (req, res) =>
   res.redirect('/customers');
 });
 
-app.get('/customers/export.xlsx', requireAuth, async (req, res) => {
-  const data = await getContext();
-  const customers = data.customers;
-  const wb = new ExcelJS.Workbook();
-  const ws = wb.addWorksheet('Müşteriler');
-  ws.columns = [
-    { header: 'Adı Soyadı', key: 'name', width: 25 },
-    { header: 'Telefon', key: 'phone', width: 16 },
-    { header: 'Kimlik No', key: 'id_no', width: 16 },
-    { header: 'E-posta', key: 'email', width: 25 },
-    { header: 'Doğum Tarihi', key: 'birth_date', width: 14 }
-  ];
-  for (const c of customers) {
-    ws.addRow({
-      name: c.name,
-      phone: c.phone,
-      id_no: c.id_no,
-      email: c.email,
-      birth_date: c.birth_date
-    });
-  }
-  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-  res.setHeader('Content-Disposition', 'attachment; filename=\"musteriler.xlsx\"');
-  await wb.xlsx.write(res);
-  res.end();
-});
-
 app.get('/policies', requireAuth, async (req, res) => {
   const data = await getContext();
   const items = (await filterPolicies(req.query)).map(p => policyWithComputed(p));
