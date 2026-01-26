@@ -1001,7 +1001,8 @@ app.post('/policies', requireAuth, async (req, res) => {
     status: status || 'active',
     created_at,
     notified_14: false,
-    notified_end: false
+    notified_end: false,
+    policy_details: req.body.policy_details || {}
   });
   res.redirect('/policies');
 });
@@ -1067,7 +1068,8 @@ app.post('/policies/:id', requireAuth, async (req, res) => {
     payment_note: payment_note || '',
     custom_reminder_date: custom_reminder_date || '',
     custom_reminder_note: custom_reminder_note || '',
-    status: status || 'active'
+    status: status || 'active',
+    policy_details: req.body.policy_details || {}
   });
   res.redirect('/policies/' + id);
 });
