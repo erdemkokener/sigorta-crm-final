@@ -12,13 +12,66 @@
 </div>
 
 <% if (typeof debtorsFilter !== 'undefined' && debtorsFilter) { %>
-  <div class="alert alert-danger d-flex justify-content-between align-items-center">
-    <div>
-      <i class="bi bi-exclamation-circle-fill me-2"></i>
-      <strong>Borçlu Müşteriler Listeleniyor</strong>
-      <span class="ms-2 badge bg-light text-danger"><%= customers.length %> Kişi</span>
+  <div class="row mb-4">
+    <div class="col-md-4">
+      <div class="card border-left-danger shadow-sm h-100 py-2">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">Toplam Alacak (Müşteri Borcu)</div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800"><%= totalReceivable.toFixed(2) %> TL</div>
+            </div>
+            <div class="col-auto">
+              <i class="bi bi-arrow-down-circle fa-2x text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
-    <a href="/customers" class="btn btn-sm btn-outline-danger">Filtreyi Temizle</a>
+
+    <div class="col-md-4">
+      <div class="card border-left-success shadow-sm h-100 py-2">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Toplam Verecek (Bizim Borcumuz)</div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800"><%= totalPayable.toFixed(2) %> TL</div>
+            </div>
+            <div class="col-auto">
+              <i class="bi bi-arrow-up-circle fa-2x text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-4">
+      <div class="card border-left-info shadow-sm h-100 py-2">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Net Durum</div>
+              <% const net = totalReceivable - totalPayable; %>
+              <div class="h5 mb-0 font-weight-bold <%= net > 0 ? 'text-success' : 'text-danger' %>">
+                <%= net > 0 ? '+' : '' %><%= net.toFixed(2) %> TL
+              </div>
+            </div>
+            <div class="col-auto">
+              <i class="bi bi-wallet2 fa-2x text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="alert alert-secondary d-flex justify-content-between align-items-center">
+    <div>
+      <i class="bi bi-info-circle-fill me-2"></i>
+      <strong>Bakiye Listesi Görüntüleniyor</strong>
+      <span class="ms-2 badge bg-dark"><%= customers.length %> Kayıt</span>
+    </div>
+    <a href="/customers" class="btn btn-sm btn-outline-dark">Filtreyi Temizle</a>
   </div>
 <% } %>
 
@@ -95,13 +148,13 @@
             </a>
           </td>
           <td>
-             <% if (c.balance && c.balance > 0) { %>
+            <% if (c.balance && c.balance > 0.01) { %>
                <span class="badge bg-danger"><%= c.balance.toFixed(2) %> TL</span>
-             <% } else if (c.balance && c.balance < 0) { %>
+            <% } else if (c.balance && c.balance < -0.01) { %>
                <span class="badge bg-success"><%= Math.abs(c.balance).toFixed(2) %> TL (Alacak)</span>
-             <% } else { %>
-               <span class="text-muted">-</span>
-             <% } %>
+            <% } else { %>
+               <span class="badge bg-secondary">0.00 TL</span>
+            <% } %>
           </td>
           <td><%= c.phone || '-' %></td>
           <td><%= c.id_no || '-' %></td>

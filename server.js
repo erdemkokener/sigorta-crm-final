@@ -535,10 +535,32 @@ app.get('/customers', requireAuth, async (req, res) => {
     });
   }
   if (debtorsFilter) {
-    customers = customers.filter(c => c.balance > 0);
+    customers = customers.filter(c => Math.abs(c.balance) > 0.01);
   }
 
-  res.render('customers/index', { title: debtorsFilter ? 'Borçlu Müşteriler' : (birthdaysFilter ? 'Doğum Günü Olan Müşteriler' : 'Müşteriler'), customers, q, birthdaysFilter, debtorsFilter });
+  // Borçlular/Alacaklılar Sayfası için İstatistikler
+  let totalReceivable = 0; // Bizim alacağımız (Müşterinin borcu) -> balance > 0
+  let totalPayable = 0;    // Bizim borcumuz (Müşterinin alacağı) -> balance < 0
+  
+  if (debtorsFilter) {
+    totalReceivable = customers
+      .filter(c => c.balance > 0)
+      .reduce((sum, c) => sum + c.balance, 0);
+      
+    totalPayable = customers
+      .filter(c => c.balance < 0)
+      .reduce((sum, c) => sum + Math.abs(c.balance), 0);
+  }
+
+  res.render('customers/index', { 
+    title: debtorsFilter ? 'Bakiye Listesi' : (birthdaysFilter ? 'Doğum Günü Olan Müşteriler' : 'Müşteriler'), 
+    customers, 
+    q, 
+    birthdaysFilter, 
+    debtorsFilter,
+    totalReceivable,
+    totalPayable
+  });
 });
 
 app.get('/customers/new', requireAuth, (req, res) => {
