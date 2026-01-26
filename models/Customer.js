@@ -6,6 +6,7 @@ const CustomerSchema = new mongoose.Schema({
   phone: String,
   id_no: String,
   email: String,
+  profession: String,
   birth_date: String,
   manual_debt: { type: Number, default: 0 },
   note: String

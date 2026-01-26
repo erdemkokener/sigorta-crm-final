@@ -23,6 +23,10 @@
             <input type="email" class="form-control" name="email" value="<%= customer.email || '' %>" <%= user && !user.isAdmin ? 'readonly' : '' %>>
           </div>
           <div class="col-md-6">
+            <label class="form-label">Meslek</label>
+            <input type="text" class="form-control" name="profession" value="<%= customer.profession || '' %>" <%= user && !user.isAdmin ? 'readonly' : '' %>>
+          </div>
+          <div class="col-md-6">
             <label class="form-label">Doğum Tarihi</label>
             <input type="date" class="form-control" name="birth_date" value="<%= customer.birth_date || '' %>" <%= user && !user.isAdmin ? 'readonly' : '' %>>
           </div>

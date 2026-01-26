@@ -639,7 +639,7 @@ app.get('/customers/export.xlsx', requireAuth, async (req, res) => {
         end_date: '',
         plate: '',
         registration_no: '',
-        profession: '',
+        profession: c.profession || '',
         balance: c.balance
       });
     } else {
@@ -657,8 +657,8 @@ app.get('/customers/export.xlsx', requireAuth, async (req, res) => {
         // Ruhsat No
         let registration_no = details.registration_no || '';
 
-        // Meslek (Sadece Kasko ise veya varsa)
-        let profession = details.profession || '';
+        // Meslek: Önce müşterinin kendi mesleği, yoksa poliçe detayı
+        let profession = c.profession || details.profession || '';
 
         exportRows.push({
           name: c.name,
@@ -709,6 +709,7 @@ app.post('/customers', requireAuth, async (req, res) => {
     phone: phone || '',
     id_no: id_no || '',
     email: email || '',
+    profession: req.body.profession || '',
     birth_date: birth_date || '',
     manual_debt: Number(req.body.manual_debt) || 0,
     note: req.body.note || ''
@@ -863,6 +864,7 @@ app.post('/customers/:id', requireAuth, async (req, res) => {
       phone: req.body.phone,
       id_no: req.body.id_no,
       email: req.body.email,
+      profession: req.body.profession,
       birth_date: req.body.birth_date,
       manual_debt: Number(req.body.manual_debt) || 0,
       note: req.body.note || ''
