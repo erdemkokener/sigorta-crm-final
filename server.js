@@ -615,23 +615,75 @@ app.get('/customers/export.xlsx', requireAuth, async (req, res) => {
 
   const wb = new ExcelJS.Workbook();
   const ws = wb.addWorksheet('Müşteriler');
+  
+  // 1. Satır Yapısını Değiştir: Müşteri -> Poliçeler
+  // Her poliçe için ayrı satır oluşturacağız. Poliçesi olmayanlar tek satır.
+  const exportRows = [];
+
+  for (const c of customers) {
+    // Müşterinin poliçelerini bul
+    const cPolicies = data.policies.filter(p => p.customer_id === c.id);
+
+    if (cPolicies.length === 0) {
+      // Poliçesi yoksa sadece müşteri bilgilerini ekle, poliçe alanları boş kalsın
+      exportRows.push({
+        name: c.name,
+        id_no: c.id_no,
+        phone: c.phone,
+        issue_date: '',
+        end_date: '',
+        plate: '',
+        registration_no: '',
+        profession: '',
+        balance: c.balance
+      });
+    } else {
+      // Her poliçe için satır ekle
+      for (const p of cPolicies) {
+        const details = p.policy_details || {};
+        
+        // Plaka: Detaylarda varsa oradan, yoksa açıklamadan bulmaya çalış
+        let plate = details.plate || '';
+        if (!plate && p.description) {
+          const match = p.description.match(/Plaka:\s*([^\s,]+)/i);
+          if (match) plate = match[1];
+        }
+
+        // Ruhsat No
+        let registration_no = details.registration_no || '';
+
+        // Meslek (Sadece Kasko ise veya varsa)
+        let profession = details.profession || '';
+
+        exportRows.push({
+          name: c.name,
+          id_no: c.id_no,
+          phone: c.phone,
+          issue_date: p.issue_date || p.start_date || '', // Tanzim Tarihi (Yoksa Başlangıç)
+          end_date: p.end_date || '',
+          plate: plate,
+          registration_no: registration_no,
+          profession: profession,
+          balance: c.balance
+        });
+      }
+    }
+  }
+
   ws.columns = [
     { header: 'Adı Soyadı', key: 'name', width: 25 },
+    { header: 'TC Kimlik No', key: 'id_no', width: 16 },
     { header: 'Telefon', key: 'phone', width: 16 },
-    { header: 'Kimlik No', key: 'id_no', width: 16 },
-    { header: 'E-posta', key: 'email', width: 25 },
-    { header: 'Doğum Tarihi', key: 'birth_date', width: 14 },
+    { header: 'Tanzim Tarihi', key: 'issue_date', width: 15 },
+    { header: 'Bitiş Tarihi', key: 'end_date', width: 15 },
+    { header: 'Plaka', key: 'plate', width: 15 },
+    { header: 'Ruhsat Tescil No', key: 'registration_no', width: 20 },
+    { header: 'Meslek', key: 'profession', width: 20 },
     { header: 'Bakiye', key: 'balance', width: 15 }
   ];
-  for (const c of customers) {
-    ws.addRow({
-      name: c.name,
-      phone: c.phone,
-      id_no: c.id_no,
-      email: c.email,
-      birth_date: c.birth_date,
-      balance: c.balance
-    });
+
+  for (const row of exportRows) {
+    ws.addRow(row);
   }
   res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
   res.setHeader('Content-Disposition', 'attachment; filename=\"musteriler.xlsx\"');
