@@ -166,7 +166,9 @@ async function filterPolicies(query) {
       String(x.customer_name || '').toLocaleLowerCase('tr-TR').includes(q) ||
       String(x.policy_number || '').toLocaleLowerCase('tr-TR').includes(q) ||
       String(x.customer_phone || '').toLocaleLowerCase('tr-TR').includes(q) ||
-      String(x.customer_id_no || '').toLocaleLowerCase('tr-TR').includes(q)
+      String(x.customer_id_no || '').toLocaleLowerCase('tr-TR').includes(q) ||
+      String(x.description || '').toLocaleLowerCase('tr-TR').includes(q) ||
+      (x.policy_details && x.policy_details.plate && String(x.policy_details.plate).toLocaleLowerCase('tr-TR').includes(q))
     );
   }
   if (insurer) {
