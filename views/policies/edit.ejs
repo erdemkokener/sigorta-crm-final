@@ -198,6 +198,15 @@
             <label class="form-label">Ödeme Dekontu / Açıklama</label>
             <input type="text" class="form-control" name="payment_note" value="<%= policy.payment_note || '' %>">
           </div>
+          <div class="col-md-4">
+            <label class="form-label">Acente Komisyonu (Kâr)</label>
+            <input type="number" step="0.01" class="form-control" name="commission" value="<%= policy.commission || '' %>">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">İade / İskonto Tutarı</label>
+            <input type="number" step="0.01" class="form-control" name="commission_refund" value="<%= policy.commission_refund || '' %>">
+          </div>
+          <div class="col-md-4"></div>
           <div class="col-md-6">
             <label class="form-label">Durum</label>
             <select class="form-select" name="status">

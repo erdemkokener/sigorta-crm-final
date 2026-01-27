@@ -101,6 +101,27 @@
                 <div><%= typeof policy.premium_remaining !== 'undefined' && policy.premium_remaining !== null ? policy.premium_remaining.toFixed ? policy.premium_remaining.toFixed(2) : policy.premium_remaining : '-' %></div>
             </div>
             <div class="col-md-6">
+                <label class="text-muted small">Acente Komisyonu</label>
+                <div class="text-primary fw-bold"><%= typeof policy.commission !== 'undefined' && policy.commission !== null ? (policy.commission.toFixed ? policy.commission.toFixed(2) : policy.commission) : '-' %></div>
+            </div>
+            <div class="col-md-6">
+                <label class="text-muted small">İade / İskonto</label>
+                <div class="text-danger fw-bold"><%= typeof policy.commission_refund !== 'undefined' && policy.commission_refund !== null ? (policy.commission_refund.toFixed ? policy.commission_refund.toFixed(2) : policy.commission_refund) : '-' %></div>
+            </div>
+            <div class="col-md-6">
+                <label class="text-muted small">Net Kâr</label>
+                <div>
+                  <% 
+                    const comm = Number(policy.commission) || 0;
+                    const ref = Number(policy.commission_refund) || 0;
+                    const net = comm - ref;
+                  %>
+                  <span class="<%= net >= 0 ? 'text-success' : 'text-danger' %> fw-bold">
+                    <%= net.toFixed(2) %>
+                  </span>
+                </div>
+            </div>
+            <div class="col-md-6">
                 <label class="text-muted small">Ödeme Dekontu / Açıklama</label>
                 <div><%= policy.payment_note || '-' %></div>
             </div>

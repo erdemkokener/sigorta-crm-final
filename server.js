@@ -1144,7 +1144,7 @@ app.get('/policies/new', requireAuth, async (req, res) => {
 });
 
 app.post('/policies', requireAuth, async (req, res) => {
-  const { customer_id, insurer, policy_number, start_date, end_date, description, status, issue_date, policy_type, premium, premium_paid, payment_note, custom_reminder_date, custom_reminder_note } = req.body;
+  const { customer_id, insurer, policy_number, start_date, end_date, description, status, issue_date, policy_type, premium, premium_paid, payment_note, commission, commission_refund, custom_reminder_date, custom_reminder_note } = req.body;
   if (!customer_id || !insurer || !policy_number || !start_date || !end_date) {
     return res.status(400).send('Eksik alanlar mevcut');
   }
@@ -1161,6 +1161,8 @@ app.post('/policies', requireAuth, async (req, res) => {
     premium: premium ? Number(premium) : undefined,
     premium_paid: premium_paid ? Number(premium_paid) : undefined,
     payment_note: payment_note || '',
+    commission: commission ? Number(commission) : undefined,
+    commission_refund: commission_refund ? Number(commission_refund) : undefined,
     custom_reminder_date: custom_reminder_date || '',
     custom_reminder_note: custom_reminder_note || '',
     status: status || 'active',
@@ -1218,7 +1220,7 @@ app.get('/policies/:id/edit', requireAuth, async (req, res) => {
 
 app.post('/policies/:id', requireAuth, async (req, res) => {
   const id = Number(req.params.id);
-  const { customer_id, insurer, policy_number, start_date, end_date, description, status, issue_date, policy_type, premium, premium_paid, payment_note, custom_reminder_date, custom_reminder_note } = req.body;
+  const { customer_id, insurer, policy_number, start_date, end_date, description, status, issue_date, policy_type, premium, premium_paid, payment_note, commission, commission_refund, custom_reminder_date, custom_reminder_note } = req.body;
   await dataService.updatePolicy(id, {
     customer_id: Number(customer_id),
     insurer,
@@ -1231,6 +1233,8 @@ app.post('/policies/:id', requireAuth, async (req, res) => {
     premium: premium ? Number(premium) : undefined,
     premium_paid: premium_paid ? Number(premium_paid) : undefined,
     payment_note: payment_note || '',
+    commission: commission ? Number(commission) : undefined,
+    commission_refund: commission_refund ? Number(commission_refund) : undefined,
     custom_reminder_date: custom_reminder_date || '',
     custom_reminder_note: custom_reminder_note || '',
     status: status || 'active',
@@ -1353,6 +1357,88 @@ app.get('/policies/:id', requireAuth, async (req, res) => {
   const policy = policyWithComputed(attachCustomer(p, data));
   const qs = new URLSearchParams(req.query).toString();
   res.render('policies/show', { title: 'Poliçe Detay', policy, qs });
+});
+
+app.get('/reports/refunds', requireAuth, async (req, res) => {
+  const data = await getContext();
+  let policies = data.policies.map(p => attachCustomer(p, data));
+  
+  // Filter by date if provided
+  const { start_date, end_date } = req.query;
+  if (start_date) {
+    policies = policies.filter(p => (p.issue_date || p.start_date) >= start_date);
+  }
+  if (end_date) {
+    policies = policies.filter(p => (p.issue_date || p.start_date) <= end_date);
+  }
+
+  // Calculate Stats
+  const stats = {
+    totalCommission: 0,
+    totalRefund: 0,
+    netProfit: 0
+  };
+
+  policies.forEach(p => {
+    const comm = Number(p.commission) || 0;
+    const ref = Number(p.commission_refund) || 0;
+    stats.totalCommission += comm;
+    stats.totalRefund += ref;
+  });
+  stats.netProfit = stats.totalCommission - stats.totalRefund;
+
+  const qs = new URLSearchParams(req.query).toString();
+  res.render('reports/refunds', { 
+    title: 'İade Raporu', 
+    policies, 
+    stats, 
+    query: req.query, 
+    qs 
+  });
+});
+
+app.get('/reports/refunds/export.xlsx', requireAuth, async (req, res) => {
+  const data = await getContext();
+  let policies = data.policies.map(p => attachCustomer(p, data));
+  
+  const { start_date, end_date } = req.query;
+  if (start_date) {
+    policies = policies.filter(p => (p.issue_date || p.start_date) >= start_date);
+  }
+  if (end_date) {
+    policies = policies.filter(p => (p.issue_date || p.start_date) <= end_date);
+  }
+
+  const wb = new ExcelJS.Workbook();
+  const ws = wb.addWorksheet('Iadeler');
+  ws.columns = [
+    { header: 'Tarih', key: 'date', width: 15 },
+    { header: 'Poliçe No', key: 'policy_number', width: 20 },
+    { header: 'Müşteri', key: 'customer', width: 25 },
+    { header: 'Şirket', key: 'insurer', width: 20 },
+    { header: 'Komisyon', key: 'commission', width: 15 },
+    { header: 'İade', key: 'refund', width: 15 },
+    { header: 'Net', key: 'net', width: 15 }
+  ];
+
+  policies.forEach(p => {
+    const comm = Number(p.commission) || 0;
+    const ref = Number(p.commission_refund) || 0;
+    ws.addRow({
+      date: p.issue_date || p.start_date,
+      policy_number: p.policy_number,
+      customer: p.customer_name,
+      insurer: p.insurer,
+      commission: comm,
+      refund: ref,
+      net: comm - ref
+    });
+  });
+
+  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  res.setHeader('Content-Disposition', 'attachment; filename="iade_raporu.xlsx"');
+  await wb.xlsx.write(res);
+  res.end();
 });
 
 app.use((req, res) => {

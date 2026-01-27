@@ -1,0 +1,89 @@
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+  <h1 class="h2">İade ve Komisyon Raporu</h1>
+  <div class="btn-toolbar mb-2 mb-md-0">
+    <a href="/reports/refunds/export.xlsx?<%= qs %>" class="btn btn-sm btn-outline-success">
+      <i class="bi bi-file-earmark-excel"></i> Excel'e Aktar
+    </a>
+  </div>
+</div>
+
+<div class="card mb-4">
+  <div class="card-body">
+    <form method="GET" action="/reports/refunds" class="row g-3 align-items-end">
+      <div class="col-md-3">
+        <label class="form-label">Başlangıç Tarihi</label>
+        <input type="date" class="form-control" name="start_date" value="<%= query.start_date %>">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Bitiş Tarihi</label>
+        <input type="date" class="form-control" name="end_date" value="<%= query.end_date %>">
+      </div>
+      <div class="col-md-3">
+        <button type="submit" class="btn btn-primary">Filtrele</button>
+        <a href="/reports/refunds" class="btn btn-outline-secondary">Sıfırla</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="row mb-4">
+  <div class="col-md-4">
+    <div class="card text-white bg-primary mb-3">
+      <div class="card-header">Toplam Komisyon</div>
+      <div class="card-body">
+        <h5 class="card-title"><%= stats.totalCommission.toFixed(2) %> TL</h5>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card text-white bg-danger mb-3">
+      <div class="card-header">Toplam İade</div>
+      <div class="card-body">
+        <h5 class="card-title"><%= stats.totalRefund.toFixed(2) %> TL</h5>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card text-white bg-success mb-3">
+      <div class="card-header">Net Kâr</div>
+      <div class="card-body">
+        <h5 class="card-title"><%= stats.netProfit.toFixed(2) %> TL</h5>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="table-responsive">
+  <table class="table table-striped table-hover">
+    <thead>
+      <tr>
+        <th>Tarih</th>
+        <th>Poliçe No</th>
+        <th>Müşteri</th>
+        <th>Şirket</th>
+        <th class="text-end">Komisyon</th>
+        <th class="text-end">İade</th>
+        <th class="text-end">Net</th>
+        <th>İşlem</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% policies.forEach(p => { %>
+        <tr>
+          <td><%= p.issue_date || p.start_date %></td>
+          <td><%= p.policy_number %></td>
+          <td><%= p.customer_name %></td>
+          <td><%= p.insurer %></td>
+          <td class="text-end text-primary fw-bold"><%= (p.commission || 0).toFixed(2) %></td>
+          <td class="text-end text-danger fw-bold"><%= (p.commission_refund || 0).toFixed(2) %></td>
+          <td class="text-end fw-bold <%= (p.commission || 0) - (p.commission_refund || 0) >= 0 ? 'text-success' : 'text-danger' %>">
+            <%= ((p.commission || 0) - (p.commission_refund || 0)).toFixed(2) %>
+          </td>
+          <td>
+            <a href="/policies/<%= p.id %>" class="btn btn-sm btn-outline-primary">Detay</a>
+          </td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</div>
