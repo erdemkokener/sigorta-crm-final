@@ -561,25 +561,6 @@ app.get('/customers', requireAuth, async (req, res) => {
       .reduce((sum, c) => sum + Math.abs(c.balance), 0);
   }
 
-  const vehicleMap = {};
-  for (const p of data.policies) {
-    const plateRaw = p.policy_details && p.policy_details.plate;
-    const plate = plateRaw ? String(plateRaw).trim() : '';
-    if (!plate) continue;
-    if (!vehicleMap[plate]) {
-      vehicleMap[plate] = { plate, count: 0, customerIds: new Set() };
-    }
-    vehicleMap[plate].count += 1;
-    vehicleMap[plate].customerIds.add(p.customer_id);
-  }
-  const vehicleList = Object.values(vehicleMap).map(v => {
-    const names = Array.from(v.customerIds).map(id => {
-      const c = data.customers.find(x => x.id === id);
-      return c ? c.name : '';
-    }).filter(Boolean);
-    return { plate: v.plate, count: v.count, customers: names };
-  }).sort((a, b) => a.plate.localeCompare(b.plate));
-
   res.render('customers/index', { 
     title: debtorsFilter ? 'Bakiye Listesi' : (birthdaysFilter ? 'Doğum Günü Olan Müşteriler' : 'Müşteriler'), 
     customers, 
@@ -588,8 +569,7 @@ app.get('/customers', requireAuth, async (req, res) => {
     debtorsFilter,
     qs,
     totalReceivable,
-    totalPayable,
-    vehicleList
+    totalPayable
   });
 });
 
@@ -900,6 +880,48 @@ app.get('/customers/:id/edit', requireAuth, async (req, res) => {
   const c = data.customers.find(x => x.id === id);
   if (!c) return res.status(404).send('Müşteri bulunamadı');
   res.render('customers/edit', { title: 'Müşteri Düzenle', customer: c });
+});
+
+app.get('/customers/:id/vehicles/export.xlsx', requireAuth, async (req, res) => {
+  const id = Number(req.params.id);
+  const data = await getContext();
+  const c = data.customers.find(x => x.id === id);
+  if (!c) return res.status(404).send('Müşteri bulunamadı');
+
+  // Müşteriye ait poliçelerden plaka listesini çıkar
+  const policies = data.policies.filter(p => p.customer_id === id);
+  const uniquePlates = new Set();
+  
+  policies.forEach(p => {
+    if (p.policy_details && p.policy_details.plate) {
+      uniquePlates.add(p.policy_details.plate.trim().toUpperCase());
+    }
+  });
+
+  const plateList = Array.from(uniquePlates).sort();
+
+  const wb = new ExcelJS.Workbook();
+  const ws = wb.addWorksheet('Kayıtlı Araçlar');
+  
+  ws.columns = [
+    { header: 'Sıra No', key: 'index', width: 10 },
+    { header: 'Plaka', key: 'plate', width: 20 },
+    { header: 'Müşteri Adı', key: 'customer', width: 30 }
+  ];
+
+  plateList.forEach((plate, index) => {
+    ws.addRow({
+      index: index + 1,
+      plate: plate,
+      customer: c.name
+    });
+  });
+
+  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  res.setHeader('Content-Disposition', `attachment; filename="Arac_Listesi_${c.name.replace(/[^a-z0-9]/gi, '_')}.xlsx"`);
+
+  await wb.xlsx.write(res);
+  res.end();
 });
 
 app.post('/customers/:id', requireAuth, async (req, res) => {

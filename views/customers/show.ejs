@@ -33,7 +33,7 @@
       <div class="card-header bg-light">
         <h5 class="card-title mb-0">Kayıtlı Araçlar</h5>
       </div>
-      <div class="card-body p-0">
+      <div class="card-body">
         <% 
            const uniquePlates = new Set();
            if (policies && policies.length > 0) {
@@ -43,21 +43,19 @@
                }
              });
            }
+           const totalVehicles = uniquePlates.size;
         %>
-        <% if (uniquePlates.size === 0) { %>
-          <div class="p-3 text-muted text-center">Kayıtlı araç plakası bulunamadı.</div>
-        <% } else { %>
-          <ul class="list-group list-group-flush">
-            <% Array.from(uniquePlates).sort().forEach(plate => { %>
-              <li class="list-group-item d-flex justify-content-between align-items-center">
-                <span class="fw-bold"><%= plate %></span>
-                <button class="btn btn-sm btn-outline-primary" onclick="filterByPlate('<%= plate %>')">
-                  <i class="bi bi-search"></i>
-                </button>
-              </li>
-            <% }) %>
-          </ul>
-        <% } %>
+        <div class="text-center py-3">
+          <h3 class="display-6 fw-bold mb-3"><%= totalVehicles %></h3>
+          <p class="text-muted">Toplam Kayıtlı Araç</p>
+          <% if (totalVehicles > 0) { %>
+            <a href="/customers/<%= customer.id %>/vehicles/export.xlsx" class="btn btn-success w-100">
+              <i class="bi bi-file-earmark-excel"></i> Excel Olarak İndir
+            </a>
+          <% } else { %>
+            <button class="btn btn-secondary w-100" disabled>Kayıtlı Araç Yok</button>
+          <% } %>
+        </div>
       </div>
     </div>
   </div>
@@ -66,7 +64,7 @@
   <div class="col-md-8">
     <div class="row g-3">
       <div class="col-md-4">
-        <div class="card bg-primary text-white h-100">
+        <div class="card bg-primary text-white h-100 cursor-pointer" onclick="filterPolicies('status', 'all')" style="cursor: pointer;">
           <div class="card-body text-center">
             <h6 class="card-title">Toplam Poliçe</h6>
             <div class="display-6 fw-bold"><%= stats.totalPolicies %></div>
@@ -74,7 +72,7 @@
         </div>
       </div>
       <div class="col-md-4">
-        <div class="card bg-success text-white h-100">
+        <div class="card bg-success text-white h-100 cursor-pointer" onclick="filterPolicies('status', 'active')" style="cursor: pointer;">
           <div class="card-body text-center">
             <h6 class="card-title">Aktif Poliçeler</h6>
             <div class="display-6 fw-bold"><%= stats.activePolicies %></div>
@@ -82,7 +80,7 @@
         </div>
       </div>
       <div class="col-md-4">
-        <div class="card bg-danger text-white h-100">
+        <div class="card bg-danger text-white h-100 cursor-pointer" onclick="filterPolicies('status', 'expired')" style="cursor: pointer;">
           <div class="card-body text-center">
             <h6 class="card-title">Süresi Bitenler</h6>
             <div class="display-6 fw-bold"><%= stats.expiredPolicies %></div>
@@ -103,7 +101,7 @@
               <div class="row">
                 <% Object.entries(policyDistribution).forEach(([type, count]) => { %>
                   <div class="col-md-4 col-sm-6 mb-2">
-                    <div class="d-flex justify-content-between align-items-center border p-2 rounded">
+                    <div class="d-flex justify-content-between align-items-center border p-2 rounded cursor-pointer hover-bg-light" onclick="filterPolicies('type', '<%= type %>')" style="cursor: pointer;">
                       <span class="fw-bold"><%= type %></span>
                       <span class="badge bg-secondary rounded-pill"><%= count %></span>
                     </div>
@@ -195,7 +193,13 @@
             <tr><td colspan="8" class="text-center py-4">Kayıtlı poliçe bulunamadı.</td></tr>
           <% } else { %>
             <% policies.forEach(p => { %>
-              <tr data-plate="<%= (p.policy_details && p.policy_details.plate) || '' %>" data-policy-number="<%= p.policy_number %>" data-start="<%= p.start_date %>" data-end="<%= p.end_date %>">
+              <tr data-plate="<%= (p.policy_details && p.policy_details.plate) || '' %>" 
+                  data-policy-number="<%= p.policy_number %>" 
+                  data-start="<%= p.start_date %>" 
+                  data-end="<%= p.end_date %>"
+                  data-status="<%= (p.status === 'active' || p.status === 'Aktif') ? 'active' : ((p.status === 'cancelled' || p.status === 'İptal') ? 'cancelled' : 'other') %>"
+                  data-is-expired="<%= p.days_remaining < 0 ? 'true' : 'false' %>"
+                  data-type="<%= p.policy_type %>">
                 <td><a href="/policies/<%= p.id %>" class="text-decoration-none fw-bold"><%= p.policy_number %></a></td>
                 <td><%= p.insurer %></td>
                 <td><span class="badge bg-secondary"><%= p.policy_type %></span></td>
@@ -276,6 +280,12 @@
   </div>
 </div>
 <script>
+  // Global filter state
+  let currentFilter = {
+    status: 'all', // all, active, expired
+    type: 'all' // all, or specific type
+  };
+
   const qInput = document.getElementById('policyFilterQuery');
   const searchBtn = document.getElementById('policyFilterBtn');
   const startFromInput = document.getElementById('policyStartFrom');
@@ -284,30 +294,68 @@
   const tableBody = document.querySelector('.card-body .table-responsive tbody');
   
   function filterByPlate(plate) {
-    if (qInput && searchBtn) {
+    if (qInput) {
       qInput.value = plate;
       applyPolicyFilter();
     }
+  }
+
+  function filterPolicies(criteria, value) {
+    if (criteria === 'status') {
+      currentFilter.status = value;
+      currentFilter.type = 'all'; 
+    } else if (criteria === 'type') {
+      currentFilter.type = value;
+      currentFilter.status = 'all';
+    }
+    applyPolicyFilter();
   }
 
   function applyPolicyFilter() {
     const q = (qInput && qInput.value || '').trim().toLowerCase();
     const startFrom = startFromInput && startFromInput.value || '';
     const endTo = endToInput && endToInput.value || '';
+    
     if (!tableBody) return;
+    
     const rows = tableBody.querySelectorAll('tr[data-policy-number]');
     rows.forEach(function(row) {
       const plate = (row.dataset.plate || '').toLowerCase();
       const pn = (row.dataset.policyNumber || '').toLowerCase();
       const s = row.dataset.start || '';
       const e = row.dataset.end || '';
-      let ok = true;
-      if (q) ok = plate.includes(q) || pn.includes(q);
-      if (ok && startFrom) ok = !s || s >= startFrom;
-      if (ok && endTo) ok = !e || e <= endTo;
-      row.style.display = ok ? '' : 'none';
+      const status = row.dataset.status || '';
+      const isExpired = row.dataset.isExpired === 'true';
+      const type = row.dataset.type || '';
+
+      // Text and Date Filter
+      let matchesTextDate = true;
+      if (q) matchesTextDate = plate.includes(q) || pn.includes(q);
+      if (matchesTextDate && startFrom) matchesTextDate = !s || s >= startFrom;
+      if (matchesTextDate && endTo) matchesTextDate = !e || e <= endTo;
+
+      // Status Filter
+      let matchesStatus = true;
+      if (currentFilter.status === 'active') {
+        matchesStatus = !isExpired && status !== 'cancelled';
+      } else if (currentFilter.status === 'expired') {
+        matchesStatus = isExpired;
+      }
+      
+      // Type Filter
+      let matchesType = true;
+      if (currentFilter.type !== 'all') {
+        matchesType = type === currentFilter.type;
+      }
+
+      if (matchesTextDate && matchesStatus && matchesType) {
+        row.style.display = '';
+      } else {
+        row.style.display = 'none';
+      }
     });
   }
+
   if (qInput) qInput.addEventListener('input', applyPolicyFilter);
   if (searchBtn) searchBtn.addEventListener('click', applyPolicyFilter);
   if (startFromInput) startFromInput.addEventListener('change', applyPolicyFilter);
@@ -316,6 +364,8 @@
     if (qInput) qInput.value = '';
     if (startFromInput) startFromInput.value = '';
     if (endToInput) endToInput.value = '';
+    currentFilter.status = 'all';
+    currentFilter.type = 'all';
     applyPolicyFilter();
   });
 </script>
