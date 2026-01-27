@@ -68,6 +68,8 @@
               <option value="Konut" <%= policy.policy_type === 'Konut' ? 'selected' : '' %>>Konut</option>
               <option value="DASK" <%= policy.policy_type === 'DASK' ? 'selected' : '' %>>DASK</option>
               <option value="Sağlık" <%= policy.policy_type === 'Sağlık' ? 'selected' : '' %>>Sağlık</option>
+              <option value="Tehlikeli Madde Mali Sorumluluk" <%= policy.policy_type === 'Tehlikeli Madde Mali Sorumluluk' ? 'selected' : '' %>>Tehlikeli Madde Mali Sorumluluk</option>
+              <option value="Koltuk Sigortası" <%= policy.policy_type === 'Koltuk Sigortası' ? 'selected' : '' %>>Koltuk Sigortası</option>
               <option value="Kısa Süreli Trafik" <%= policy.policy_type === 'Kısa Süreli Trafik' ? 'selected' : '' %>>Kısa Süreli Trafik</option>
               <option value="Diğer" <%= (!policy.policy_type || policy.policy_type === 'Diğer') ? 'selected' : '' %>>Diğer</option>
             </select>
@@ -245,7 +247,7 @@
   function updateSpecialFields() {
     const policyType = policyTypeSelect.value;
     trafikKaskoFields.forEach(function (el) {
-      el.style.display = (policyType === 'Trafik' || policyType === 'Kasko') ? '' : 'none';
+      el.style.display = (policyType === 'Trafik' || policyType === 'Kasko' || policyType === 'Tehlikeli Madde Mali Sorumluluk' || policyType === 'Koltuk Sigortası') ? '' : 'none';
     });
     kaskoOnlyFields.forEach(function (el) {
       el.style.display = policyType === 'Kasko' ? '' : 'none';
