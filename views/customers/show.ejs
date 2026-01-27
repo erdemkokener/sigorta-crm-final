@@ -121,6 +121,28 @@
     </div>
   </div>
   <div class="card-body p-0">
+    <div class="p-3 border-bottom">
+      <div class="row g-2 align-items-end">
+        <div class="col-md-4">
+          <label class="form-label">Arama</label>
+          <div class="input-group">
+            <input type="text" class="form-control" id="policyFilterQuery" placeholder="Plaka / Poliçe No">
+            <button class="btn btn-primary" type="button" id="policyFilterBtn"><i class="bi bi-search"></i> Ara</button>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Başlangıç Tarihi (En erken)</label>
+          <input type="date" class="form-control" id="policyStartFrom">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Bitiş Tarihi (En geç)</label>
+          <input type="date" class="form-control" id="policyEndTo">
+        </div>
+        <div class="col-md-2">
+          <button type="button" class="btn btn-outline-secondary w-100" id="policyFilterClear">Temizle</button>
+        </div>
+      </div>
+    </div>
     <div class="table-responsive">
       <table class="table table-hover mb-0">
         <thead class="table-light">
@@ -140,7 +162,7 @@
             <tr><td colspan="8" class="text-center py-4">Kayıtlı poliçe bulunamadı.</td></tr>
           <% } else { %>
             <% policies.forEach(p => { %>
-              <tr>
+              <tr data-plate="<%= (p.policy_details && p.policy_details.plate) || '' %>" data-policy-number="<%= p.policy_number %>" data-start="<%= p.start_date %>" data-end="<%= p.end_date %>">
                 <td><a href="/policies/<%= p.id %>" class="text-decoration-none fw-bold"><%= p.policy_number %></a></td>
                 <td><%= p.insurer %></td>
                 <td><span class="badge bg-secondary"><%= p.policy_type %></span></td>
@@ -220,3 +242,39 @@
     </div>
   </div>
 </div>
+<script>
+  const qInput = document.getElementById('policyFilterQuery');
+  const searchBtn = document.getElementById('policyFilterBtn');
+  const startFromInput = document.getElementById('policyStartFrom');
+  const endToInput = document.getElementById('policyEndTo');
+  const clearBtn = document.getElementById('policyFilterClear');
+  const tableBody = document.querySelector('.card-body .table-responsive tbody');
+  function applyPolicyFilter() {
+    const q = (qInput && qInput.value || '').trim().toLowerCase();
+    const startFrom = startFromInput && startFromInput.value || '';
+    const endTo = endToInput && endToInput.value || '';
+    if (!tableBody) return;
+    const rows = tableBody.querySelectorAll('tr[data-policy-number]');
+    rows.forEach(function(row) {
+      const plate = (row.dataset.plate || '').toLowerCase();
+      const pn = (row.dataset.policyNumber || '').toLowerCase();
+      const s = row.dataset.start || '';
+      const e = row.dataset.end || '';
+      let ok = true;
+      if (q) ok = plate.includes(q) || pn.includes(q);
+      if (ok && startFrom) ok = !s || s >= startFrom;
+      if (ok && endTo) ok = !e || e <= endTo;
+      row.style.display = ok ? '' : 'none';
+    });
+  }
+  if (qInput) qInput.addEventListener('input', applyPolicyFilter);
+  if (searchBtn) searchBtn.addEventListener('click', applyPolicyFilter);
+  if (startFromInput) startFromInput.addEventListener('change', applyPolicyFilter);
+  if (endToInput) endToInput.addEventListener('change', applyPolicyFilter);
+  if (clearBtn) clearBtn.addEventListener('click', function() {
+    if (qInput) qInput.value = '';
+    if (startFromInput) startFromInput.value = '';
+    if (endToInput) endToInput.value = '';
+    applyPolicyFilter();
+  });
+</script>

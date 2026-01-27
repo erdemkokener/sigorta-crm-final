@@ -561,6 +561,25 @@ app.get('/customers', requireAuth, async (req, res) => {
       .reduce((sum, c) => sum + Math.abs(c.balance), 0);
   }
 
+  const vehicleMap = {};
+  for (const p of data.policies) {
+    const plateRaw = p.policy_details && p.policy_details.plate;
+    const plate = plateRaw ? String(plateRaw).trim() : '';
+    if (!plate) continue;
+    if (!vehicleMap[plate]) {
+      vehicleMap[plate] = { plate, count: 0, customerIds: new Set() };
+    }
+    vehicleMap[plate].count += 1;
+    vehicleMap[plate].customerIds.add(p.customer_id);
+  }
+  const vehicleList = Object.values(vehicleMap).map(v => {
+    const names = Array.from(v.customerIds).map(id => {
+      const c = data.customers.find(x => x.id === id);
+      return c ? c.name : '';
+    }).filter(Boolean);
+    return { plate: v.plate, count: v.count, customers: names };
+  }).sort((a, b) => a.plate.localeCompare(b.plate));
+
   res.render('customers/index', { 
     title: debtorsFilter ? 'Bakiye Listesi' : (birthdaysFilter ? 'Doğum Günü Olan Müşteriler' : 'Müşteriler'), 
     customers, 
@@ -569,7 +588,8 @@ app.get('/customers', requireAuth, async (req, res) => {
     debtorsFilter,
     qs,
     totalReceivable,
-    totalPayable
+    totalPayable,
+    vehicleList
   });
 });
 
