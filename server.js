@@ -771,12 +771,23 @@ app.get('/customers/:id', requireAuth, async (req, res) => {
   // Genel Kalan = Poliçe Borçları + Manuel Borç - Genel Tahsilatlar
   stats.totalRemaining = totalPolicyDebt + stats.manualDebt - stats.totalCollections;
 
+  // Poliçe Dağılımı Hesapla
+  const policyDistribution = {};
+  policies.forEach(p => {
+    const type = p.policy_type || 'Diğer';
+    if (!policyDistribution[type]) {
+      policyDistribution[type] = 0;
+    }
+    policyDistribution[type]++;
+  });
+
   res.render('customers/show', { 
     title: 'Müşteri Detayı',  
     customer, 
     policies,
     stats,
-    payments
+    payments,
+    policyDistribution
   });
 });
 

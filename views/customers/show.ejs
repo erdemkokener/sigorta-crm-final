@@ -36,7 +36,7 @@
         <div class="card bg-primary text-white h-100">
           <div class="card-body text-center">
             <h6 class="card-title">Toplam Poliçe</h6>
-            <h2 class="display-4"><%= stats.totalPolicies %></h2>
+            <div class="display-6 fw-bold"><%= stats.totalPolicies %></div>
           </div>
         </div>
       </div>
@@ -44,7 +44,7 @@
         <div class="card bg-success text-white h-100">
           <div class="card-body text-center">
             <h6 class="card-title">Aktif Poliçeler</h6>
-            <h2 class="display-4"><%= stats.activePolicies %></h2>
+            <div class="display-6 fw-bold"><%= stats.activePolicies %></div>
           </div>
         </div>
       </div>
@@ -52,10 +52,38 @@
         <div class="card bg-danger text-white h-100">
           <div class="card-body text-center">
             <h6 class="card-title">Süresi Bitenler</h6>
-            <h2 class="display-4"><%= stats.expiredPolicies %></h2>
+            <div class="display-6 fw-bold"><%= stats.expiredPolicies %></div>
           </div>
         </div>
       </div>
+      
+      <!-- Poliçe Dağılımı -->
+      <div class="col-12">
+        <div class="card shadow-sm">
+          <div class="card-header bg-light">
+            <h6 class="card-title mb-0">Poliçe Dağılımı</h6>
+          </div>
+          <div class="card-body">
+            <% if (Object.keys(policyDistribution).length === 0) { %>
+              <div class="text-muted text-center py-2">Henüz poliçe yok.</div>
+            <% } else { %>
+              <div class="row">
+                <% Object.entries(policyDistribution).forEach(([type, count]) => { %>
+                  <div class="col-md-4 col-sm-6 mb-2">
+                    <div class="d-flex justify-content-between align-items-center border p-2 rounded">
+                      <span class="fw-bold"><%= type %></span>
+                      <span class="badge bg-secondary rounded-pill"><%= count %></span>
+                    </div>
+                  </div>
+                <% }) %>
+              </div>
+            <% } %>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
       <div class="col-md-4">
         <div class="card bg-dark text-white h-100">
           <div class="card-body text-center">
