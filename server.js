@@ -143,6 +143,7 @@ async function filterPolicies(query) {
   const insurer = (query.insurer || '').toLocaleLowerCase('tr-TR');
   const status = (query.status || '').toLocaleLowerCase('tr-TR');
   const includeMissed = query.include_missed === 'true';
+  const excludeShortTerm = query.exclude_short_term === 'true';
 
   // 1. General Filters (Search, Insurer)
   if (q) {
@@ -183,6 +184,13 @@ async function filterPolicies(query) {
 
   // A. Standard Matches
   const standardMatches = items.filter(x => {
+      // Short Term Check (Duration < 100 days)
+      if (excludeShortTerm) {
+        const start = dayjs(x.start_date);
+        const end = dayjs(x.end_date);
+        if (end.diff(start, 'day') < 100) return false;
+      }
+
       // Status Check (Only apply strict status filter to standard matches)
       if (status && (x.status || '').toLocaleLowerCase('tr-TR') !== status) return false;
       
