@@ -11,7 +11,7 @@
 <div class="row mb-4">
   <!-- Müşteri Bilgi Kartı -->
   <div class="col-md-4">
-    <div class="card shadow-sm h-100">
+    <div class="card shadow-sm mb-4">
       <div class="card-header bg-light">
         <h5 class="card-title mb-0">İletişim Bilgileri</h5>
       </div>
@@ -24,6 +24,39 @@
         <% if (customer.note) { %>
           <hr>
           <p><strong>Not:</strong><br><span class="text-muted"><%= customer.note %></span></p>
+        <% } %>
+      </div>
+    </div>
+
+    <!-- Araç Listesi Kartı -->
+    <div class="card shadow-sm">
+      <div class="card-header bg-light">
+        <h5 class="card-title mb-0">Kayıtlı Araçlar</h5>
+      </div>
+      <div class="card-body p-0">
+        <% 
+           const uniquePlates = new Set();
+           if (policies && policies.length > 0) {
+             policies.forEach(p => {
+               if (p.policy_details && p.policy_details.plate) {
+                 uniquePlates.add(p.policy_details.plate.trim().toUpperCase());
+               }
+             });
+           }
+        %>
+        <% if (uniquePlates.size === 0) { %>
+          <div class="p-3 text-muted text-center">Kayıtlı araç plakası bulunamadı.</div>
+        <% } else { %>
+          <ul class="list-group list-group-flush">
+            <% Array.from(uniquePlates).sort().forEach(plate => { %>
+              <li class="list-group-item d-flex justify-content-between align-items-center">
+                <span class="fw-bold"><%= plate %></span>
+                <button class="btn btn-sm btn-outline-primary" onclick="filterByPlate('<%= plate %>')">
+                  <i class="bi bi-search"></i>
+                </button>
+              </li>
+            <% }) %>
+          </ul>
         <% } %>
       </div>
     </div>
@@ -249,6 +282,14 @@
   const endToInput = document.getElementById('policyEndTo');
   const clearBtn = document.getElementById('policyFilterClear');
   const tableBody = document.querySelector('.card-body .table-responsive tbody');
+  
+  function filterByPlate(plate) {
+    if (qInput && searchBtn) {
+      qInput.value = plate;
+      applyPolicyFilter();
+    }
+  }
+
   function applyPolicyFilter() {
     const q = (qInput && qInput.value || '').trim().toLowerCase();
     const startFrom = startFromInput && startFromInput.value || '';
