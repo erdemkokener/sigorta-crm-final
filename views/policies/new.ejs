@@ -99,6 +99,23 @@
             <label class="form-label">Ruhsat Tescil No</label>
             <input type="text" class="form-control" name="policy_details[registration_no]">
           </div>
+          <div class="col-md-4 trafik-kasko-field" style="display:none">
+            <label class="form-label">Araç Cinsi</label>
+            <input class="form-control" name="policy_details[vehicle_type]" list="vehicleTypeList" placeholder="Seçiniz veya yazınız">
+            <datalist id="vehicleTypeList">
+              <option value="Otomobil">
+              <option value="Kamyonet">
+              <option value="Motosiklet">
+              <option value="Kamyon">
+              <option value="Minibüs">
+              <option value="Otobüs">
+              <option value="Çekici">
+              <option value="Römork">
+              <option value="Traktör">
+              <option value="Arazi Taşıtı">
+              <option value="Özel Amaçlı Taşıt">
+            </datalist>
+          </div>
           <div class="col-md-4 kasko-only-field" style="display:none">
             <label class="form-label">Meslek (Opsiyonel)</label>
             <input type="text" class="form-control" name="policy_details[profession]">

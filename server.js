@@ -888,31 +888,45 @@ app.get('/customers/:id/vehicles/export.xlsx', requireAuth, async (req, res) => 
   const c = data.customers.find(x => x.id === id);
   if (!c) return res.status(404).send('Müşteri bulunamadı');
 
-  // Müşteriye ait poliçelerden plaka listesini çıkar
+  // Müşteriye ait poliçelerden plaka listesini ve detaylarını çıkar
   const policies = data.policies.filter(p => p.customer_id === id);
-  const uniquePlates = new Set();
+  const vehiclesMap = new Map();
   
   policies.forEach(p => {
     if (p.policy_details && p.policy_details.plate) {
-      uniquePlates.add(p.policy_details.plate.trim().toUpperCase());
+      const plate = p.policy_details.plate.trim().toUpperCase();
+      const existing = vehiclesMap.get(plate) || {};
+      
+      // Update with new info if available (or if existing is empty)
+      const newInfo = {
+        plate: plate,
+        registration_no: p.policy_details.registration_no || existing.registration_no || '',
+        vehicle_type: p.policy_details.vehicle_type || existing.vehicle_type || ''
+      };
+      
+      vehiclesMap.set(plate, newInfo);
     }
   });
 
-  const plateList = Array.from(uniquePlates).sort();
+  const vehicleList = Array.from(vehiclesMap.values()).sort((a, b) => a.plate.localeCompare(b.plate));
 
   const wb = new ExcelJS.Workbook();
   const ws = wb.addWorksheet('Kayıtlı Araçlar');
   
   ws.columns = [
     { header: 'Sıra No', key: 'index', width: 10 },
-    { header: 'Plaka', key: 'plate', width: 20 },
+    { header: 'Plaka', key: 'plate', width: 15 },
+    { header: 'Ruhsat Tescil No', key: 'reg_no', width: 20 },
+    { header: 'Araç Cinsi', key: 'type', width: 20 },
     { header: 'Müşteri Adı', key: 'customer', width: 30 }
   ];
 
-  plateList.forEach((plate, index) => {
+  vehicleList.forEach((v, index) => {
     ws.addRow({
       index: index + 1,
-      plate: plate,
+      plate: v.plate,
+      reg_no: v.registration_no,
+      type: v.vehicle_type,
       customer: c.name
     });
   });

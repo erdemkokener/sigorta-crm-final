@@ -21,6 +21,7 @@ const PolicySchema = new mongoose.Schema({
   policy_details: {
     plate: String,
     registration_no: String,
+    vehicle_type: String,
     profession: String,
     area_sqm: String,
     building_age: String,
