@@ -136,31 +136,15 @@ function attachCustomer(p, data) {
 
 async function filterPolicies(query) {
   const data = await getContext();
-  let items = data.policies.map(p => attachCustomer(p, data));
+  let allPolicies = data.policies.map(p => attachCustomer(p, data));
+  let items = [...allPolicies];
 
   const q = (query.q || '').toLocaleLowerCase('tr-TR');
   const insurer = (query.insurer || '').toLocaleLowerCase('tr-TR');
   const status = (query.status || '').toLocaleLowerCase('tr-TR');
-  const filter = query.filter; // today, tomorrow, week
-  const endFrom = query.end_from ? dayjs(query.end_from) : null;
-  const endTo = query.end_to ? dayjs(query.end_to) : null;
-  const issueFrom = query.issue_from ? dayjs(query.issue_from) : null;
-  const issueTo = query.issue_to ? dayjs(query.issue_to) : null;
-  
-  const today = dayjs();
+  const includeMissed = query.include_missed === 'true';
 
-  if (filter === 'today') {
-    items = items.filter(x => dayjs(x.end_date).isSame(today, 'day'));
-  } else if (filter === 'tomorrow') {
-    items = items.filter(x => dayjs(x.end_date).isSame(today.add(1, 'day'), 'day'));
-  } else if (filter === 'week') {
-    const endOfWeek = today.endOf('week');
-    items = items.filter(x => {
-        const d = dayjs(x.end_date);
-        return d.isSame(today, 'day') || (d.isAfter(today, 'day') && d.isBefore(endOfWeek.add(1, 'day'), 'day'));
-    });
-  }
-  
+  // 1. General Filters (Search, Insurer)
   if (q) {
     items = items.filter(x =>
       String(x.customer_name || '').toLocaleLowerCase('tr-TR').includes(q) ||
@@ -174,23 +158,106 @@ async function filterPolicies(query) {
   if (insurer) {
     items = items.filter(x => (x.insurer || '').toLocaleLowerCase('tr-TR').includes(insurer));
   }
-  if (status) {
-    items = items.filter(x => (x.status || '').toLocaleLowerCase('tr-TR') === status);
+
+  // 2. Date Filtering Setup
+  const filter = query.filter; // today, tomorrow, week
+  let rangeStart = null;
+  let rangeEnd = null;
+  const today = dayjs();
+
+  if (filter === 'today') {
+     rangeStart = today.startOf('day');
+     rangeEnd = today.endOf('day');
+  } else if (filter === 'tomorrow') {
+     rangeStart = today.add(1, 'day').startOf('day');
+     rangeEnd = today.add(1, 'day').endOf('day');
+  } else if (filter === 'week') {
+     rangeStart = today.startOf('day');
+     rangeEnd = today.endOf('week').add(1, 'day'); 
+  } else {
+     if (query.end_from) rangeStart = dayjs(query.end_from).startOf('day');
+     if (query.end_to) rangeEnd = dayjs(query.end_to).endOf('day');
   }
-  if (endFrom) {
-    items = items.filter(x => dayjs(x.end_date).isSame(endFrom) || dayjs(x.end_date).isAfter(endFrom));
+
+  let finalItems = [];
+
+  // A. Standard Matches
+  const standardMatches = items.filter(x => {
+      // Status Check (Only apply strict status filter to standard matches)
+      if (status && (x.status || '').toLocaleLowerCase('tr-TR') !== status) return false;
+      
+      // Date Check
+      if (rangeStart && dayjs(x.end_date).isBefore(rangeStart)) return false;
+      if (rangeEnd && dayjs(x.end_date).isAfter(rangeEnd)) return false;
+      
+      // Issue Date Checks
+      if (query.issue_from && dayjs(x.issue_date || x.start_date).isBefore(dayjs(query.issue_from))) return false;
+      if (query.issue_to && dayjs(x.issue_date || x.start_date).isAfter(dayjs(query.issue_to))) return false;
+
+      return true;
+  });
+  
+  finalItems = [...standardMatches];
+
+  // B. Missed Matches (Potential Renewals)
+  if (includeMissed && rangeStart && rangeEnd) {
+      const missedMatches = items.filter(p => {
+          const pEnd = dayjs(p.end_date);
+          
+          // Must be older than the range's start year
+          if (pEnd.year() >= rangeStart.year()) return false;
+          
+          // Project the date to the target year (match Month/Day)
+          const targetYear = rangeStart.year();
+          const virtualDate = pEnd.year(targetYear);
+          
+          // Check if virtual date is in range
+          if (virtualDate.isBefore(rangeStart) || virtualDate.isAfter(rangeEnd)) return false;
+          
+          // Check for Successor (Is there a newer policy?)
+          const hasSuccessor = allPolicies.some(other => {
+              if (other.id === p.id) return false;
+              
+              // 1. Plate Match
+              const pPlate = p.policy_details?.plate?.replace(/\s/g, '').toUpperCase();
+              const oPlate = other.policy_details?.plate?.replace(/\s/g, '').toUpperCase();
+              
+              if (pPlate && pPlate.length > 3 && oPlate === pPlate) {
+                  // If other policy starts after this one ends (with generous buffer)
+                  if (dayjs(other.start_date).isAfter(dayjs(p.end_date).subtract(60, 'day'))) return true;
+              }
+              
+              // 2. Customer + Type Match
+              if (other.customer_id === p.customer_id && other.policy_type === p.policy_type) {
+                   if (dayjs(other.start_date).isAfter(dayjs(p.end_date).subtract(60, 'day'))) return true;
+              }
+              
+              return false;
+          });
+          
+          if (hasSuccessor) return false;
+          
+          return true;
+      });
+      
+      // Mark them
+      const markedMissed = missedMatches.map(p => ({ ...p, is_missed_renewal: true }));
+      finalItems = [...finalItems, ...markedMissed];
   }
-  if (endTo) {
-    items = items.filter(x => dayjs(x.end_date).isSame(endTo) || dayjs(x.end_date).isBefore(endTo));
+
+  // Sort
+  if (includeMissed) {
+      // Sort by Virtual Date (Day/Month) to interleave
+      finalItems.sort((a, b) => {
+          const da = dayjs(a.end_date).year(2000); 
+          const db = dayjs(b.end_date).year(2000);
+          return da.diff(db);
+      });
+  } else {
+      finalItems.sort((a, b) => a.end_date.localeCompare(b.end_date) || b.id - a.id);
   }
-  if (issueFrom) {
-    items = items.filter(x => x.issue_date && (dayjs(x.issue_date).isSame(issueFrom) || dayjs(x.issue_date).isAfter(issueFrom)));
-  }
-  if (issueTo) {
-    items = items.filter(x => x.issue_date && (dayjs(x.issue_date).isSame(issueTo) || dayjs(x.issue_date).isBefore(issueTo)));
-  }
-  items = items.sort((a, b) => a.end_date.localeCompare(b.end_date) || b.id - a.id);
-  return items;
+
+  return finalItems;
 }
 
 async function sendMail(subject, text, html) {

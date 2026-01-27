@@ -85,6 +85,15 @@
         <label class="form-label">Tanzim (Bitiş)</label>
         <input type="date" class="form-control" name="issue_to" value="<%= (typeof qs !== 'undefined' && new URLSearchParams(qs).get('issue_to')) || '' %>">
       </div>
+      <div class="col-12">
+        <div class="form-check">
+          <% const incMissed = (typeof qs !== 'undefined' && new URLSearchParams(qs).get('include_missed')) === 'true' %>
+          <input class="form-check-input" type="checkbox" name="include_missed" value="true" id="includeMissedCheck" <%= incMissed ? 'checked' : '' %>>
+          <label class="form-check-label" for="includeMissedCheck">
+            Geçmiş (Yenilenmemiş) Poliçeleri Dahil Et
+          </label>
+        </div>
+      </div>
       <div class="col-12 text-end">
         <button type="submit" class="btn btn-primary"><i class="bi bi-funnel"></i> Filtrele</button>
         <a href="/policies" class="btn btn-outline-secondary">Temizle</a>
@@ -126,7 +135,7 @@
         </tr>
       <% } %>
       <% policies.forEach(p => { %>
-        <tr class="<%= p.is_expired ? 'table-danger' : (p.is_expiring_soon ? 'table-warning' : '') %>">
+        <tr class="<%= p.is_missed_renewal ? 'table-info' : (p.is_expired ? 'table-danger' : (p.is_expiring_soon ? 'table-warning' : '')) %>">
           <td>
              <a href="/customers/<%= p.customer_id %>" class="text-decoration-none fw-bold text-dark">
                <%= p.customer_name || '-' %>
@@ -140,14 +149,18 @@
           <td><%= p.start_date %></td>
           <td><%= p.end_date %></td>
           <td>
-            <% if (p.days_remaining < 0) { %>
+            <% if (p.is_missed_renewal) { %>
+                <span class="badge bg-warning text-dark">Yenilenmedi</span>
+            <% } else if (p.days_remaining < 0) { %>
                 <span class="badge bg-danger">Süresi Doldu</span>
             <% } else { %>
                 <span class="fw-bold"><%= p.days_remaining %> gün</span>
             <% } %>
           </td>
           <td>
-             <% if (p.status === 'active' || p.status === 'Aktif') { %>
+             <% if (p.is_missed_renewal) { %>
+               <span class="badge bg-warning text-dark">Yenileme Fırsatı</span>
+             <% } else if (p.status === 'active' || p.status === 'Aktif') { %>
                <span class="badge bg-success">Aktif</span>
              <% } else if (p.status === 'cancelled' || p.status === 'İptal') { %>
                <span class="badge bg-danger">İptal</span>
