@@ -47,7 +47,7 @@
 </div>
 
 <div class="row mb-4">
-  <div class="col-md-4">
+  <div class="col-md-3">
     <div class="card bg-info text-white h-100">
       <div class="card-body text-center">
         <h5 class="card-title">Toplam Hak Ediş</h5>
@@ -55,7 +55,7 @@
       </div>
     </div>
   </div>
-  <div class="col-md-4">
+  <div class="col-md-3">
     <div class="card bg-warning text-dark h-100">
       <div class="card-body text-center">
         <h5 class="card-title">Toplam Ödenen</h5>
@@ -63,12 +63,21 @@
       </div>
     </div>
   </div>
-  <div class="col-md-4">
+  <div class="col-md-3">
     <div class="card <%= (typeof stats !== 'undefined' && stats.balance > 0) ? 'bg-danger' : 'bg-success' %> text-white h-100">
       <div class="card-body text-center">
-        <h5 class="card-title">Kalan Bakiye</h5>
+        <h5 class="card-title">Komisyon Bakiyesi</h5>
         <h3 class="fw-bold"><%= (typeof stats !== 'undefined' ? stats.balance : 0).toFixed(2) %> TL</h3>
         <small><%= (typeof stats !== 'undefined' && stats.balance > 0) ? 'Ödeme Yapılmalı' : 'Borcu Yok / Alacaklı' %></small>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card bg-dark text-white h-100">
+      <div class="card-body text-center">
+        <h5 class="card-title">Tahsil Edilecek Prim</h5>
+        <h3 class="fw-bold"><%= (typeof stats !== 'undefined' ? stats.totalDebt : 0).toFixed(2) %> TL</h3>
+        <small>Müşterilerden Alınacak</small>
       </div>
     </div>
   </div>

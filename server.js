@@ -268,13 +268,13 @@ async function filterPolicies(query) {
   return finalItems;
 }
 
-async function sendMail(subject, text, html) {
+async function sendMail(subject, text, html, attachments = []) {
   if (!mailer) {
     console.log('Mailer kurulu değil, e-posta atlanıyor.');
     return { ok: false, error: 'Mailer not configured' };
   }
   const to = MAIL_TO || (process.env.APP_USER_EMAIL || SMTP_USER || MAIL_FROM);
-  const envelope = { from: MAIL_FROM, to, subject, text, html };
+  const envelope = { from: MAIL_FROM, to, subject, text, html, attachments };
   try {
     const info = await mailer.sendMail(envelope);
     console.log('E-posta gönderildi:', info.messageId);
@@ -282,6 +282,84 @@ async function sendMail(subject, text, html) {
   } catch (err) {
     console.error('E-posta hatası:', err);
     return { ok: false, error: err.message || 'E-posta gönderilemedi' };
+  }
+}
+
+async function checkAndRunMonthlyBackup() {
+  const today = dayjs();
+  // Run only on the 1st day of the month
+  if (today.date() !== 1) return;
+
+  const backupDir = path.join(__dirname, 'backups');
+  if (!fs.existsSync(backupDir)) {
+    fs.mkdirSync(backupDir, { recursive: true });
+  }
+
+  const monthStr = today.format('YYYY-MM');
+  const backupFlagFile = path.join(backupDir, `backup-${monthStr}.done`);
+
+  // Check if already done for this month
+  if (fs.existsSync(backupFlagFile)) return;
+
+  console.log('Aylık yedekleme başlatılıyor...');
+  
+  try {
+    const data = await getContext();
+    const customers = data.customers || [];
+    const policies = data.policies || [];
+
+    // 1. Generate Customers Excel
+    const wbCustomers = new ExcelJS.Workbook();
+    const wsCustomers = wbCustomers.addWorksheet('Müşteriler');
+    wsCustomers.columns = [
+      { header: 'ID', key: 'id', width: 10 },
+      { header: 'Ad Soyad', key: 'name', width: 30 },
+      { header: 'Telefon', key: 'phone', width: 15 },
+      { header: 'TC/VKN', key: 'id_no', width: 15 },
+      { header: 'Email', key: 'email', width: 25 },
+      { header: 'Adres', key: 'address', width: 30 }
+    ];
+    wsCustomers.addRows(customers);
+    const customerFilePath = path.join(backupDir, `Musteriler-${monthStr}.xlsx`);
+    await wbCustomers.xlsx.writeFile(customerFilePath);
+
+    // 2. Generate Policies Excel
+    const wbPolicies = new ExcelJS.Workbook();
+    const wsPolicies = wbPolicies.addWorksheet('Poliçeler');
+    wsPolicies.columns = [
+      { header: 'Poliçe No', key: 'policy_number', width: 15 },
+      { header: 'Müşteri', key: 'customer_name', width: 20 },
+      { header: 'Şirket', key: 'insurer', width: 15 },
+      { header: 'Tür', key: 'policy_type', width: 15 },
+      { header: 'Başlangıç', key: 'start_date', width: 15 },
+      { header: 'Bitiş', key: 'end_date', width: 15 },
+      { header: 'Prim', key: 'premium', width: 10 },
+      { header: 'Durum', key: 'status', width: 10 }
+    ];
+    
+    // Attach customer names
+    const policiesWithNames = policies.map(p => attachCustomer(p, data));
+    wsPolicies.addRows(policiesWithNames);
+    const policyFilePath = path.join(backupDir, `Policeler-${monthStr}.xlsx`);
+    await wbPolicies.xlsx.writeFile(policyFilePath);
+
+    // 3. Send Email
+    await sendMail(
+      `Otomatik Yedek - ${monthStr}`,
+      `Ekte ${monthStr} dönemine ait müşteri ve poliçe yedeklerini bulabilirsiniz.`,
+      `<p>Merhaba,</p><p>Sistem tarafından oluşturulan <b>${monthStr}</b> dönemi yedek dosyaları ektedir.</p>`,
+      [
+        { filename: `Musteriler-${monthStr}.xlsx`, path: customerFilePath },
+        { filename: `Policeler-${monthStr}.xlsx`, path: policyFilePath }
+      ]
+    );
+
+    // 4. Mark as done
+    fs.writeFileSync(backupFlagFile, new Date().toISOString());
+    console.log('Aylık yedekleme tamamlandı ve mail gönderildi.');
+
+  } catch (err) {
+    console.error('Yedekleme hatası:', err);
   }
 }
 
@@ -336,8 +414,13 @@ async function checkExpirationsAndNotify(force = false) {
 }
 
 // Check every hour
-setInterval(checkExpirationsAndNotify, 60 * 60 * 1000);
+setInterval(() => {
+  checkExpirationsAndNotify();
+  checkAndRunMonthlyBackup();
+}, 60 * 60 * 1000);
+
 checkExpirationsAndNotify();
+checkAndRunMonthlyBackup();
 
 // Routes
 app.get('/', async (req, res) => {
@@ -544,7 +627,8 @@ app.get('/salespersons/:id', requireAuth, async (req, res) => {
     p.salesperson_id === salesperson.id || customerIds.includes(p.customer_id)
   ).map(p => {
     const c = data.customers.find(x => x.id === p.customer_id);
-    return { ...p, customer_name: c ? c.name : 'Bilinmiyor' };
+    const computed = policyWithComputed(p);
+    return { ...computed, customer_name: c ? c.name : 'Bilinmiyor' };
   });
 
   // Calculate financials
@@ -552,6 +636,9 @@ app.get('/salespersons/:id', requireAuth, async (req, res) => {
   const totalCommission = policies.reduce((sum, p) => sum + (p.salesperson_commission || 0), 0);
   const totalPaid = payments.reduce((sum, p) => sum + (p.amount || 0), 0);
   const balance = totalCommission - totalPaid;
+  
+  // Satışçının takip ettiği poliçelerden kalan toplam prim borcu
+  const totalDebt = policies.reduce((sum, p) => sum + (p.premium_remaining || 0), 0);
 
   res.render('salespersons/show', { 
     title: 'Satışçı Detayı', 
@@ -559,7 +646,7 @@ app.get('/salespersons/:id', requireAuth, async (req, res) => {
     customers, 
     policies,
     payments,
-    stats: { totalCommission, totalPaid, balance }
+    stats: { totalCommission, totalPaid, balance, totalDebt }
   });
 });
 
