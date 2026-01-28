@@ -178,6 +178,7 @@
           <td class="text-end">
             <div class="btn-group btn-group-sm">
               <a href="/policies/<%= p.id %>" class="btn btn-outline-primary" title="Detay"><i class="bi bi-eye"></i></a>
+              <a href="/policies/renew/<%= p.id %>" class="btn btn-outline-info" title="Yenile"><i class="bi bi-arrow-repeat"></i></a>
               <a href="/policies/<%= p.id %>/edit" class="btn btn-outline-warning" title="Düzenle"><i class="bi bi-pencil"></i></a>
               <form action="/policies/<%= p.id %>/delete" method="post" class="d-inline" onsubmit="return confirm('Silmek istediğinize emin misiniz?')">
                 <button class="btn btn-outline-danger" title="Sil"><i class="bi bi-trash"></i></button>

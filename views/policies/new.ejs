@@ -11,7 +11,9 @@
             <select class="form-select" name="customer_id" required>
               <option value="">Seçiniz</option>
               <% customers.forEach(c => { %>
-                <option value="<%= c.id %>" data-id-no="<%= c.id_no || '' %>"><%= c.name %> (<%= c.phone || '-' %>)</option>
+                <option value="<%= c.id %>" data-id-no="<%= c.id_no || '' %>"
+                  <% if (typeof prefill !== 'undefined' && prefill.customer_id === c.id) { %> selected <% } %>
+                ><%= c.name %> (<%= c.phone || '-' %>)</option>
               <% }) %>
             </select>
             <div class="form-text">Listede yoksa önce <a href="/customers/new">yeni müşteri ekleyin</a>.</div>
@@ -23,7 +25,9 @@
               <option value="">Seçiniz...</option>
               <% if (typeof salespersons !== 'undefined') { %>
                 <% salespersons.forEach(s => { %>
-                  <option value="<%= s.id %>"><%= s.name %></option>
+                  <option value="<%= s.id %>"
+                    <% if (typeof prefill !== 'undefined' && prefill.salesperson_id === s.id) { %> selected <% } %>
+                  ><%= s.name %></option>
                 <% }); %>
               <% } %>
             </select>
@@ -40,7 +44,9 @@
 
           <div class="col-md-6">
             <label class="form-label">Sigorta Şirketi <span class="text-danger">*</span></label>
-            <input type="text" class="form-control" name="insurer" list="insurerList" required>
+            <input type="text" class="form-control" name="insurer" list="insurerList" required
+              value="<%= (typeof prefill !== 'undefined' && prefill.insurer) ? prefill.insurer : '' %>"
+            >
             <datalist id="insurerList">
               <option value="Quick Sigorta">
               <option value="Şeker Sigorta">
@@ -87,33 +93,33 @@
           <div class="col-md-6">
             <label class="form-label">Poliçe Türü</label>
             <select class="form-select" name="policy_type">
-              <option value="Trafik">Trafik</option>
-              <option value="Kasko">Kasko</option>
-              <option value="Konut">Konut</option>
-              <option value="DASK">DASK</option>
-              <option value="Sağlık">Sağlık</option>
-              <option value="Tehlikeli Madde Mali Sorumluluk">Tehlikeli Madde Mali Sorumluluk</option>
-              <option value="Koltuk Sigortası">Koltuk Sigortası</option>
-              <option value="Kısa Süreli Trafik">Kısa Süreli Trafik</option>
-              <option value="Diğer" selected>Diğer</option>
+              <% 
+                const pType = (typeof prefill !== 'undefined' && prefill.policy_type) ? prefill.policy_type : 'Diğer';
+                const types = ['Trafik', 'Kasko', 'Konut', 'DASK', 'Sağlık', 'Tehlikeli Madde Mali Sorumluluk', 'Koltuk Sigortası', 'Kısa Süreli Trafik', 'Diğer'];
+              %>
+              <% types.forEach(t => { %>
+                <option value="<%= t %>" <%= pType === t ? 'selected' : '' %>><%= t %></option>
+              <% }) %>
             </select>
           </div>
           <div class="col-md-6">
             <label class="form-label">Poliçe No <span class="text-danger">*</span></label>
-            <input type="text" class="form-control" name="policy_number" required>
+            <input type="text" class="form-control" name="policy_number" required
+              value="<%= (typeof prefill !== 'undefined' && prefill.policy_number) ? prefill.policy_number : '' %>"
+            >
           </div>
 
           <div class="col-md-4 trafik-kasko-field" style="display:none">
             <label class="form-label">Plaka</label>
-            <input type="text" class="form-control" name="policy_details[plate]">
+            <input type="text" class="form-control" name="policy_details[plate]" value="<%= (typeof prefill !== 'undefined' && prefill.policy_details && prefill.policy_details.plate) ? prefill.policy_details.plate : '' %>">
           </div>
           <div class="col-md-4 trafik-kasko-field" style="display:none">
             <label class="form-label">Ruhsat Tescil No</label>
-            <input type="text" class="form-control" name="policy_details[registration_no]">
+            <input type="text" class="form-control" name="policy_details[registration_no]" value="<%= (typeof prefill !== 'undefined' && prefill.policy_details && prefill.policy_details.registration_no) ? prefill.policy_details.registration_no : '' %>">
           </div>
           <div class="col-md-4 trafik-kasko-field" style="display:none">
             <label class="form-label">Araç Cinsi</label>
-            <input class="form-control" name="policy_details[vehicle_type]" list="vehicleTypeList" placeholder="Seçiniz veya yazınız">
+            <input class="form-control" name="policy_details[vehicle_type]" list="vehicleTypeList" placeholder="Seçiniz veya yazınız" value="<%= (typeof prefill !== 'undefined' && prefill.policy_details && prefill.policy_details.vehicle_type) ? prefill.policy_details.vehicle_type : '' %>">
             <datalist id="vehicleTypeList">
               <option value="Otomobil">
               <option value="Kamyonet">
@@ -130,28 +136,28 @@
           </div>
           <div class="col-md-4 kasko-only-field" style="display:none">
             <label class="form-label">Meslek (Opsiyonel)</label>
-            <input type="text" class="form-control" name="policy_details[profession]">
+            <input type="text" class="form-control" name="policy_details[profession]" value="<%= (typeof prefill !== 'undefined' && prefill.policy_details && prefill.policy_details.profession) ? prefill.policy_details.profession : '' %>">
           </div>
 
           <div class="col-md-4 dask-field" style="display:none">
             <label class="form-label">Metrekare (m²)</label>
-            <input type="text" class="form-control" name="policy_details[area_sqm]">
+            <input type="text" class="form-control" name="policy_details[area_sqm]" value="<%= (typeof prefill !== 'undefined' && prefill.policy_details && prefill.policy_details.area_sqm) ? prefill.policy_details.area_sqm : '' %>">
           </div>
           <div class="col-md-4 dask-field" style="display:none">
             <label class="form-label">Bina Yaşı</label>
-            <input type="text" class="form-control" name="policy_details[building_age]">
+            <input type="text" class="form-control" name="policy_details[building_age]" value="<%= (typeof prefill !== 'undefined' && prefill.policy_details && prefill.policy_details.building_age) ? prefill.policy_details.building_age : '' %>">
           </div>
           <div class="col-md-4 dask-field" style="display:none">
             <label class="form-label">Binadaki Kat Sayısı</label>
-            <input type="text" class="form-control" name="policy_details[total_floors]">
+            <input type="text" class="form-control" name="policy_details[total_floors]" value="<%= (typeof prefill !== 'undefined' && prefill.policy_details && prefill.policy_details.total_floors) ? prefill.policy_details.total_floors : '' %>">
           </div>
           <div class="col-md-4 dask-field" style="display:none">
             <label class="form-label">Bulunduğu Kat</label>
-            <input type="text" class="form-control" name="policy_details[floor_no]">
+            <input type="text" class="form-control" name="policy_details[floor_no]" value="<%= (typeof prefill !== 'undefined' && prefill.policy_details && prefill.policy_details.floor_no) ? prefill.policy_details.floor_no : '' %>">
           </div>
           <div class="col-md-8 dask-field" style="display:none">
             <label class="form-label">Adres Kodu</label>
-            <input type="text" class="form-control" name="policy_details[address_code]">
+            <input type="text" class="form-control" name="policy_details[address_code]" value="<%= (typeof prefill !== 'undefined' && prefill.policy_details && prefill.policy_details.address_code) ? prefill.policy_details.address_code : '' %>">
           </div>
           <div class="col-12 health-field" style="display:none">
             <label class="form-label">Sağlık Poliçesindeki Kişiler</label>
@@ -175,19 +181,19 @@
           </div>
           <div class="col-md-6">
             <label class="form-label">Tanzim Tarihi</label>
-            <input type="date" class="form-control" name="issue_date">
+            <input type="date" class="form-control" name="issue_date" value="<%= (typeof prefill !== 'undefined' && prefill.issue_date) ? prefill.issue_date : '' %>">
           </div>
           <div class="col-md-6">
             <label class="form-label">Başlangıç Tarihi <span class="text-danger">*</span></label>
-            <input type="date" class="form-control" name="start_date" required>
+            <input type="date" class="form-control" name="start_date" required value="<%= (typeof prefill !== 'undefined' && prefill.start_date) ? prefill.start_date : '' %>">
           </div>
           <div class="col-md-6">
             <label class="form-label">Bitiş Tarihi <span class="text-danger">*</span></label>
-            <input type="date" class="form-control" name="end_date" required>
+            <input type="date" class="form-control" name="end_date" required value="<%= (typeof prefill !== 'undefined' && prefill.end_date) ? prefill.end_date : '' %>">
           </div>
           <div class="col-md-12">
             <label class="form-label">Poliçe Bilgileri / Açıklama</label>
-            <textarea class="form-control" name="description" rows="2"></textarea>
+            <textarea class="form-control" name="description" rows="2"><%= (typeof prefill !== 'undefined' && prefill.description) ? prefill.description : '' %></textarea>
           </div>
           <div class="col-md-4">
             <label class="form-label">Toplam Prim Tutarı</label>

@@ -225,7 +225,8 @@
                   <% } %>
                 </td>
                 <td>
-                  <a href="/policies/<%= p.id %>" class="btn btn-sm btn-outline-primary"><i class="bi bi-eye"></i></a>
+                  <a href="/policies/<%= p.id %>" class="btn btn-sm btn-outline-primary" title="Detay"><i class="bi bi-eye"></i></a>
+                  <a href="/policies/renew/<%= p.id %>" class="btn btn-sm btn-outline-warning" title="Yenile"><i class="bi bi-arrow-repeat"></i></a>
                 </td>
               </tr>
             <% }) %>

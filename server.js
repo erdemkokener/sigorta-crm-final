@@ -1339,6 +1339,38 @@ app.get('/policies/new', requireAuth, async (req, res) => {
   res.render('policies/new', { title: 'Yeni Poliçe', customers: data.customers, salespersons });
 });
 
+app.get('/policies/renew/:id', requireAuth, async (req, res) => {
+  const id = Number(req.params.id);
+  const data = await getContext();
+  const oldPolicy = data.policies.find(p => p.id === id);
+  
+  if (!oldPolicy) return res.status(404).send('Poliçe bulunamadı');
+
+  // Yenileme için ön dolum verileri
+  // Kullanıcı isteği: Tanzim tarihi, şirket ve poliçe no boş gelsin, diğerleri dolu gelsin.
+  const prefill = {
+    customer_id: oldPolicy.customer_id,
+    salesperson_id: oldPolicy.salesperson_id,
+    policy_type: oldPolicy.policy_type,
+    description: oldPolicy.description,
+    policy_details: oldPolicy.policy_details || {},
+    // Şirket, Poliçe No ve Tarihler boş bırakılıyor (manuel giriş için)
+    insurer: '',
+    policy_number: '',
+    issue_date: '',
+    start_date: '', // İstenirse eski bitiş tarihi buraya default atanabilir ama kullanıcı manuel girmek istedi
+    end_date: ''
+  };
+
+  const salespersons = data.salespersons || [];
+  res.render('policies/new', { 
+    title: 'Poliçe Yenile', 
+    customers: data.customers, 
+    salespersons, 
+    prefill 
+  });
+});
+
 app.post('/policies', requireAuth, async (req, res) => {
   try {
     const { customer_id, insurer, policy_number, start_date, end_date, description, status, issue_date, policy_type, premium, premium_paid, payment_note, commission, commission_refund, custom_reminder_date, custom_reminder_note, salesperson_commission, salesperson_id } = req.body;
