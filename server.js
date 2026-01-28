@@ -292,9 +292,13 @@ async function checkExpirationsAndNotify(force = false) {
   let sentCount = 0;
 
   for (const p of data.policies) {
+    // Kısa Süreli Trafik hariç
+    if (p.policy_type === 'Kısa Süreli Trafik') continue;
+
     const end = dayjs(p.end_date).startOf('day');
     const days = end.diff(today, 'day');
     
+    // 14 Gün Kala
     if ((days === 14 && !p.notified_14) || (force && days === 14)) {
       await sendMail(
         'Poliçe bitimine 14 gün kaldı',
@@ -304,6 +308,19 @@ async function checkExpirationsAndNotify(force = false) {
       await dataService.updatePolicy(p.id, { notified_14: true });
       sentCount++;
     }
+
+    // 1 Gün Kala
+    if ((days === 1 && !p.notified_1) || (force && days === 1)) {
+      await sendMail(
+        'Poliçe bitimine 1 gün kaldı',
+        `Poliçe ${p.policy_number} (${p.customer_name}) yarın (${p.end_date}) bitiyor.\nTelefon: ${p.customer_phone || '-'}`,
+        `<p>Poliçe <b>${p.policy_number}</b> (${p.customer_name}) yarın (<b>${p.end_date}</b>) bitiyor.</p><p>Telefon: <b>${p.customer_phone || '-'}</b></p>`
+      );
+      await dataService.updatePolicy(p.id, { notified_1: true });
+      sentCount++;
+    }
+
+    // Son Gün (0 Gün Kala)
     if ((days === 0 && !p.notified_end) || (force && days === 0)) {
       await sendMail(
         'Poliçe bugün bitiyor',
@@ -971,6 +988,14 @@ app.post('/customers', requireAuth, async (req, res) => {
   const { name, phone, id_no, email, birth_date, salesperson_id } = req.body;
   if (!name) return res.status(400).send('Müşteri adı zorunlu');
   
+  const data = await getContext();
+  if (id_no) {
+    const existing = data.customers.find(c => c.id_no === id_no);
+    if (existing) {
+      return res.status(400).send(`Bu TC/VKN ile kayıtlı müşteri zaten var: ${existing.name}`);
+    }
+  }
+
   await dataService.createCustomer({
     name,
     phone: phone || '',
@@ -1362,12 +1387,13 @@ app.get('/policies/renew/:id', requireAuth, async (req, res) => {
     start_date: oldPolicy.end_date || '',
     // Yeni Bitiş Tarihi = Eski Bitiş Tarihi + 1 Yıl
     end_date: oldPolicy.end_date ? dayjs(oldPolicy.end_date).add(1, 'year').format('YYYY-MM-DD') : '',
-    premium: oldPolicy.premium,
-    premium_paid: 0, // Yeni poliçede ödenen sıfırlanmalı
+    // Parasal tutarlar boş bırakılıyor (Kullanıcı isteği)
+    premium: '',
+    premium_paid: '', 
     payment_note: '',
-    commission: oldPolicy.commission,
-    commission_refund: oldPolicy.commission_refund,
-    salesperson_commission: oldPolicy.salesperson_commission,
+    commission: '',
+    commission_refund: '',
+    salesperson_commission: '',
     custom_reminder_date: '',
     custom_reminder_note: ''
   };
