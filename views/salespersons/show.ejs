@@ -91,6 +91,15 @@
     <button class="nav-link" id="policies-tab" data-bs-toggle="tab" data-bs-target="#policies" type="button" role="tab">Poliçeler (<%= policies.length %>)</button>
   </li>
   <li class="nav-item" role="presentation">
+    <button class="nav-link" id="debt-policies-tab" data-bs-toggle="tab" data-bs-target="#debt-policies" type="button" role="tab">
+      <i class="bi bi-exclamation-circle"></i> Tahsilat Bekleyenler
+      <% const debtPolicies = policies.filter(p => p.premium_remaining > 0); %>
+      <% if (debtPolicies.length > 0) { %>
+        <span class="badge bg-danger ms-1"><%= debtPolicies.length %></span>
+      <% } %>
+    </button>
+  </li>
+  <li class="nav-item" role="presentation">
     <button class="nav-link" id="payments-tab" data-bs-toggle="tab" data-bs-target="#payments" type="button" role="tab">Ödemeler & Hesap</button>
   </li>
 </ul>
@@ -168,6 +177,75 @@
                     </td>
                   </tr>
                 <% }); %>
+              </tbody>
+            </table>
+          </div>
+        <% } %>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tahsilat Bekleyenler Sekmesi -->
+  <div class="tab-pane fade" id="debt-policies" role="tabpanel">
+    <div class="card shadow-sm border-danger">
+      <div class="card-header bg-danger text-white">
+        <h5 class="mb-0"><i class="bi bi-wallet2"></i> Tahsil Edilecek Primler</h5>
+      </div>
+      <div class="card-body">
+        <% if (debtPolicies.length === 0) { %>
+          <div class="alert alert-success mb-0">
+            <i class="bi bi-check-circle-fill"></i> Harika! Bu satışçıya ait tahsil edilmemiş poliçe primi bulunmuyor.
+          </div>
+        <% } else { %>
+          <div class="table-responsive">
+            <table class="table table-hover align-middle">
+              <thead class="table-light">
+                <tr>
+                  <th>Müşteri</th>
+                  <th>Poliçe No</th>
+                  <th>Vade Sonu</th>
+                  <th class="text-end">Toplam Prim</th>
+                  <th class="text-end">Ödenen</th>
+                  <th class="text-end text-danger fw-bold">Kalan (Borç)</th>
+                  <th class="text-end">İşlem</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% debtPolicies.forEach(p => { %>
+                  <tr>
+                    <td>
+                      <a href="/customers/<%= p.customer_id %>" class="fw-bold text-dark text-decoration-none">
+                        <%= p.customer_name %>
+                      </a>
+                      <div class="small text-muted"><%= p.customer_phone || '-' %></div>
+                    </td>
+                    <td>
+                        <a href="/policies/<%= p.id %>" class="text-decoration-none"><%= p.policy_number %></a>
+                        <div class="small text-muted"><%= p.insurer %> - <%= p.policy_type %></div>
+                    </td>
+                    <td>
+                        <%= p.end_date %>
+                        <% if (p.is_expired) { %>
+                            <span class="badge bg-danger ms-1">Süresi Doldu</span>
+                        <% } else if (p.is_expiring_soon) { %>
+                            <span class="badge bg-warning text-dark ms-1">Yaklaşıyor</span>
+                        <% } %>
+                    </td>
+                    <td class="text-end"><%= p.premium_total.toFixed(2) %> TL</td>
+                    <td class="text-end"><%= p.premium_paid.toFixed(2) %> TL</td>
+                    <td class="text-end text-danger fw-bold"><%= p.premium_remaining.toFixed(2) %> TL</td>
+                    <td class="text-end">
+                      <a href="/customers/<%= p.customer_id %>/invoice" class="btn btn-sm btn-outline-success">
+                        <i class="bi bi-cash"></i> Tahsil Et
+                      </a>
+                    </td>
+                  </tr>
+                <% }); %>
+                <tr class="table-danger fw-bold">
+                    <td colspan="5" class="text-end">TOPLAM ALACAK:</td>
+                    <td class="text-end"><%= (typeof stats !== 'undefined' ? stats.totalDebt : 0).toFixed(2) %> TL</td>
+                    <td></td>
+                </tr>
               </tbody>
             </table>
           </div>
