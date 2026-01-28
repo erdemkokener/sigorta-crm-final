@@ -1327,40 +1327,48 @@ app.post('/policies/import', requireAuth, (req, res, next) => {
 
 app.get('/policies/new', requireAuth, async (req, res) => {
   const data = await getContext();
-  res.render('policies/new', { title: 'Yeni Poliçe', customers: data.customers });
+  const salespersons = data.salespersons || [];
+  res.render('policies/new', { title: 'Yeni Poliçe', customers: data.customers, salespersons });
 });
 
 app.post('/policies', requireAuth, async (req, res) => {
-  const { customer_id, insurer, policy_number, start_date, end_date, description, status, issue_date, policy_type, premium, premium_paid, payment_note, commission, commission_refund, custom_reminder_date, custom_reminder_note, salesperson_commission, salesperson_id } = req.body;
-  if (!customer_id || !insurer || !policy_number || !start_date || !end_date) {
-    return res.status(400).send('Eksik alanlar mevcut');
+  try {
+    const { customer_id, insurer, policy_number, start_date, end_date, description, status, issue_date, policy_type, premium, premium_paid, payment_note, commission, commission_refund, custom_reminder_date, custom_reminder_note, salesperson_commission, salesperson_id } = req.body;
+    
+    if (!customer_id || !insurer || !policy_number || !start_date || !end_date) {
+      return res.status(400).send('Eksik alanlar mevcut');
+    }
+    
+    const created_at = dayjs().toISOString();
+    await dataService.createPolicy({
+      customer_id: Number(customer_id),
+      insurer,
+      policy_number,
+      issue_date: issue_date || '',
+      start_date,
+      end_date,
+      description: description || '',
+      policy_type: policy_type || 'Diğer',
+      premium: premium ? Number(premium) : undefined,
+      premium_paid: premium_paid ? Number(premium_paid) : undefined,
+      payment_note: payment_note || '',
+      commission: commission ? Number(commission) : undefined,
+      commission_refund: commission_refund ? Number(commission_refund) : undefined,
+      salesperson_commission: salesperson_commission ? Number(salesperson_commission) : undefined,
+      salesperson_id: salesperson_id ? Number(salesperson_id) : undefined,
+      custom_reminder_date: custom_reminder_date || '',
+      custom_reminder_note: custom_reminder_note || '',
+      status: status || 'active',
+      created_at,
+      notified_14: false,
+      notified_end: false,
+      policy_details: req.body.policy_details || {}
+    });
+    res.redirect('/policies');
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Poliçe oluşturulurken hata oluştu: ' + err.message);
   }
-  const created_at = dayjs().toISOString();
-  await dataService.createPolicy({
-    customer_id: Number(customer_id),
-    insurer,
-    policy_number,
-    issue_date: issue_date || '',
-    start_date,
-    end_date,
-    description: description || '',
-    policy_type: policy_type || 'Diğer',
-    premium: premium ? Number(premium) : undefined,
-    premium_paid: premium_paid ? Number(premium_paid) : undefined,
-    payment_note: payment_note || '',
-    commission: commission ? Number(commission) : undefined,
-    commission_refund: commission_refund ? Number(commission_refund) : undefined,
-    salesperson_commission: salesperson_commission ? Number(salesperson_commission) : undefined,
-    salesperson_id: salesperson_id ? Number(salesperson_id) : undefined,
-    custom_reminder_date: custom_reminder_date || '',
-    custom_reminder_note: custom_reminder_note || '',
-    status: status || 'active',
-    created_at,
-    notified_14: false,
-    notified_end: false,
-    policy_details: req.body.policy_details || {}
-  });
-  res.redirect('/policies');
 });
 
 app.get('/policies/template.xlsx', requireAuth, async (req, res) => {
@@ -1409,30 +1417,36 @@ app.get('/policies/:id/edit', requireAuth, async (req, res) => {
 });
 
 app.post('/policies/:id', requireAuth, async (req, res) => {
-  const id = Number(req.params.id);
-  const { customer_id, insurer, policy_number, start_date, end_date, description, status, issue_date, policy_type, premium, premium_paid, payment_note, commission, commission_refund, custom_reminder_date, custom_reminder_note, salesperson_id } = req.body;
-  await dataService.updatePolicy(id, {
-    customer_id: Number(customer_id),
-    insurer,
-    policy_number,
-    issue_date: issue_date || '',
-    start_date,
-    end_date,
-    description: description || '',
-    policy_type: policy_type || 'Diğer',
-    premium: premium ? Number(premium) : undefined,
-    premium_paid: premium_paid ? Number(premium_paid) : undefined,
-    payment_note: payment_note || '',
-    commission: commission ? Number(commission) : undefined,
-    commission_refund: commission_refund ? Number(commission_refund) : undefined,
-    salesperson_commission: salesperson_commission ? Number(salesperson_commission) : undefined,
-    salesperson_id: salesperson_id ? Number(salesperson_id) : null,
-    custom_reminder_date: custom_reminder_date || '',
-    custom_reminder_note: custom_reminder_note || '',
-    status: status || 'active',
-    policy_details: req.body.policy_details || {}
-  });
-  res.redirect('/policies/' + id);
+  try {
+    const id = Number(req.params.id);
+    const { customer_id, insurer, policy_number, start_date, end_date, description, status, issue_date, policy_type, premium, premium_paid, payment_note, commission, commission_refund, custom_reminder_date, custom_reminder_note, salesperson_commission, salesperson_id } = req.body;
+    
+    await dataService.updatePolicy(id, {
+      customer_id: Number(customer_id),
+      insurer,
+      policy_number,
+      issue_date: issue_date || '',
+      start_date,
+      end_date,
+      description: description || '',
+      policy_type: policy_type || 'Diğer',
+      premium: premium ? Number(premium) : undefined,
+      premium_paid: premium_paid ? Number(premium_paid) : undefined,
+      payment_note: payment_note || '',
+      commission: commission ? Number(commission) : undefined,
+      commission_refund: commission_refund ? Number(commission_refund) : undefined,
+      salesperson_commission: salesperson_commission ? Number(salesperson_commission) : undefined,
+      salesperson_id: salesperson_id ? Number(salesperson_id) : null,
+      custom_reminder_date: custom_reminder_date || '',
+      custom_reminder_note: custom_reminder_note || '',
+      status: status || 'active',
+      policy_details: req.body.policy_details || {}
+    });
+    res.redirect('/policies/' + id);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Poliçe güncellenirken hata oluştu: ' + err.message);
+  }
 });
 
 app.post('/policies/:id/delete', requireAuth, async (req, res) => {
