@@ -1,0 +1,55 @@
+<div class="row mb-4">
+  <div class="col-md-8">
+    <h1 class="h3"><i class="bi bi-people-fill"></i> Satış Yapanlar / Aracılar</h1>
+  </div>
+  <div class="col-md-4 text-end">
+    <a href="/salespersons/new" class="btn btn-primary"><i class="bi bi-plus-lg"></i> Yeni Satışçı Ekle</a>
+  </div>
+</div>
+
+<div class="card shadow-sm">
+  <div class="card-body">
+    <% if (salespersons.length === 0) { %>
+      <div class="alert alert-info">Henüz kayıtlı satışçı/aracı bulunmuyor.</div>
+    <% } else { %>
+      <div class="table-responsive">
+        <table class="table table-hover align-middle">
+          <thead class="table-light">
+            <tr>
+              <th>ID</th>
+              <th>Ad Soyad</th>
+              <th>Telefon</th>
+              <th>E-posta</th>
+              <th>Müşteri Sayısı</th>
+              <th>Poliçe Sayısı</th>
+              <th class="text-end">İşlemler</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% salespersons.forEach(function(s) { %>
+              <tr>
+                <td>#<%= s.id %></td>
+                <td>
+                  <a href="/salespersons/<%= s.id %>" class="text-decoration-none fw-bold">
+                    <%= s.name %>
+                  </a>
+                </td>
+                <td><%= s.phone || '-' %></td>
+                <td><%= s.email || '-' %></td>
+                <td><span class="badge bg-secondary rounded-pill"><%= s.customerCount || 0 %></span></td>
+                <td><span class="badge bg-info text-dark rounded-pill"><%= s.policyCount || 0 %></span></td>
+                <td class="text-end">
+                  <a href="/salespersons/<%= s.id %>" class="btn btn-sm btn-info" title="Detay"><i class="bi bi-eye"></i></a>
+                  <a href="/salespersons/<%= s.id %>/edit" class="btn btn-sm btn-warning" title="Düzenle"><i class="bi bi-pencil"></i></a>
+                  <form action="/salespersons/<%= s.id %>/delete" method="POST" class="d-inline" onsubmit="return confirm('Bu satışçıyı silmek istediğinize emin misiniz?');">
+                    <button type="submit" class="btn btn-sm btn-danger" title="Sil"><i class="bi bi-trash"></i></button>
+                  </form>
+                </td>
+              </tr>
+            <% }); %>
+          </tbody>
+        </table>
+      </div>
+    <% } %>
+  </div>
+</div>

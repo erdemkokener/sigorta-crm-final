@@ -10,7 +10,9 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
-    "build": "echo 'No build step'"
+    "build": "echo 'No build step'",
+    "lint": "eslint . --ext .js",
+    "lint:fix": "eslint . --ext .js --fix"
   },
   "author": "",
   "license": "MIT",
@@ -26,5 +28,8 @@
     "morgan": "^1.10.0",
     "multer": "^1.4.5-lts.1",
     "nodemailer": "^6.9.8"
+  },
+  "devDependencies": {
+    "eslint": "^9.39.2"
   }
 }

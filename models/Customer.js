@@ -8,6 +8,7 @@ const CustomerSchema = new mongoose.Schema({
   email: String,
   profession: String,
   birth_date: String,
+  salesperson_id: { type: Number },
   manual_debt: { type: Number, default: 0 },
   note: String
 }, { timestamps: true });

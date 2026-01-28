@@ -1,0 +1,36 @@
+<div class="row mb-4">
+  <div class="col-md-8">
+    <h1 class="h3"><i class="bi bi-pencil"></i> Satışçı Düzenle: <%= salesperson.name %></h1>
+  </div>
+  <div class="col-md-4 text-end">
+    <a href="/salespersons" class="btn btn-secondary"><i class="bi bi-arrow-left"></i> Listeye Dön</a>
+  </div>
+</div>
+
+<div class="card shadow-sm">
+  <div class="card-body">
+    <form action="/salespersons/<%= salesperson.id %>" method="POST">
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label">Ad Soyad <span class="text-danger">*</span></label>
+          <input type="text" name="name" class="form-control" value="<%= salesperson.name %>" required>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Telefon</label>
+          <input type="text" name="phone" class="form-control" value="<%= salesperson.phone || '' %>">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">E-posta</label>
+          <input type="email" name="email" class="form-control" value="<%= salesperson.email || '' %>">
+        </div>
+        <div class="col-md-12">
+          <label class="form-label">Notlar</label>
+          <textarea name="note" class="form-control" rows="3"><%= salesperson.note || '' %></textarea>
+        </div>
+        <div class="col-12 text-end">
+          <button type="submit" class="btn btn-primary"><i class="bi bi-save"></i> Güncelle</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>

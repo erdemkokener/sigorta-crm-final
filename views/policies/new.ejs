@@ -18,6 +18,18 @@
           </div>
 
           <div class="col-md-6">
+            <label class="form-label">Satışçı / Aracı</label>
+            <select name="salesperson_id" class="form-select">
+              <option value="">Seçiniz...</option>
+              <% if (typeof salespersons !== 'undefined') { %>
+                <% salespersons.forEach(s => { %>
+                  <option value="<%= s.id %>"><%= s.name %></option>
+                <% }); %>
+              <% } %>
+            </select>
+          </div>
+
+          <div class="col-md-6">
             <label class="form-label">TC/VKN ile Müşteri Bul</label>
             <div class="input-group">
               <input type="text" class="form-control" id="customerSearchIdNo" placeholder="TC veya Vergi No yazın">
@@ -315,7 +327,7 @@
   function updateSpecialFields() {
     const policyType = policyTypeSelect.value;
     trafikKaskoFields.forEach(function (el) {
-      el.style.display = (policyType === 'Trafik' || policyType === 'Kasko' || policyType === 'Tehlikeli Madde Mali Sorumluluk' || policyType === 'Koltuk Sigortası') ? '' : 'none';
+      el.style.display = (policyType === 'Trafik' || policyType === 'Kasko' || policyType === 'Tehlikeli Madde Mali Sorumluluk' || policyType === 'Koltuk Sigortası' || policyType === 'Kısa Süreli Trafik') ? '' : 'none';
     });
     kaskoOnlyFields.forEach(function (el) {
       el.style.display = policyType === 'Kasko' ? '' : 'none';

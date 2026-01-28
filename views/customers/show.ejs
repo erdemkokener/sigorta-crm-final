@@ -21,6 +21,7 @@
         <p><strong>Meslek:</strong> <%= customer.profession || '-' %></p>
         <p><strong>TC/Vergi No:</strong> <%= customer.id_no || '-' %></p>
         <p><strong>Doğum Tarihi:</strong> <%= customer.birth_date || '-' %></p>
+        <p><strong>Satışçı / Aracı:</strong> <%= typeof salespersonName !== 'undefined' ? salespersonName : '-' %></p>
         <% if (customer.note) { %>
           <hr>
           <p><strong>Not:</strong><br><span class="text-muted"><%= customer.note %></span></p>

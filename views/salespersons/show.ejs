@@ -1,0 +1,138 @@
+<div class="row mb-4">
+  <div class="col-md-8">
+    <h1 class="h3"><i class="bi bi-person-badge"></i> Satışçı Detayı: <%= salesperson.name %></h1>
+  </div>
+  <div class="col-md-4 text-end">
+    <div class="btn-group me-2">
+      <button type="button" class="btn btn-success dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+        <i class="bi bi-file-earmark-excel"></i> Excel
+      </button>
+      <ul class="dropdown-menu">
+        <li><a class="dropdown-item" href="/salespersons/<%= salesperson.id %>/export/customers">Müşteri Listesi</a></li>
+        <li><a class="dropdown-item" href="/salespersons/<%= salesperson.id %>/export/policies">Poliçe Listesi</a></li>
+      </ul>
+    </div>
+    <a href="/salespersons/<%= salesperson.id %>/edit" class="btn btn-warning"><i class="bi bi-pencil"></i> Düzenle</a>
+    <a href="/salespersons" class="btn btn-secondary"><i class="bi bi-arrow-left"></i> Listeye Dön</a>
+  </div>
+</div>
+
+<div class="row mb-4">
+  <div class="col-md-6 mb-3">
+    <div class="card shadow-sm h-100">
+      <div class="card-body">
+        <h5 class="card-title text-muted">İletişim Bilgileri</h5>
+        <p class="mb-1"><strong>Telefon:</strong> <%= salesperson.phone || '-' %></p>
+        <p class="mb-1"><strong>E-posta:</strong> <%= salesperson.email || '-' %></p>
+        <p class="mb-0"><strong>Not:</strong> <%= salesperson.note || '-' %></p>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3 mb-3">
+    <div class="card bg-primary text-white h-100">
+      <div class="card-body text-center d-flex flex-column justify-content-center">
+        <h3 class="display-4 fw-bold"><%= customers.length %></h3>
+        <p class="mb-0">Müşteri Sayısı</p>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3 mb-3">
+    <div class="card bg-success text-white h-100">
+      <div class="card-body text-center d-flex flex-column justify-content-center">
+        <h3 class="display-4 fw-bold"><%= policies.length %></h3>
+        <p class="mb-0">Toplam Poliçe</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<ul class="nav nav-tabs mb-3" id="salespersonTabs" role="tablist">
+  <li class="nav-item" role="presentation">
+    <button class="nav-link active" id="customers-tab" data-bs-toggle="tab" data-bs-target="#customers" type="button" role="tab">Müşteriler (<%= customers.length %>)</button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" id="policies-tab" data-bs-toggle="tab" data-bs-target="#policies" type="button" role="tab">Poliçeler (<%= policies.length %>)</button>
+  </li>
+</ul>
+
+<div class="tab-content" id="salespersonTabsContent">
+  <!-- Müşteriler Sekmesi -->
+  <div class="tab-pane fade show active" id="customers" role="tabpanel">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <% if (customers.length === 0) { %>
+          <div class="alert alert-light">Bu satışçıya ait müşteri bulunamadı.</div>
+        <% } else { %>
+          <div class="table-responsive">
+            <table class="table table-hover">
+              <thead>
+                <tr>
+                  <th>Ad Soyad</th>
+                  <th>Telefon</th>
+                  <th>Meslek</th>
+                  <th>İşlemler</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% customers.forEach(c => { %>
+                  <tr>
+                    <td><%= c.name %></td>
+                    <td><%= c.phone %></td>
+                    <td><%= c.profession %></td>
+                    <td>
+                      <a href="/customers/<%= c.id %>" class="btn btn-sm btn-info">Detay</a>
+                    </td>
+                  </tr>
+                <% }); %>
+              </tbody>
+            </table>
+          </div>
+        <% } %>
+      </div>
+    </div>
+  </div>
+
+  <!-- Poliçeler Sekmesi -->
+  <div class="tab-pane fade" id="policies" role="tabpanel">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <% if (policies.length === 0) { %>
+          <div class="alert alert-light">Bu satışçıya ait poliçe bulunamadı.</div>
+        <% } else { %>
+          <div class="table-responsive">
+            <table class="table table-hover">
+              <thead>
+                <tr>
+                  <th>Poliçe No</th>
+                  <th>Müşteri</th>
+                  <th>Şirket</th>
+                  <th>Tür</th>
+                  <th>Bitiş Tarihi</th>
+                  <th>Prim</th>
+                  <th>İşlemler</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% policies.forEach(p => { %>
+                  <tr>
+                    <td><%= p.policy_number %></td>
+                    <td>
+                        <a href="/customers/<%= p.customer_id %>" class="text-decoration-none"><%= p.customer_name %></a>
+                    </td>
+                    <td><%= p.insurer %></td>
+                    <td><span class="badge bg-info text-dark"><%= p.policy_type %></span></td>
+                    <td><%= p.end_date %></td>
+                    <td><%= p.premium_total ? p.premium_total.toFixed(2) : '-' %></td>
+                    <td>
+                      <a href="/policies/<%= p.id %>" class="btn btn-sm btn-info">Detay</a>
+                    </td>
+                  </tr>
+                <% }); %>
+              </tbody>
+            </table>
+          </div>
+        <% } %>
+      </div>
+    </div>
+  </div>
+</div>

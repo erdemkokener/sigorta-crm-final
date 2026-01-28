@@ -22,9 +22,54 @@
         <button type="submit" class="btn btn-primary">Filtrele</button>
         <a href="/reports/refunds" class="btn btn-outline-secondary">Sıfırla</a>
       </div>
+      <div class="col-12 mt-2">
+        <small class="text-muted me-2">Hızlı Filtreler:</small>
+        <button type="button" class="btn btn-sm btn-outline-info" onclick="setDateRange('today')">Bugün</button>
+        <button type="button" class="btn btn-sm btn-outline-info" onclick="setDateRange('week')">Bu Hafta</button>
+        <button type="button" class="btn btn-sm btn-outline-info" onclick="setDateRange('month')">Bu Ay</button>
+        <button type="button" class="btn btn-sm btn-outline-info" onclick="setDateRange('year')">Bu Yıl</button>
+      </div>
     </form>
   </div>
 </div>
+
+<script>
+function setDateRange(range) {
+  const today = new Date();
+  let start, end;
+
+  if (range === 'today') {
+    start = new Date();
+    end = new Date();
+  } else if (range === 'week') {
+    const day = today.getDay();
+    const diff = today.getDate() - day + (day == 0 ? -6 : 1); // adjust when day is sunday
+    start = new Date(today.setDate(diff));
+    end = new Date(today.setDate(start.getDate() + 6));
+  } else if (range === 'month') {
+    start = new Date(today.getFullYear(), today.getMonth(), 1);
+    end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+  } else if (range === 'year') {
+    start = new Date(today.getFullYear(), 0, 1);
+    end = new Date(today.getFullYear(), 11, 31);
+  }
+
+  const formatDate = (d) => {
+    let month = '' + (d.getMonth() + 1),
+        day = '' + d.getDate(),
+        year = d.getFullYear();
+
+    if (month.length < 2) month = '0' + month;
+    if (day.length < 2) day = '0' + day;
+
+    return [year, month, day].join('-');
+  };
+
+  document.querySelector('input[name="start_date"]').value = formatDate(start);
+  document.querySelector('input[name="end_date"]').value = formatDate(end);
+  document.querySelector('form').submit();
+}
+</script>
 
 <div class="row mb-4">
   <div class="col-md-4">

@@ -135,7 +135,7 @@
                     <% } %>
                 </div>
             </div>
-            <% if (policy.policy_type === 'Trafik' || policy.policy_type === 'Kasko' || policy.policy_type === 'Tehlikeli Madde Mali Sorumluluk' || policy.policy_type === 'Koltuk Sigortası') { %>
+            <% if (policy.policy_type === 'Trafik' || policy.policy_type === 'Kasko' || policy.policy_type === 'Tehlikeli Madde Mali Sorumluluk' || policy.policy_type === 'Koltuk Sigortası' || policy.policy_type === 'Kısa Süreli Trafik') { %>
               <div class="col-md-6">
                 <label class="text-muted small">Plaka</label>
                 <div class="fw-bold"><%= policy.policy_details && policy.policy_details.plate ? policy.policy_details.plate : '-' %></div>

@@ -4,6 +4,7 @@ const db = require('../db');
 const Customer = require('../models/Customer');
 const Policy = require('../models/Policy');
 const Settings = require('../models/Settings');
+const Salesperson = require('../models/Salesperson');
 const User = require('../models/User');
 const Payment = require('../models/Payment');
 
@@ -23,6 +24,8 @@ function loadFile() {
   if (!data.nextUserId) data.nextUserId = 1;
   if (!data.payments) data.payments = [];
   if (!data.nextPaymentId) data.nextPaymentId = 1;
+  if (!data.salespersons) data.salespersons = [];
+  if (!data.nextSalespersonId) data.nextSalespersonId = 1;
   return data;
 }
 
@@ -49,11 +52,12 @@ const DataService = {
 
   async getAllData() {
     if (db.isConnected()) {
-      const [customers, policies, settingsDocs, payments] = await Promise.all([
+      const [customers, policies, settingsDocs, payments, salespersons] = await Promise.all([
         Customer.find({}),
         Policy.find({}),
         Settings.find({}),
-        Payment.find({})
+        Payment.find({}),
+        Salesperson.find({})
       ]);
 
       // Convert settings array to object
@@ -69,18 +73,80 @@ const DataService = {
       const maxPolicyId = policies.reduce((max, p) => Math.max(max, p.id || 0), 0);
       const maxCustomerId = customers.reduce((max, c) => Math.max(max, c.id || 0), 0);
       const maxPaymentId = payments.reduce((max, p) => Math.max(max, p.id || 0), 0);
+      const maxSalespersonId = salespersons.reduce((max, s) => Math.max(max, s.id || 0), 0);
 
       return {
         policies: policies.map(p => p.toObject()),
         customers: customers.map(c => c.toObject()),
         payments: payments.map(p => p.toObject()),
+        salespersons: salespersons.map(s => s.toObject()),
         settings,
         nextId: maxPolicyId + 1,
         nextCustomerId: maxCustomerId + 1,
-        nextPaymentId: maxPaymentId + 1
+        nextPaymentId: maxPaymentId + 1,
+        nextSalespersonId: maxSalespersonId + 1
       };
     } else {
       return loadFile();
+    }
+  },
+
+  async createSalesperson(salespersonData) {
+    if (db.isConnected()) {
+      const last = await Salesperson.findOne().sort({ id: -1 });
+      const id = (last && last.id) ? last.id + 1 : 1;
+      const salesperson = new Salesperson({ ...salespersonData, id });
+      await salesperson.save();
+      return salesperson.toObject();
+    } else {
+      const data = loadFile();
+      const id = data.nextSalespersonId++;
+      const newSalesperson = { ...salespersonData, id };
+      data.salespersons.push(newSalesperson);
+      saveFile(data);
+      return newSalesperson;
+    }
+  },
+
+  async updateSalesperson(id, salespersonData) {
+    if (db.isConnected()) {
+      const salesperson = await Salesperson.findOneAndUpdate({ id }, salespersonData, { new: true });
+      return salesperson ? salesperson.toObject() : null;
+    } else {
+      const data = loadFile();
+      const index = data.salespersons.findIndex(s => s.id === parseInt(id));
+      if (index !== -1) {
+        data.salespersons[index] = { ...data.salespersons[index], ...salespersonData };
+        saveFile(data);
+        return data.salespersons[index];
+      }
+      return null;
+    }
+  },
+
+  async deleteSalesperson(id) {
+    if (db.isConnected()) {
+      await Salesperson.findOneAndDelete({ id });
+      return true;
+    } else {
+      const data = loadFile();
+      const initialLength = data.salespersons.length;
+      data.salespersons = data.salespersons.filter(s => s.id !== parseInt(id));
+      if (data.salespersons.length < initialLength) {
+        saveFile(data);
+        return true;
+      }
+      return false;
+    }
+  },
+
+  async getSalesperson(id) {
+    if (db.isConnected()) {
+      const salesperson = await Salesperson.findOne({ id });
+      return salesperson ? salesperson.toObject() : null;
+    } else {
+      const data = loadFile();
+      return data.salespersons.find(s => s.id === parseInt(id));
     }
   },
 

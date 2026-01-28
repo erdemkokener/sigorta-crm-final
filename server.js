@@ -482,6 +482,153 @@ app.post('/logout', (req, res) => {
   });
 });
 
+// --- Salespersons Routes ---
+
+app.get('/salespersons', requireAuth, async (req, res) => {
+  const data = await getContext();
+  const salespersons = data.salespersons || [];
+  
+  // Calculate stats
+  salespersons.forEach(s => {
+    const sCustomers = data.customers.filter(c => c.salesperson_id === s.id);
+    s.customerCount = sCustomers.length;
+    // Policy count: Policies belonging to these customers
+    const customerIds = sCustomers.map(c => c.id);
+    s.policyCount = data.policies.filter(p => customerIds.includes(p.customer_id)).length;
+  });
+
+  res.render('salespersons/index', { title: 'Satışçılar', salespersons });
+});
+
+app.get('/salespersons/new', requireAuth, (req, res) => {
+  res.render('salespersons/new', { title: 'Yeni Satışçı Ekle' });
+});
+
+app.post('/salespersons', requireAuth, async (req, res) => {
+  const { name, phone, email, note } = req.body;
+  if (!name) return res.send('Ad Soyad zorunludur.');
+  
+  await dataService.createSalesperson({ name, phone, email, note });
+  res.redirect('/salespersons');
+});
+
+app.get('/salespersons/:id', requireAuth, async (req, res) => {
+  const data = await getContext();
+  const salesperson = await dataService.getSalesperson(req.params.id);
+  
+  if (!salesperson) return res.status(404).send('Satışçı bulunamadı');
+
+  const customers = data.customers.filter(c => c.salesperson_id === salesperson.id);
+  const customerIds = customers.map(c => c.id);
+  const policies = data.policies.filter(p => customerIds.includes(p.customer_id)).map(p => {
+    const c = customers.find(x => x.id === p.customer_id);
+    return { ...p, customer_name: c ? c.name : 'Bilinmiyor' };
+  });
+
+  res.render('salespersons/show', { 
+    title: 'Satışçı Detayı', 
+    salesperson, 
+    customers, 
+    policies 
+  });
+});
+
+app.get('/salespersons/:id/edit', requireAuth, async (req, res) => {
+  const salesperson = await dataService.getSalesperson(req.params.id);
+  if (!salesperson) return res.status(404).send('Satışçı bulunamadı');
+  res.render('salespersons/edit', { title: 'Satışçı Düzenle', salesperson });
+});
+
+app.post('/salespersons/:id', requireAuth, async (req, res) => {
+  const { name, phone, email, note } = req.body;
+  await dataService.updateSalesperson(req.params.id, { name, phone, email, note });
+  res.redirect('/salespersons');
+});
+
+app.post('/salespersons/:id/delete', requireAuth, async (req, res) => {
+  await dataService.deleteSalesperson(req.params.id);
+  res.redirect('/salespersons');
+});
+
+app.get('/salespersons/:id/export/customers', requireAuth, async (req, res) => {
+  const data = await getContext();
+  const salesperson = await dataService.getSalesperson(req.params.id);
+  if (!salesperson) return res.status(404).send('Satışçı bulunamadı');
+
+  const customers = data.customers.filter(c => c.salesperson_id === salesperson.id);
+
+  const wb = new ExcelJS.Workbook();
+  const ws = wb.addWorksheet('Musteriler');
+  ws.columns = [
+    { header: 'Adı Soyadı', key: 'name', width: 25 },
+    { header: 'Telefon', key: 'phone', width: 15 },
+    { header: 'TCKN/Vergi No', key: 'id_no', width: 15 },
+    { header: 'Meslek', key: 'profession', width: 20 },
+    { header: 'Not', key: 'note', width: 30 }
+  ];
+
+  customers.forEach(c => {
+    ws.addRow({
+      name: c.name,
+      phone: c.phone,
+      id_no: c.id_no,
+      profession: c.profession,
+      note: c.note
+    });
+  });
+
+  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  res.setHeader('Content-Disposition', `attachment; filename="Satisci_${salesperson.name.replace(/[^a-z0-9]/gi, '_')}_Musteriler.xlsx"`);
+  await wb.xlsx.write(res);
+  res.end();
+});
+
+app.get('/salespersons/:id/export/policies', requireAuth, async (req, res) => {
+  const data = await getContext();
+  const salesperson = await dataService.getSalesperson(req.params.id);
+  if (!salesperson) return res.status(404).send('Satışçı bulunamadı');
+
+  const customers = data.customers.filter(c => c.salesperson_id === salesperson.id);
+  const customerIds = customers.map(c => c.id);
+  const policies = data.policies
+    .filter(p => customerIds.includes(p.customer_id))
+    .map(p => {
+        const c = customers.find(x => x.id === p.customer_id);
+        return { ...p, customer_name: c ? c.name : 'Bilinmiyor' };
+    });
+
+  const wb = new ExcelJS.Workbook();
+  const ws = wb.addWorksheet('Policeler');
+  ws.columns = [
+    { header: 'Müşteri', key: 'customer', width: 25 },
+    { header: 'Poliçe No', key: 'policy_number', width: 20 },
+    { header: 'Şirket', key: 'insurer', width: 20 },
+    { header: 'Tür', key: 'policy_type', width: 15 },
+    { header: 'Bitiş Tarihi', key: 'end_date', width: 15 },
+    { header: 'Prim', key: 'premium', width: 15 },
+    { header: 'Durum', key: 'status', width: 15 }
+  ];
+
+  policies.forEach(p => {
+    ws.addRow({
+      customer: p.customer_name,
+      policy_number: p.policy_number,
+      insurer: p.insurer,
+      policy_type: p.policy_type,
+      end_date: p.end_date,
+      premium: p.premium,
+      status: p.status
+    });
+  });
+
+  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  res.setHeader('Content-Disposition', `attachment; filename="Satisci_${salesperson.name.replace(/[^a-z0-9]/gi, '_')}_Policeler.xlsx"`);
+  await wb.xlsx.write(res);
+  res.end();
+});
+
+// --- End Salespersons Routes ---
+
 app.get('/settings', requireAuth, requireAdmin, (req, res) => {
   res.render('settings', { title: 'Ayarlar', msg: req.query.msg, error: req.query.error });
 });
@@ -787,12 +934,14 @@ app.get('/customers/export.xlsx', requireAuth, async (req, res) => {
   res.end();
 });
 
-app.get('/customers/new', requireAuth, (req, res) => {
-  res.render('customers/new', { title: 'Yeni Müşteri' });
+app.get('/customers/new', requireAuth, async (req, res) => {
+  const data = await getContext();
+  const salespersons = data.salespersons || [];
+  res.render('customers/new', { title: 'Yeni Müşteri', salespersons });
 });
 
 app.post('/customers', requireAuth, async (req, res) => {
-  const { name, phone, id_no, email, birth_date } = req.body;
+  const { name, phone, id_no, email, birth_date, salesperson_id } = req.body;
   if (!name) return res.status(400).send('Müşteri adı zorunlu');
   
   await dataService.createCustomer({
@@ -802,6 +951,7 @@ app.post('/customers', requireAuth, async (req, res) => {
     email: email || '',
     profession: req.body.profession || '',
     birth_date: birth_date || '',
+    salesperson_id: salesperson_id ? Number(salesperson_id) : null,
     manual_debt: Number(req.body.manual_debt) || 0,
     note: req.body.note || ''
   });
@@ -814,6 +964,12 @@ app.get('/customers/:id', requireAuth, async (req, res) => {
   const customer = data.customers.find(x => x.id === id);
   
   if (!customer) return res.status(404).send('Müşteri bulunamadı');
+
+  let salespersonName = '-';
+  if (customer.salesperson_id) {
+    const sp = data.salespersons ? data.salespersons.find(s => s.id === customer.salesperson_id) : null;
+    if (sp) salespersonName = sp.name;
+  }
 
   // Müşteriye ait poliçeleri bul ve hesaplamaları yap
   const policies = data.policies
@@ -860,9 +1016,10 @@ app.get('/customers/:id', requireAuth, async (req, res) => {
     title: 'Müşteri Detayı',  
     customer, 
     policies,
+  payments,
     stats,
-    payments,
-    policyDistribution
+    policyDistribution,
+    salespersonName
   });
 });
 
@@ -954,7 +1111,8 @@ app.get('/customers/:id/edit', requireAuth, async (req, res) => {
   const data = await getContext();
   const c = data.customers.find(x => x.id === id);
   if (!c) return res.status(404).send('Müşteri bulunamadı');
-  res.render('customers/edit', { title: 'Müşteri Düzenle', customer: c });
+  const salespersons = data.salespersons || [];
+  res.render('customers/edit', { title: 'Müşteri Düzenle', customer: c, salespersons });
 });
 
 app.get('/customers/:id/vehicles/export.xlsx', requireAuth, async (req, res) => {
@@ -1024,12 +1182,14 @@ app.post('/customers/:id', requireAuth, async (req, res) => {
       email: req.body.email,
       profession: req.body.profession,
       birth_date: req.body.birth_date,
+      salesperson_id: req.body.salesperson_id ? Number(req.body.salesperson_id) : null,
       manual_debt: Number(req.body.manual_debt) || 0,
       note: req.body.note || ''
     });
   } else {
     await dataService.updateCustomer(id, {
-      phone: req.body.phone
+      phone: req.body.phone,
+      salesperson_id: req.body.salesperson_id ? Number(req.body.salesperson_id) : null
     });
   }
   res.redirect('/customers');
@@ -1215,12 +1375,13 @@ app.get('/policies/:id/edit', requireAuth, async (req, res) => {
   const data = await getContext();
   const p = data.policies.find(x => x.id === id);
   if (!p) return res.status(404).send('Poliçe bulunamadı');
-  res.render('policies/edit', { title: 'Poliçe Düzenle', policy: p, customers: data.customers });
+  const salespersons = data.salespersons || [];
+  res.render('policies/edit', { title: 'Poliçe Düzenle', policy: p, customers: data.customers, salespersons });
 });
 
 app.post('/policies/:id', requireAuth, async (req, res) => {
   const id = Number(req.params.id);
-  const { customer_id, insurer, policy_number, start_date, end_date, description, status, issue_date, policy_type, premium, premium_paid, payment_note, commission, commission_refund, custom_reminder_date, custom_reminder_note } = req.body;
+  const { customer_id, insurer, policy_number, start_date, end_date, description, status, issue_date, policy_type, premium, premium_paid, payment_note, commission, commission_refund, custom_reminder_date, custom_reminder_note, salesperson_id } = req.body;
   await dataService.updatePolicy(id, {
     customer_id: Number(customer_id),
     insurer,
@@ -1235,6 +1396,7 @@ app.post('/policies/:id', requireAuth, async (req, res) => {
     payment_note: payment_note || '',
     commission: commission ? Number(commission) : undefined,
     commission_refund: commission_refund ? Number(commission_refund) : undefined,
+    salesperson_id: salesperson_id ? Number(salesperson_id) : null,
     custom_reminder_date: custom_reminder_date || '',
     custom_reminder_note: custom_reminder_note || '',
     status: status || 'active',
