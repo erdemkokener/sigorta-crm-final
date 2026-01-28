@@ -185,13 +185,14 @@
             <th>Başlangıç</th>
             <th>Bitiş</th>
             <th>Kalan Gün</th>
+            <th class="text-end">Kalan Borç</th>
             <th>Durum</th>
-            <th>İşlem</th>
+            <th class="text-end">İşlem</th>
           </tr>
         </thead>
         <tbody>
           <% if (policies.length === 0) { %>
-            <tr><td colspan="8" class="text-center py-4">Kayıtlı poliçe bulunamadı.</td></tr>
+            <tr><td colspan="9" class="text-center py-4">Kayıtlı poliçe bulunamadı.</td></tr>
           <% } else { %>
             <% policies.forEach(p => { %>
               <tr data-plate="<%= (p.policy_details && p.policy_details.plate) || '' %>" 
@@ -215,6 +216,13 @@
                     <span class="text-success"><%= p.days_remaining %> gün</span>
                   <% } %>
                 </td>
+                <td class="text-end">
+                  <% if (p.premium_remaining > 0) { %>
+                    <span class="text-danger fw-bold"><%= p.premium_remaining.toFixed(2) %> TL</span>
+                  <% } else { %>
+                    <span class="text-muted"><i class="bi bi-check-all"></i> Ödendi</span>
+                  <% } %>
+                </td>
                 <td>
                   <% if (p.status === 'active' || p.status === 'Aktif') { %>
                     <span class="badge bg-success">Aktif</span>
@@ -224,7 +232,10 @@
                     <span class="badge bg-secondary"><%= p.status %></span>
                   <% } %>
                 </td>
-                <td>
+                <td class="text-end">
+                  <% if (p.premium_remaining > 0) { %>
+                    <a href="/customers/<%= customer.id %>/invoice?policy_id=<%= p.id %>" class="btn btn-sm btn-outline-success me-1" title="Tahsil Et"><i class="bi bi-cash"></i></a>
+                  <% } %>
                   <a href="/policies/<%= p.id %>" class="btn btn-sm btn-outline-primary" title="Detay"><i class="bi bi-eye"></i></a>
                   <a href="/policies/renew/<%= p.id %>" class="btn btn-sm btn-outline-warning" title="Yenile"><i class="bi bi-arrow-repeat"></i></a>
                 </td>
