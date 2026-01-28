@@ -162,20 +162,45 @@
           <div class="col-12 health-field" style="display:none">
             <label class="form-label">Sağlık Poliçesindeki Kişiler</label>
             <div id="healthPersonsContainer">
-              <div class="row g-2 health-person-row" data-index="0">
-                <div class="col-md-3">
-                  <input type="text" class="form-control" name="policy_details[health_persons][0][name]" placeholder="Ad Soyad">
+              <% if (typeof prefill !== 'undefined' && prefill.policy_details && prefill.policy_details.health_persons && Object.keys(prefill.policy_details.health_persons).length > 0) { %>
+                <% 
+                  // Object veya Array gelebilir, garantiye alalım
+                  const persons = Array.isArray(prefill.policy_details.health_persons) 
+                    ? prefill.policy_details.health_persons 
+                    : Object.values(prefill.policy_details.health_persons);
+                  persons.forEach((person, index) => { 
+                %>
+                  <div class="row g-2 health-person-row" data-index="<%= index %>">
+                    <div class="col-md-3">
+                      <input type="text" class="form-control" name="policy_details[health_persons][<%= index %>][name]" placeholder="Ad Soyad" value="<%= person.name || '' %>">
+                    </div>
+                    <div class="col-md-3">
+                      <input type="text" class="form-control" name="policy_details[health_persons][<%= index %>][id_no]" placeholder="TCKN" value="<%= person.id_no || '' %>">
+                    </div>
+                    <div class="col-md-3">
+                      <input type="date" class="form-control" name="policy_details[health_persons][<%= index %>][birth_date]" placeholder="Doğum Tarihi" value="<%= person.birth_date || '' %>">
+                    </div>
+                    <div class="col-md-3">
+                      <input type="text" class="form-control" name="policy_details[health_persons][<%= index %>][relation]" placeholder="Yakınlık (Örn. Eş)" value="<%= person.relation || '' %>">
+                    </div>
+                  </div>
+                <% }) %>
+              <% } else { %>
+                <div class="row g-2 health-person-row" data-index="0">
+                  <div class="col-md-3">
+                    <input type="text" class="form-control" name="policy_details[health_persons][0][name]" placeholder="Ad Soyad">
+                  </div>
+                  <div class="col-md-3">
+                    <input type="text" class="form-control" name="policy_details[health_persons][0][id_no]" placeholder="TCKN">
+                  </div>
+                  <div class="col-md-3">
+                    <input type="date" class="form-control" name="policy_details[health_persons][0][birth_date]" placeholder="Doğum Tarihi">
+                  </div>
+                  <div class="col-md-3">
+                    <input type="text" class="form-control" name="policy_details[health_persons][0][relation]" placeholder="Yakınlık (Örn. Eş)">
+                  </div>
                 </div>
-                <div class="col-md-3">
-                  <input type="text" class="form-control" name="policy_details[health_persons][0][id_no]" placeholder="TCKN">
-                </div>
-                <div class="col-md-3">
-                  <input type="date" class="form-control" name="policy_details[health_persons][0][birth_date]" placeholder="Doğum Tarihi">
-                </div>
-                <div class="col-md-3">
-                  <input type="text" class="form-control" name="policy_details[health_persons][0][relation]" placeholder="Yakınlık (Örn. Eş)">
-                </div>
-              </div>
+              <% } %>
             </div>
             <button type="button" class="btn btn-sm btn-outline-secondary mt-2" id="addHealthPersonBtn">Kişi Ekle</button>
           </div>
@@ -197,27 +222,27 @@
           </div>
           <div class="col-md-4">
             <label class="form-label">Toplam Prim Tutarı</label>
-            <input type="number" step="0.01" class="form-control" name="premium" placeholder="Örn. 2500">
+            <input type="number" step="0.01" class="form-control" name="premium" placeholder="Örn. 2500" value="<%= (typeof prefill !== 'undefined' && prefill.premium) ? prefill.premium : '' %>">
           </div>
           <div class="col-md-4">
             <label class="form-label">Ödenen Tutar</label>
-            <input type="number" step="0.01" class="form-control" name="premium_paid" placeholder="Örn. 1500">
+            <input type="number" step="0.01" class="form-control" name="premium_paid" placeholder="Örn. 1500" value="<%= (typeof prefill !== 'undefined' && prefill.premium_paid) ? prefill.premium_paid : '' %>">
           </div>
           <div class="col-md-4">
             <label class="form-label">Ödeme Dekontu / Açıklama</label>
-            <input type="text" class="form-control" name="payment_note" placeholder="Dekont no veya kısa not">
+            <input type="text" class="form-control" name="payment_note" placeholder="Dekont no veya kısa not" value="<%= (typeof prefill !== 'undefined' && prefill.payment_note) ? prefill.payment_note : '' %>">
           </div>
           <div class="col-md-4">
             <label class="form-label">Acente Komisyonu (Kâr)</label>
-            <input type="number" step="0.01" class="form-control" name="commission" placeholder="Örn. 350">
+            <input type="number" step="0.01" class="form-control" name="commission" placeholder="Örn. 350" value="<%= (typeof prefill !== 'undefined' && prefill.commission) ? prefill.commission : '' %>">
           </div>
           <div class="col-md-4">
             <label class="form-label">İade / İskonto Tutarı</label>
-            <input type="number" step="0.01" class="form-control" name="commission_refund" placeholder="Müşteriye iade edilen">
+            <input type="number" step="0.01" class="form-control" name="commission_refund" placeholder="Müşteriye iade edilen" value="<%= (typeof prefill !== 'undefined' && prefill.commission_refund) ? prefill.commission_refund : '' %>">
           </div>
           <div class="col-md-4">
             <label class="form-label">Satışçı Komisyonu</label>
-            <input type="number" step="0.01" class="form-control" name="salesperson_commission" placeholder="Satışçıya verilecek">
+            <input type="number" step="0.01" class="form-control" name="salesperson_commission" placeholder="Satışçıya verilecek" value="<%= (typeof prefill !== 'undefined' && prefill.salesperson_commission) ? prefill.salesperson_commission : '' %>">
           </div>
           <div class="col-md-6">
             <label class="form-label">Durum</label>
@@ -233,11 +258,11 @@
             <div class="row g-3">
               <div class="col-md-4">
                 <label class="form-label">Hatırlatma Tarihi</label>
-                <input type="date" class="form-control" name="custom_reminder_date">
+                <input type="date" class="form-control" name="custom_reminder_date" value="<%= (typeof prefill !== 'undefined' && prefill.custom_reminder_date) ? prefill.custom_reminder_date : '' %>">
               </div>
               <div class="col-md-8">
                 <label class="form-label">Hatırlatma Notu</label>
-                <input type="text" class="form-control" name="custom_reminder_note" placeholder="Örn: Yenileme teklifini 14 gün önce hatırlat">
+                <input type="text" class="form-control" name="custom_reminder_note" placeholder="Örn: Yenileme teklifini 14 gün önce hatırlat" value="<%= (typeof prefill !== 'undefined' && prefill.custom_reminder_note) ? prefill.custom_reminder_note : '' %>">
               </div>
             </div>
           </div>

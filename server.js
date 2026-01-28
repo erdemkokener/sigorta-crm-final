@@ -1354,12 +1354,22 @@ app.get('/policies/renew/:id', requireAuth, async (req, res) => {
     policy_type: oldPolicy.policy_type,
     description: oldPolicy.description,
     policy_details: oldPolicy.policy_details || {},
-    // Şirket, Poliçe No ve Tarihler boş bırakılıyor (manuel giriş için)
+    // Şirket, Poliçe No boş bırakılıyor (manuel giriş için)
     insurer: '',
     policy_number: '',
     issue_date: '',
-    start_date: '', // İstenirse eski bitiş tarihi buraya default atanabilir ama kullanıcı manuel girmek istedi
-    end_date: ''
+    // Yeni Başlangıç Tarihi = Eski Bitiş Tarihi
+    start_date: oldPolicy.end_date || '',
+    // Yeni Bitiş Tarihi = Eski Bitiş Tarihi + 1 Yıl
+    end_date: oldPolicy.end_date ? dayjs(oldPolicy.end_date).add(1, 'year').format('YYYY-MM-DD') : '',
+    premium: oldPolicy.premium,
+    premium_paid: 0, // Yeni poliçede ödenen sıfırlanmalı
+    payment_note: '',
+    commission: oldPolicy.commission,
+    commission_refund: oldPolicy.commission_refund,
+    salesperson_commission: oldPolicy.salesperson_commission,
+    custom_reminder_date: '',
+    custom_reminder_note: ''
   };
 
   const salespersons = data.salespersons || [];
