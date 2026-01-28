@@ -518,19 +518,46 @@ app.get('/salespersons/:id', requireAuth, async (req, res) => {
   
   if (!salesperson) return res.status(404).send('Satışçı bulunamadı');
 
+  // Customers linked to salesperson
   const customers = data.customers.filter(c => c.salesperson_id === salesperson.id);
   const customerIds = customers.map(c => c.id);
-  const policies = data.policies.filter(p => customerIds.includes(p.customer_id)).map(p => {
-    const c = customers.find(x => x.id === p.customer_id);
+
+  // Policies linked to salesperson directly OR via customer
+  const policies = data.policies.filter(p => 
+    p.salesperson_id === salesperson.id || customerIds.includes(p.customer_id)
+  ).map(p => {
+    const c = data.customers.find(x => x.id === p.customer_id);
     return { ...p, customer_name: c ? c.name : 'Bilinmiyor' };
   });
+
+  // Calculate financials
+  const payments = await dataService.getSalespersonPayments(salesperson.id);
+  const totalCommission = policies.reduce((sum, p) => sum + (p.salesperson_commission || 0), 0);
+  const totalPaid = payments.reduce((sum, p) => sum + (p.amount || 0), 0);
+  const balance = totalCommission - totalPaid;
 
   res.render('salespersons/show', { 
     title: 'Satışçı Detayı', 
     salesperson, 
     customers, 
-    policies 
+    policies,
+    payments,
+    stats: { totalCommission, totalPaid, balance }
   });
+});
+
+app.post('/salespersons/:id/payments', requireAuth, async (req, res) => {
+  const { amount, description, payment_date } = req.body;
+  if (!amount || !payment_date) return res.status(400).send('Tutar ve tarih zorunlu');
+  
+  await dataService.createSalespersonPayment({
+    salesperson_id: Number(req.params.id),
+    amount: Number(amount),
+    description,
+    payment_date
+  });
+  
+  res.redirect(`/salespersons/${req.params.id}`);
 });
 
 app.get('/salespersons/:id/edit', requireAuth, async (req, res) => {
@@ -1304,7 +1331,7 @@ app.get('/policies/new', requireAuth, async (req, res) => {
 });
 
 app.post('/policies', requireAuth, async (req, res) => {
-  const { customer_id, insurer, policy_number, start_date, end_date, description, status, issue_date, policy_type, premium, premium_paid, payment_note, commission, commission_refund, custom_reminder_date, custom_reminder_note } = req.body;
+  const { customer_id, insurer, policy_number, start_date, end_date, description, status, issue_date, policy_type, premium, premium_paid, payment_note, commission, commission_refund, custom_reminder_date, custom_reminder_note, salesperson_commission, salesperson_id } = req.body;
   if (!customer_id || !insurer || !policy_number || !start_date || !end_date) {
     return res.status(400).send('Eksik alanlar mevcut');
   }
@@ -1323,6 +1350,8 @@ app.post('/policies', requireAuth, async (req, res) => {
     payment_note: payment_note || '',
     commission: commission ? Number(commission) : undefined,
     commission_refund: commission_refund ? Number(commission_refund) : undefined,
+    salesperson_commission: salesperson_commission ? Number(salesperson_commission) : undefined,
+    salesperson_id: salesperson_id ? Number(salesperson_id) : undefined,
     custom_reminder_date: custom_reminder_date || '',
     custom_reminder_note: custom_reminder_note || '',
     status: status || 'active',
@@ -1396,6 +1425,7 @@ app.post('/policies/:id', requireAuth, async (req, res) => {
     payment_note: payment_note || '',
     commission: commission ? Number(commission) : undefined,
     commission_refund: commission_refund ? Number(commission_refund) : undefined,
+    salesperson_commission: salesperson_commission ? Number(salesperson_commission) : undefined,
     salesperson_id: salesperson_id ? Number(salesperson_id) : null,
     custom_reminder_date: custom_reminder_date || '',
     custom_reminder_note: custom_reminder_note || '',

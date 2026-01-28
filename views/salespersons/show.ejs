@@ -46,12 +46,43 @@
   </div>
 </div>
 
+<div class="row mb-4">
+  <div class="col-md-4">
+    <div class="card bg-info text-white h-100">
+      <div class="card-body text-center">
+        <h5 class="card-title">Toplam Hak Ediş</h5>
+        <h3 class="fw-bold"><%= (typeof stats !== 'undefined' ? stats.totalCommission : 0).toFixed(2) %> TL</h3>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card bg-warning text-dark h-100">
+      <div class="card-body text-center">
+        <h5 class="card-title">Toplam Ödenen</h5>
+        <h3 class="fw-bold"><%= (typeof stats !== 'undefined' ? stats.totalPaid : 0).toFixed(2) %> TL</h3>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card <%= (typeof stats !== 'undefined' && stats.balance > 0) ? 'bg-danger' : 'bg-success' %> text-white h-100">
+      <div class="card-body text-center">
+        <h5 class="card-title">Kalan Bakiye</h5>
+        <h3 class="fw-bold"><%= (typeof stats !== 'undefined' ? stats.balance : 0).toFixed(2) %> TL</h3>
+        <small><%= (typeof stats !== 'undefined' && stats.balance > 0) ? 'Ödeme Yapılmalı' : 'Borcu Yok / Alacaklı' %></small>
+      </div>
+    </div>
+  </div>
+</div>
+
 <ul class="nav nav-tabs mb-3" id="salespersonTabs" role="tablist">
   <li class="nav-item" role="presentation">
     <button class="nav-link active" id="customers-tab" data-bs-toggle="tab" data-bs-target="#customers" type="button" role="tab">Müşteriler (<%= customers.length %>)</button>
   </li>
   <li class="nav-item" role="presentation">
     <button class="nav-link" id="policies-tab" data-bs-toggle="tab" data-bs-target="#policies" type="button" role="tab">Poliçeler (<%= policies.length %>)</button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" id="payments-tab" data-bs-toggle="tab" data-bs-target="#payments" type="button" role="tab">Ödemeler & Hesap</button>
   </li>
 </ul>
 
@@ -108,7 +139,7 @@
                   <th>Şirket</th>
                   <th>Tür</th>
                   <th>Bitiş Tarihi</th>
-                  <th>Prim</th>
+                  <th>Komisyon (Hakediş)</th>
                   <th>İşlemler</th>
                 </tr>
               </thead>
@@ -122,7 +153,7 @@
                     <td><%= p.insurer %></td>
                     <td><span class="badge bg-info text-dark"><%= p.policy_type %></span></td>
                     <td><%= p.end_date %></td>
-                    <td><%= p.premium_total ? p.premium_total.toFixed(2) : '-' %></td>
+                    <td><%= p.salesperson_commission ? p.salesperson_commission.toFixed(2) : '0.00' %> TL</td>
                     <td>
                       <a href="/policies/<%= p.id %>" class="btn btn-sm btn-info">Detay</a>
                     </td>
@@ -132,6 +163,59 @@
             </table>
           </div>
         <% } %>
+      </div>
+    </div>
+  </div>
+
+  <!-- Ödemeler Sekmesi -->
+  <div class="tab-pane fade" id="payments" role="tabpanel">
+    <div class="row">
+      <div class="col-md-8">
+         <div class="card shadow-sm mb-4">
+           <div class="card-header">Ödeme Geçmişi</div>
+           <div class="card-body">
+             <% if (typeof payments === 'undefined' || payments.length === 0) { %>
+               <p class="text-muted">Henüz ödeme kaydı yok.</p>
+             <% } else { %>
+               <div class="table-responsive">
+               <table class="table table-sm table-striped">
+                 <thead><tr><th>Tarih</th><th>Tutar</th><th>Açıklama</th></tr></thead>
+                 <tbody>
+                   <% payments.forEach(p => { %>
+                     <tr>
+                       <td><%= p.payment_date %></td>
+                       <td><%= p.amount.toFixed(2) %> TL</td>
+                       <td><%= p.description %></td>
+                     </tr>
+                   <% }); %>
+                 </tbody>
+               </table>
+               </div>
+             <% } %>
+           </div>
+         </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card shadow-sm">
+          <div class="card-header bg-light">Yeni Ödeme Ekle</div>
+          <div class="card-body">
+            <form action="/salespersons/<%= salesperson.id %>/payments" method="POST">
+              <div class="mb-3">
+                <label class="form-label">Tarih</label>
+                <input type="date" class="form-control" name="payment_date" required value="<%= new Date().toISOString().split('T')[0] %>">
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Tutar</label>
+                <input type="number" step="0.01" class="form-control" name="amount" required>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Açıklama</label>
+                <textarea class="form-control" name="description" rows="2"></textarea>
+              </div>
+              <button type="submit" class="btn btn-primary w-100">Ödemeyi Kaydet</button>
+            </form>
+          </div>
+        </div>
       </div>
     </div>
   </div>

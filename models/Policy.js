@@ -16,6 +16,7 @@ const PolicySchema = new mongoose.Schema({
   payment_note: String,
   commission: Number,
   commission_refund: Number,
+  salesperson_commission: Number,
   salesperson_id: { type: Number },
   custom_reminder_date: String, // YYYY-MM-DD
   custom_reminder_note: String,

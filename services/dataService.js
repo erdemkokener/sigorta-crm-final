@@ -7,6 +7,7 @@ const Settings = require('../models/Settings');
 const Salesperson = require('../models/Salesperson');
 const User = require('../models/User');
 const Payment = require('../models/Payment');
+const SalespersonPayment = require('../models/SalespersonPayment');
 
 const dataFile = process.env.DATA_FILE || path.join(__dirname, '../data.json');
 
@@ -52,12 +53,13 @@ const DataService = {
 
   async getAllData() {
     if (db.isConnected()) {
-      const [customers, policies, settingsDocs, payments, salespersons] = await Promise.all([
+      const [customers, policies, settingsDocs, payments, salespersons, salespersonPayments] = await Promise.all([
         Customer.find({}),
         Policy.find({}),
         Settings.find({}),
         Payment.find({}),
-        Salesperson.find({})
+        Salesperson.find({}),
+        SalespersonPayment.find({})
       ]);
 
       // Convert settings array to object
@@ -80,6 +82,7 @@ const DataService = {
         customers: customers.map(c => c.toObject()),
         payments: payments.map(p => p.toObject()),
         salespersons: salespersons.map(s => s.toObject()),
+        salespersonPayments: salespersonPayments.map(sp => sp.toObject()),
         settings,
         nextId: maxPolicyId + 1,
         nextCustomerId: maxCustomerId + 1,
@@ -88,6 +91,28 @@ const DataService = {
       };
     } else {
       return loadFile();
+    }
+  },
+
+  async createSalespersonPayment(paymentData) {
+    if (db.isConnected()) {
+      const payment = new SalespersonPayment(paymentData);
+      await payment.save();
+      return payment.toObject();
+    } else {
+      // Local file fallback not strictly required for this new feature if DB is primary, 
+      // but let's add minimal support if needed or just skip. 
+      // Assuming DB usage for new features.
+      return null; 
+    }
+  },
+
+  async getSalespersonPayments(salespersonId) {
+    if (db.isConnected()) {
+      const payments = await SalespersonPayment.find({ salesperson_id: salespersonId }).sort({ payment_date: -1 });
+      return payments.map(p => p.toObject());
+    } else {
+      return [];
     }
   },
 
@@ -388,6 +413,26 @@ const DataService = {
       // We don't delete settings to not lock out admin
     } else {
       saveFile({ policies: [], nextId: 1, customers: [], nextCustomerId: 1, settings: {} });
+    }
+  },
+
+  async createSalespersonPayment(paymentData) {
+    if (db.isConnected()) {
+      const payment = new SalespersonPayment(paymentData);
+      await payment.save();
+      return payment.toObject();
+    } else {
+      // Fallback for file mode (if needed in future, currently not implemented for payments)
+      return null; 
+    }
+  },
+
+  async getSalespersonPayments(salespersonId) {
+    if (db.isConnected()) {
+      const payments = await SalespersonPayment.find({ salesperson_id: salespersonId }).sort({ payment_date: -1 });
+      return payments.map(p => p.toObject());
+    } else {
+      return [];
     }
   }
 };
