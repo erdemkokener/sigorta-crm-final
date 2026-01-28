@@ -266,9 +266,10 @@
                 <td><%= p.note || '-' %></td>
                 <% if (user && user.isAdmin) { %>
                   <td class="text-end">
+                    <a href="/customers/<%= customer.id %>/invoice?print=true&payment_id=<%= p.id %>" target="_blank" class="btn btn-sm btn-outline-primary" title="Yazdır"><i class="bi bi-printer"></i></a>
                     <form action="/payments/<%= p.id %>/delete" method="post" class="d-inline" onsubmit="return confirm('Bu tahsilat silinecek. Emin misiniz?');">
                       <input type="hidden" name="customer_id" value="<%= customer.id %>">
-                      <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                      <button type="submit" class="btn btn-sm btn-outline-danger" title="Sil"><i class="bi bi-trash"></i></button>
                     </form>
                   </td>
                 <% } %>

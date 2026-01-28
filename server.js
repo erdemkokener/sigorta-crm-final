@@ -1085,15 +1085,23 @@ app.get('/customers/:id/invoice', requireAuth, async (req, res) => {
   // Kalan Bakiye
   stats.totalRemaining = stats.totalReceivable - stats.totalPaidAll;
 
+  // Belirli bir ödeme (makbuz) isteniyorsa
+  let selectedPayment = null;
+  if (req.query.payment_id) {
+    const payId = Number(req.query.payment_id);
+    selectedPayment = payments.find(p => p.id === payId);
+  }
+
   res.render('customers/invoice', {
     title: 'Fatura / Tahsilat',
     customer,
     policies,
     payments,
     stats,
-    today: dayjs().format('YYYY-MM-DD'),
+    today: selectedPayment ? selectedPayment.date : dayjs().format('YYYY-MM-DD'),
     msg: req.query.msg || null,
-    error: req.query.error || null
+    error: req.query.error || null,
+    selectedPayment
   });
 });
 
