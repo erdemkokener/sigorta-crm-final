@@ -1488,6 +1488,8 @@ app.get('/api/policies', requireAuth, async (req, res) => {
 });
 
 app.get('/policies/export.xlsx', requireAuth, async (req, res) => {
+  const data = await getContext();
+  const salespersons = data.salespersons || [];
   const items = await filterPolicies(req.query);
   const wb = new ExcelJS.Workbook();
   const ws = wb.addWorksheet('Poliçeler');
@@ -1495,6 +1497,7 @@ app.get('/policies/export.xlsx', requireAuth, async (req, res) => {
     { header: 'Adı Soyadı', key: 'name', width: 25 },
     { header: 'TC Kimlik No', key: 'id_no', width: 16 },
     { header: 'Telefon', key: 'phone', width: 16 },
+    { header: 'Satışçı', key: 'salesperson', width: 20 },
     { header: 'Tanzim Tarihi', key: 'issue_date', width: 15 },
     { header: 'Bitiş Tarihi', key: 'end_date', width: 15 },
     { header: 'Plaka', key: 'plate', width: 15 },
@@ -1513,6 +1516,13 @@ app.get('/policies/export.xlsx', requireAuth, async (req, res) => {
     const comp = policyWithComputed(p);
     const details = p.policy_details || {};
     
+    // Satışçı Bul
+    let salespersonName = '';
+    if (p.salesperson_id) {
+      const sp = salespersons.find(s => s.id === p.salesperson_id);
+      if (sp) salespersonName = sp.name;
+    }
+
     // Plaka: Detaylarda varsa oradan, yoksa açıklamadan bulmaya çalış
     let plate = details.plate || '';
     if (!plate && p.description) {
@@ -1535,6 +1545,7 @@ app.get('/policies/export.xlsx', requireAuth, async (req, res) => {
       name: comp.customer_name,
       id_no: comp.customer_id_no,
       phone: comp.customer_phone,
+      salesperson: salespersonName,
       issue_date: p.issue_date || p.start_date || '', // Tanzim Tarihi
       end_date: comp.end_date,
       plate: plate,
