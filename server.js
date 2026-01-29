@@ -460,18 +460,30 @@ async function checkRemindersAndNotify() {
   }
 }
 
-// Check every hour
+// Check every 10 minutes (was 1 hour)
 setInterval(() => {
   checkExpirationsAndNotify();
   checkRemindersAndNotify();
   checkAndRunMonthlyBackup();
-}, 60 * 60 * 1000);
+}, 10 * 60 * 1000);
 
 checkExpirationsAndNotify();
 checkRemindersAndNotify();
 checkAndRunMonthlyBackup();
 
 // Routes
+app.get('/test-mail', requireAuth, async (req, res) => {
+  const result = await sendMail(
+    'Test Maili', 
+    'Bu bir test mailidir.', 
+    '<p>Bu bir <b>test</b> mailidir.</p>'
+  );
+  if (result.ok) {
+    res.send(`Mail başarıyla gönderildi. Message ID: ${result.info.messageId}`);
+  } else {
+    res.send(`Mail gönderilemedi. Hata: ${result.error} <br> <a href="/">Geri Dön</a>`);
+  }
+});
 app.get('/', async (req, res) => {
   if (!req.session.user) return res.redirect('/login');
   
@@ -649,6 +661,11 @@ app.post('/reminders', requireAuth, async (req, res) => {
     notified_morning: false,
     notified_afternoon: false
   });
+  
+  // Trigger check immediately for better UX
+  // Don't await this so user doesn't wait for email sending
+  checkRemindersAndNotify().catch(err => console.error('Immediate reminder check failed:', err));
+  
   res.redirect('/reminders');
 });
 
