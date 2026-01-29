@@ -268,12 +268,12 @@ async function filterPolicies(query) {
   return finalItems;
 }
 
-async function sendMail(subject, text, html, attachments = []) {
+async function sendMail(subject, text, html, attachments = [], targetEmail = null) {
   if (!mailer) {
     console.log('Mailer kurulu değil, e-posta atlanıyor.');
     return { ok: false, error: 'Mailer not configured' };
   }
-  const to = MAIL_TO || (process.env.APP_USER_EMAIL || SMTP_USER || MAIL_FROM);
+  const to = targetEmail || MAIL_TO || (process.env.APP_USER_EMAIL || SMTP_USER || MAIL_FROM);
   const envelope = { from: MAIL_FROM, to, subject, text, html, attachments };
   try {
     const info = await mailer.sendMail(envelope);
@@ -413,13 +413,62 @@ async function checkExpirationsAndNotify(force = false) {
   return sentCount;
 }
 
+async function checkRemindersAndNotify() {
+  console.log('Kişisel hatırlatmalar kontrol ediliyor...');
+  const data = await getContext();
+  const todayStr = dayjs().format('YYYY-MM-DD');
+  const hour = dayjs().hour();
+  const isMorningSlot = hour >= 9;
+  const isAfternoonSlot = hour >= 14;
+
+  let sentCount = 0;
+
+  if (data.reminders) {
+    for (const r of data.reminders) {
+      if (r.date !== todayStr) continue;
+
+      // Morning
+      if (isMorningSlot && !r.notified_morning) {
+        await sendMail(
+          'Hatırlatma: ' + r.note.substring(0, 30) + (r.note.length > 30 ? '...' : ''),
+          `Hatırlatma Notunuz:\n\n${r.note}\n\nTarih: ${r.date}`,
+          `<p>Hatırlatma Notunuz:</p><p><b>${r.note}</b></p><p>Tarih: <b>${r.date}</b></p>`,
+          [],
+          r.email
+        );
+        await dataService.updateReminder(r.id, { notified_morning: true });
+        sentCount++;
+      }
+
+      // Afternoon
+      if (isAfternoonSlot && !r.notified_afternoon) {
+        await sendMail(
+          'Hatırlatma (2. Bildirim): ' + r.note.substring(0, 30) + (r.note.length > 30 ? '...' : ''),
+          `Hatırlatma Notunuz (2. Bildirim):\n\n${r.note}\n\nTarih: ${r.date}`,
+          `<p>Hatırlatma Notunuz (2. Bildirim):</p><p><b>${r.note}</b></p><p>Tarih: <b>${r.date}</b></p>`,
+          [],
+          r.email
+        );
+        await dataService.updateReminder(r.id, { notified_afternoon: true });
+        sentCount++;
+      }
+    }
+  }
+  
+  if (sentCount > 0) {
+    console.log(`${sentCount} adet hatırlatma gönderildi.`);
+  }
+}
+
 // Check every hour
 setInterval(() => {
   checkExpirationsAndNotify();
+  checkRemindersAndNotify();
   checkAndRunMonthlyBackup();
 }, 60 * 60 * 1000);
 
 checkExpirationsAndNotify();
+checkRemindersAndNotify();
 checkAndRunMonthlyBackup();
 
 // Routes
@@ -580,6 +629,32 @@ app.post('/logout', (req, res) => {
   req.session.destroy(() => {
     res.redirect('/login');
   });
+});
+
+// --- Reminders Routes ---
+app.get('/reminders', requireAuth, async (req, res) => {
+  const data = await getContext();
+  const reminders = data.reminders || [];
+  // Sort by date desc
+  reminders.sort((a, b) => new Date(b.date) - new Date(a.date));
+  res.render('reminders/index', { title: 'Hatırlatmalar', reminders });
+});
+
+app.post('/reminders', requireAuth, async (req, res) => {
+  const { date, note, email } = req.body;
+  await dataService.createReminder({
+    date,
+    note,
+    email,
+    notified_morning: false,
+    notified_afternoon: false
+  });
+  res.redirect('/reminders');
+});
+
+app.post('/reminders/:id/delete', requireAuth, async (req, res) => {
+  await dataService.deleteReminder(Number(req.params.id));
+  res.redirect('/reminders');
 });
 
 // --- Salespersons Routes ---

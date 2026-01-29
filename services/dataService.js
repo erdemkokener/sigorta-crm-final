@@ -8,13 +8,14 @@ const Salesperson = require('../models/Salesperson');
 const User = require('../models/User');
 const Payment = require('../models/Payment');
 const SalespersonPayment = require('../models/SalespersonPayment');
+const Reminder = require('../models/Reminder');
 
 const dataFile = process.env.DATA_FILE || path.join(__dirname, '../data.json');
 
 // Helper to read file data
 function loadFile() {
   if (!fs.existsSync(dataFile)) {
-    return { policies: [], nextId: 1, customers: [], nextCustomerId: 1, settings: {}, users: [], nextUserId: 1, payments: [], nextPaymentId: 1 };
+    return { policies: [], nextId: 1, customers: [], nextCustomerId: 1, settings: {}, users: [], nextUserId: 1, payments: [], nextPaymentId: 1, reminders: [], nextReminderId: 1 };
   }
   const raw = fs.readFileSync(dataFile, 'utf8');
   const data = JSON.parse(raw);
@@ -27,6 +28,8 @@ function loadFile() {
   if (!data.nextPaymentId) data.nextPaymentId = 1;
   if (!data.salespersons) data.salespersons = [];
   if (!data.nextSalespersonId) data.nextSalespersonId = 1;
+  if (!data.reminders) data.reminders = [];
+  if (!data.nextReminderId) data.nextReminderId = 1;
   return data;
 }
 
@@ -53,13 +56,14 @@ const DataService = {
 
   async getAllData() {
     if (db.isConnected()) {
-      const [customers, policies, settingsDocs, payments, salespersons, salespersonPayments] = await Promise.all([
+      const [customers, policies, settingsDocs, payments, salespersons, salespersonPayments, reminders] = await Promise.all([
         Customer.find({}),
         Policy.find({}),
         Settings.find({}),
         Payment.find({}),
         Salesperson.find({}),
-        SalespersonPayment.find({})
+        SalespersonPayment.find({}),
+        Reminder.find({})
       ]);
 
       // Convert settings array to object
@@ -76,6 +80,7 @@ const DataService = {
       const maxCustomerId = customers.reduce((max, c) => Math.max(max, c.id || 0), 0);
       const maxPaymentId = payments.reduce((max, p) => Math.max(max, p.id || 0), 0);
       const maxSalespersonId = salespersons.reduce((max, s) => Math.max(max, s.id || 0), 0);
+      const maxReminderId = reminders.reduce((max, r) => Math.max(max, r.id || 0), 0);
 
       return {
         policies: policies.map(p => p.toObject()),
@@ -83,14 +88,56 @@ const DataService = {
         payments: payments.map(p => p.toObject()),
         salespersons: salespersons.map(s => s.toObject()),
         salespersonPayments: salespersonPayments.map(sp => sp.toObject()),
+        reminders: reminders.map(r => r.toObject()),
         settings,
         nextId: maxPolicyId + 1,
         nextCustomerId: maxCustomerId + 1,
         nextPaymentId: maxPaymentId + 1,
-        nextSalespersonId: maxSalespersonId + 1
+        nextSalespersonId: maxSalespersonId + 1,
+        nextReminderId: maxReminderId + 1
       };
     } else {
       return loadFile();
+    }
+  },
+
+  async createReminder(reminderData) {
+    if (db.isConnected()) {
+      const last = await Reminder.findOne().sort({ id: -1 });
+      const id = (last && last.id) ? last.id + 1 : 1;
+      const reminder = new Reminder({ ...reminderData, id });
+      await reminder.save();
+      return reminder.toObject();
+    } else {
+      const data = loadFile();
+      const id = data.nextReminderId++;
+      const newReminder = { ...reminderData, id };
+      data.reminders.push(newReminder);
+      saveFile(data);
+      return newReminder;
+    }
+  },
+
+  async updateReminder(id, updateData) {
+    if (db.isConnected()) {
+      await Reminder.findOneAndUpdate({ id }, updateData);
+    } else {
+      const data = loadFile();
+      const idx = data.reminders.findIndex(r => r.id === id);
+      if (idx !== -1) {
+        data.reminders[idx] = { ...data.reminders[idx], ...updateData };
+        saveFile(data);
+      }
+    }
+  },
+
+  async deleteReminder(id) {
+    if (db.isConnected()) {
+      await Reminder.findOneAndDelete({ id });
+    } else {
+      const data = loadFile();
+      data.reminders = data.reminders.filter(r => r.id !== id);
+      saveFile(data);
     }
   },
 
