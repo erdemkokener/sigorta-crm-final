@@ -1249,7 +1249,9 @@ app.get('/customers/:id/invoice', requireAuth, async (req, res) => {
     .sort((a, b) => a.end_date.localeCompare(b.end_date) || b.id - a.id);
 
   const payments = await dataService.getPaymentsByCustomer(id);
-  const totalCollections = payments.reduce((sum, pay) => sum + Number(pay.amount || 0), 0);
+  // Toplam Tahsilat (Poliçeye uygulanmamış kısım "Bakiye/Kredi" olarak sayılır)
+  // applied_amount düşülür ki çift sayım olmasın (poliçeye işlenen kısım zaten totalPaidPolicy içinde)
+  const totalCollections = payments.reduce((sum, pay) => sum + (Number(pay.amount || 0) - Number(pay.applied_amount || 0)), 0);
   const manualDebt = Number(customer.manual_debt || 0);
 
   const stats = {
@@ -1307,15 +1309,41 @@ app.post('/customers/:id/invoice', requireAuth, async (req, res) => {
     return res.redirect('/customers/' + id + '/invoice?error=' + encodeURIComponent('Geçerli bir tahsilat tutarı girin.'));
   }
 
+  // 1. Ödemeyi poliçe borçlarına dağıt (Eskiden yeniye)
+  const customerPolicies = data.policies.filter(p => p.customer_id === id);
+  customerPolicies.sort((a, b) => new Date(a.start_date) - new Date(b.start_date));
+
+  let remainingToDistribute = amount;
+  let totalApplied = 0;
+
+  for (const p of customerPolicies) {
+    if (remainingToDistribute <= 0.01) break; // Float hassasiyeti için küçük eşik
+
+    const pTotal = Number(p.premium || 0);
+    const pPaid = Number(p.premium_paid || 0);
+    const pDebt = pTotal - pPaid;
+
+    if (pDebt > 0) {
+      const cover = Math.min(pDebt, remainingToDistribute);
+      const newPaid = pPaid + cover;
+      
+      await dataService.updatePolicy(p.id, { premium_paid: newPaid });
+      
+      remainingToDistribute -= cover;
+      totalApplied += cover;
+    }
+  }
+
   const finalDate = date || new Date().toISOString().slice(0, 10);
   await dataService.createPayment({
     customer_id: id,
     amount,
+    applied_amount: totalApplied,
     note,
     date: finalDate
   });
 
-  res.redirect('/customers/' + id + '/invoice?msg=' + encodeURIComponent('Tahsilat kaydedildi.'));
+  res.redirect('/customers/' + id + '/invoice?msg=' + encodeURIComponent('Tahsilat kaydedildi ve ' + totalApplied.toFixed(2) + ' TL poliçe borçlarından düşüldü.'));
 });
 
 app.post('/payments/:id/delete', requireAuth, requireAdmin, async (req, res) => {
