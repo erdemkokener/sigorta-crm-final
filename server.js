@@ -55,7 +55,12 @@ async function initMailer() {
   const dbSecure = settings.smtp_secure; // boolean
   const dbFrom = settings.smtp_from;
 
-  if (dbFrom) currentMailFrom = dbFrom;
+  // Use configured "From" -> "User Email" -> "Env From" -> Default
+  if (dbFrom) {
+      currentMailFrom = dbFrom;
+  } else if (dbUser) {
+      currentMailFrom = dbUser;
+  }
 
   // 2. Env Vars Fallback
   const finalHost = dbHost || process.env.SMTP_HOST;
