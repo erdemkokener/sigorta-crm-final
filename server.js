@@ -67,7 +67,8 @@ async function initMailer() {
   }
   
   // Update Global App URL
-  globalAppUrl = dbAppUrl || process.env.APP_URL || '';
+  // Render.com automatically sets RENDER_EXTERNAL_URL
+  globalAppUrl = dbAppUrl || process.env.APP_URL || process.env.RENDER_EXTERNAL_URL || '';
 
   // Use configured "From" -> "User Email" -> "Env From" -> Default
   if (dbFrom) {
