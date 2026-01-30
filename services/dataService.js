@@ -305,11 +305,18 @@ const DataService = {
     }
   },
 
-  async updateSettings(username, password) {
+  async updateSettings(username, password, smtpSettings = {}) {
     if (db.isConnected()) {
+      const update = { 
+        key: 'admin_config', 
+        admin_user: username, 
+        admin_pass: password,
+        ...smtpSettings
+      };
+      
       await Settings.findOneAndUpdate(
         { key: 'admin_config' },
-        { key: 'admin_config', admin_user: username, admin_pass: password },
+        update,
         { upsert: true }
       );
     } else {
@@ -317,6 +324,12 @@ const DataService = {
       if (!data.settings) data.settings = {};
       data.settings.admin_user = username;
       data.settings.admin_pass = password;
+      
+      // Save SMTP settings to file as well
+      if (smtpSettings) {
+        Object.assign(data.settings, smtpSettings);
+      }
+      
       saveFile(data);
     }
   },

@@ -28,36 +28,76 @@ const SESSION_SECRET = process.env.SESSION_SECRET || 'change-this';
 
 // Mailer Config
 const MAIL_MODE = process.env.MAIL_MODE || 'console';
-const SMTP_HOST = process.env.SMTP_HOST || '';
-const SMTP_PORT = Number(process.env.SMTP_PORT || 587);
-const SMTP_SECURE = process.env.SMTP_SECURE === 'true';
-const SMTP_USER = process.env.SMTP_USER || '';
-const SMTP_PASS = process.env.SMTP_PASS || '';
-const MAIL_FROM = process.env.MAIL_FROM || 'no-reply@example.com';
+// Remove const MAIL_FROM, use dynamic
+let currentMailFrom = process.env.MAIL_FROM || 'no-reply@example.com'; 
 const MAIL_TO = process.env.MAIL_TO || '';
 const EMERGENCY_RESET_CODE = process.env.EMERGENCY_RESET_CODE || '';
 
 let mailer = null;
-function initMailer() {
+
+async function initMailer() {
   const nodemailer = require('nodemailer');
-  if (MAIL_MODE === 'console') {
+  
+  // Fetch settings from DB
+  let settings = {};
+  try {
+      const data = await getContext();
+      settings = data.settings || {};
+  } catch (err) {
+      console.error('initMailer: Data fetch error', err);
+  }
+
+  // 1. DB Settings
+  const dbHost = settings.smtp_host;
+  const dbPort = settings.smtp_port;
+  const dbUser = settings.smtp_user;
+  const dbPass = settings.smtp_pass;
+  const dbSecure = settings.smtp_secure; // boolean
+  const dbFrom = settings.smtp_from;
+
+  if (dbFrom) currentMailFrom = dbFrom;
+
+  // 2. Env Vars Fallback
+  const finalHost = dbHost || process.env.SMTP_HOST;
+  const finalPort = dbPort || Number(process.env.SMTP_PORT || 587);
+  const finalUser = dbUser || process.env.SMTP_USER;
+  const finalPass = dbPass || process.env.SMTP_PASS;
+  const finalSecure = (dbSecure !== undefined) ? dbSecure : (process.env.SMTP_SECURE === 'true');
+
+  if (MAIL_MODE === 'console' && !finalHost) {
+    console.log('Mailer: Console modu (SMTP ayarı yok).');
     mailer = nodemailer.createTransport({ jsonTransport: true });
     return;
   }
-  if (SMTP_HOST && SMTP_USER && SMTP_PASS) {
+
+  if (finalHost && finalUser && finalPass) {
+    console.log(`Mailer: SMTP yapılandırılıyor (${finalHost}:${finalPort})...`);
     mailer = nodemailer.createTransport({
-      host: SMTP_HOST,
-      port: SMTP_PORT,
-      secure: SMTP_SECURE,
-      auth: { user: SMTP_USER, pass: SMTP_PASS }
+      host: finalHost,
+      port: finalPort,
+      secure: finalSecure,
+      auth: { user: finalUser, pass: finalPass },
+      tls: { rejectUnauthorized: false }
     });
+    
+    try {
+        await mailer.verify();
+        console.log('Mailer: SMTP bağlantısı başarılı.');
+    } catch (err) {
+        console.error('Mailer: SMTP bağlantı hatası:', err.message);
+        mailer = null; 
+        // Fallback to console if SMTP fails? No, better to know it failed.
+    }
+  } else {
+    console.log('Mailer: SMTP bilgileri eksik.');
+    mailer = null;
   }
 }
 
 // Initialize DB and Mailer
 async function init() {
   await dataService.init();
-  initMailer();
+  await initMailer();
 }
 
 // Start Server
@@ -273,8 +313,12 @@ async function sendMail(subject, text, html, attachments = [], targetEmail = nul
     console.log('Mailer kurulu değil, e-posta atlanıyor.');
     return { ok: false, error: 'Mailer not configured' };
   }
-  const to = targetEmail || MAIL_TO || (process.env.APP_USER_EMAIL || SMTP_USER || MAIL_FROM);
-  const envelope = { from: MAIL_FROM, to, subject, text, html, attachments };
+  // Try to determine 'to' address if not provided. 
+  // If targetEmail is null, we usually want to send TO the admin (APP_USER_EMAIL or the sender themselves if testing)
+  // For notifications to the owner, we use MAIL_TO or fallback
+  const to = targetEmail || MAIL_TO || process.env.APP_USER_EMAIL || currentMailFrom;
+  
+  const envelope = { from: currentMailFrom, to, subject, text, html, attachments };
   try {
     const info = await mailer.sendMail(envelope);
     console.log('E-posta gönderildi:', info.messageId);
@@ -852,13 +896,45 @@ app.get('/salespersons/:id/export/policies', requireAuth, async (req, res) => {
 
 // --- End Salespersons Routes ---
 
-app.get('/settings', requireAuth, requireAdmin, (req, res) => {
-  res.render('settings', { title: 'Ayarlar', msg: req.query.msg, error: req.query.error });
+app.get('/settings', requireAuth, requireAdmin, async (req, res) => {
+  const data = await getContext();
+  res.render('settings', { 
+    title: 'Ayarlar', 
+    msg: req.query.msg, 
+    error: req.query.error,
+    settings: data.settings || {}
+  });
 });
 
 app.post('/settings', requireAuth, requireAdmin, async (req, res) => {
-  const { old_password, new_username, new_password } = req.body;
   const data = await getContext();
+  
+  if (req.body.action === 'smtp') {
+    const { smtp_host, smtp_port, smtp_user, smtp_pass, smtp_secure, smtp_from } = req.body;
+    
+    const smtpSettings = {
+        smtp_host: smtp_host ? smtp_host.trim() : '',
+        smtp_port: Number(smtp_port) || 587,
+        smtp_user: smtp_user ? smtp_user.trim() : '',
+        smtp_pass: smtp_pass ? smtp_pass.trim() : '',
+        smtp_secure: smtp_secure === 'true',
+        smtp_from: smtp_from ? smtp_from.trim() : ''
+    };
+    
+    // Preserve existing admin credentials
+    const currentUsername = data.settings?.admin_user || USER;
+    const currentPassword = data.settings?.admin_pass || PASS;
+    
+    await dataService.updateSettings(currentUsername, currentPassword, smtpSettings);
+    
+    // Re-initialize mailer with new settings
+    await initMailer();
+    
+    return res.redirect('/settings?msg=' + encodeURIComponent('SMTP ayarları kaydedildi ve mailer yeniden başlatıldı.'));
+  }
+
+  // Account Update (Default)
+  const { old_password, new_username, new_password } = req.body;
   const currentUser = req.session.user;
   const currentPass = data.settings?.admin_pass || PASS;
 
@@ -868,8 +944,18 @@ app.post('/settings', requireAuth, requireAdmin, async (req, res) => {
 
   const finalUsername = new_username && new_username.trim() ? new_username.trim() : (data.settings?.admin_user || USER);
   const finalPassword = new_password && new_password.trim() ? new_password.trim() : currentPass;
+  
+  // Preserve existing SMTP settings
+  const currentSmtp = {
+      smtp_host: data.settings?.smtp_host,
+      smtp_port: data.settings?.smtp_port,
+      smtp_user: data.settings?.smtp_user,
+      smtp_pass: data.settings?.smtp_pass,
+      smtp_secure: data.settings?.smtp_secure,
+      smtp_from: data.settings?.smtp_from
+  };
 
-  await dataService.updateSettings(finalUsername, finalPassword);
+  await dataService.updateSettings(finalUsername, finalPassword, currentSmtp);
   req.session.user.username = finalUsername;
   res.redirect('/settings?msg=' + encodeURIComponent('Bilgiler başarıyla güncellendi.'));
 });
