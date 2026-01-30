@@ -52,6 +52,12 @@
         <h5 class="mb-0"><i class="bi bi-envelope-gear"></i> E-Posta (SMTP) Ayarları</h5>
       </div>
       <div class="card-body">
+        <% if (typeof smtpError !== 'undefined' && smtpError) { %>
+          <div class="alert alert-danger">
+            <i class="bi bi-exclamation-triangle-fill"></i> <strong>SMTP Bağlantı Hatası:</strong> <%= smtpError %>
+            <div class="mt-1 small">Lütfen aşağıdaki ayarları kontrol edip tekrar deneyin.</div>
+          </div>
+        <% } %>
         <div class="alert alert-info">
           <h6 class="alert-heading"><i class="bi bi-info-circle"></i> Gmail Uygulama Şifresi Nasıl Alınır?</h6>
           <small>

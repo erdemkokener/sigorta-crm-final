@@ -34,9 +34,11 @@ const MAIL_TO = process.env.MAIL_TO || '';
 const EMERGENCY_RESET_CODE = process.env.EMERGENCY_RESET_CODE || '';
 
 let mailer = null;
+let lastSmtpError = null;
 
 async function initMailer() {
   const nodemailer = require('nodemailer');
+  lastSmtpError = null;
   
   // Fetch settings from DB
   let settings = {};
@@ -90,11 +92,16 @@ async function initMailer() {
         console.log('Mailer: SMTP bağlantısı başarılı.');
     } catch (err) {
         console.error('Mailer: SMTP bağlantı hatası:', err.message);
+        lastSmtpError = err.message;
         mailer = null; 
-        // Fallback to console if SMTP fails? No, better to know it failed.
     }
   } else {
-    console.log('Mailer: SMTP bilgileri eksik.');
+    if (finalHost || finalUser) {
+        console.log('Mailer: SMTP bilgileri eksik.');
+        lastSmtpError = 'Eksik SMTP ayarları (Host, Kullanıcı ve Şifre zorunlu).';
+    } else {
+        console.log('Mailer: SMTP yapılandırılmamış.');
+    }
     mailer = null;
   }
 }
@@ -316,7 +323,7 @@ async function filterPolicies(query) {
 async function sendMail(subject, text, html, attachments = [], targetEmail = null) {
   if (!mailer) {
     console.log('Mailer kurulu değil, e-posta atlanıyor.');
-    return { ok: false, error: 'Mailer not configured' };
+    return { ok: false, error: 'Mailer yapılandırılmamış veya bağlantı hatası' + (lastSmtpError ? ': ' + lastSmtpError : '') };
   }
   // Try to determine 'to' address if not provided. 
   // If targetEmail is null, we usually want to send TO the admin (APP_USER_EMAIL or the sender themselves if testing)
@@ -937,7 +944,8 @@ app.get('/settings', requireAuth, requireAdmin, async (req, res) => {
     title: 'Ayarlar', 
     msg: req.query.msg, 
     error: req.query.error,
-    settings: data.settings || {}
+    settings: data.settings || {},
+    smtpError: lastSmtpError
   });
 });
 
