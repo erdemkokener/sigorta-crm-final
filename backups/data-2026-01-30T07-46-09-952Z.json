@@ -1,0 +1,33 @@
+{
+  "policies": [],
+  "nextId": 1,
+  "customers": [
+    {
+      "name": "erdem kökener",
+      "phone": "",
+      "id_no": "12409748308",
+      "email": "",
+      "birth_date": "1986-03-20",
+      "id": 2
+    }
+  ],
+  "nextCustomerId": 3,
+  "settings": {
+    "admin_user": "admin",
+    "admin_pass": "erdem",
+    "smtp_host": "smtp.gmail.com",
+    "smtp_port": 587,
+    "smtp_user": "erdemkokener@gmail.com",
+    "smtp_pass": "",
+    "smtp_secure": false,
+    "smtp_from": "erdemkokener@gmail.com"
+  },
+  "users": [],
+  "nextUserId": 1,
+  "payments": [],
+  "nextPaymentId": 1,
+  "salespersons": [],
+  "nextSalespersonId": 1,
+  "reminders": [],
+  "nextReminderId": 1
+}
