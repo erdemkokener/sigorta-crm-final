@@ -235,7 +235,7 @@
                     <td class="text-end"><%= p.premium_paid.toFixed(2) %> TL</td>
                     <td class="text-end text-danger fw-bold"><%= p.premium_remaining.toFixed(2) %> TL</td>
                     <td class="text-end">
-                      <a href="/customers/<%= p.customer_id %>/invoice" class="btn btn-sm btn-outline-success">
+                      <a href="/customers/<%= p.customer_id %>/invoice?policy_id=<%= p.id %>" class="btn btn-sm btn-outline-success">
                         <i class="bi bi-cash"></i> Tahsil Et
                       </a>
                     </td>

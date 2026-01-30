@@ -1419,6 +1419,8 @@ app.get('/customers/:id/invoice', requireAuth, async (req, res) => {
     selectedPayment = payments.find(p => p.id === payId);
   }
 
+  const targetPolicyId = req.query.policy_id ? Number(req.query.policy_id) : null;
+
   res.render('customers/invoice', {
     title: 'Fatura / Tahsilat',
     customer,
@@ -1428,7 +1430,8 @@ app.get('/customers/:id/invoice', requireAuth, async (req, res) => {
     today: selectedPayment ? selectedPayment.date : dayjs().format('YYYY-MM-DD'),
     msg: req.query.msg || null,
     error: req.query.error || null,
-    selectedPayment
+    selectedPayment,
+    targetPolicyId
   });
 });
 
@@ -1442,22 +1445,55 @@ app.post('/customers/:id/invoice', requireAuth, async (req, res) => {
   const note = req.body.note || '';
   const date = req.body.date || '';
   const amount = parseFloat(String(paidRaw).replace(',', '.')) || 0;
+  const targetPolicyId = req.body.target_policy_id ? Number(req.body.target_policy_id) : null;
 
   if (!amount || amount <= 0) {
     return res.redirect('/customers/' + id + '/invoice?error=' + encodeURIComponent('Geçerli bir tahsilat tutarı girin.'));
   }
 
-  // 1. Ödemeyi poliçe borçlarına dağıt (Eskiden yeniye)
+  // 1. Ödemeyi poliçe borçlarına dağıt
   const customerPolicies = data.policies.filter(p => p.customer_id === id);
   customerPolicies.sort((a, b) => new Date(a.start_date) - new Date(b.start_date));
 
   let remainingToDistribute = amount;
   let totalApplied = 0;
 
+  // A. Eğer hedef poliçe seçildiyse önce ona uygula
+  if (targetPolicyId) {
+    const targetPolicy = customerPolicies.find(p => p.id === targetPolicyId);
+    if (targetPolicy) {
+      const pTotal = Number(targetPolicy.premium || 0);
+      const pPaid = Number(targetPolicy.premium_paid || 0);
+      const pDebt = pTotal - pPaid;
+
+      if (pDebt > 0) {
+        const cover = Math.min(pDebt, remainingToDistribute);
+        const newPaid = pPaid + cover;
+        
+        await dataService.updatePolicy(targetPolicy.id, { premium_paid: newPaid });
+        
+        remainingToDistribute -= cover;
+        totalApplied += cover;
+        
+        // Update local object for next loop check to avoid double counting if logic changes
+        targetPolicy.premium_paid = newPaid; 
+      }
+    }
+  }
+
+  // B. Kalan tutarı diğer poliçelere (eskiden yeniye) dağıt
   for (const p of customerPolicies) {
     if (remainingToDistribute <= 0.01) break; // Float hassasiyeti için küçük eşik
-
+    
+    // Eğer hedef poliçeye zaten uyguladıysak tekrar uygulama (veya kalan borç varsa uygula)
+    // Yukarıda premium_paid güncellendiği için pDebt tekrar hesaplanmalı
     const pTotal = Number(p.premium || 0);
+    // Reload current state just in case or use updated object
+    // Since we are iterating objects from memory that we might have just updated via dataService,
+    // we should rely on the object reference 'p' which we updated manually above if it was the target.
+    // Wait, I updated 'targetPolicy.premium_paid = newPaid'. targetPolicy IS 'p' (reference).
+    // So 'p.premium_paid' is up to date.
+    
     const pPaid = Number(p.premium_paid || 0);
     const pDebt = pTotal - pPaid;
 
@@ -1467,6 +1503,9 @@ app.post('/customers/:id/invoice', requireAuth, async (req, res) => {
       
       await dataService.updatePolicy(p.id, { premium_paid: newPaid });
       
+      // Update in memory for loop consistency
+      p.premium_paid = newPaid;
+
       remainingToDistribute -= cover;
       totalApplied += cover;
     }
