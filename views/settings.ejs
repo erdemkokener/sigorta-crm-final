@@ -53,7 +53,18 @@
       </div>
       <div class="card-body">
         <div class="alert alert-info">
-          <small><i class="bi bi-info-circle"></i> Gmail kullanıyorsanız "Uygulama Şifresi" oluşturup buraya girmelisiniz. Outlook/Hotmail için de benzer ayarlar gerekebilir.</small>
+          <h6 class="alert-heading"><i class="bi bi-info-circle"></i> Gmail Uygulama Şifresi Nasıl Alınır?</h6>
+          <small>
+            <ol class="mb-0 ps-3">
+              <li>Google hesabınızda <strong>Güvenlik</strong> sekmesine gidin.</li>
+              <li><strong>2 Adımlı Doğrulama</strong>'nın açık olduğundan emin olun.</li>
+              <li>Arama çubuğuna <strong>"Uygulama Şifreleri"</strong> yazın ve girin.</li>
+              <li>Uygulama adı olarak "SigortaCRM" yazıp şifre oluşturun.</li>
+              <li>Verilen 16 haneli şifreyi aşağıdaki şifre alanına yapıştırın.</li>
+            </ol>
+            <hr>
+            <a href="https://myaccount.google.com/apppasswords" target="_blank" class="alert-link">Google Uygulama Şifreleri Sayfasına Git <i class="bi bi-box-arrow-up-right"></i></a>
+          </small>
         </div>
         <form action="/settings" method="post">
           <input type="hidden" name="action" value="smtp">
@@ -95,11 +106,25 @@
 
           <div class="d-grid gap-2">
             <button type="submit" class="btn btn-primary">SMTP Ayarlarını Kaydet</button>
-            <a href="/test-mail" target="_blank" class="btn btn-outline-secondary">Test Maili Gönder</a>
+            <div class="input-group">
+              <input type="email" id="testEmailTarget" class="form-control" placeholder="Test için farklı bir email (Opsiyonel)">
+              <button type="button" class="btn btn-outline-secondary" onclick="sendTestMail()">Test Maili Gönder</button>
+            </div>
           </div>
         </form>
       </div>
     </div>
+    
+    <script>
+      function sendTestMail() {
+        const email = document.getElementById('testEmailTarget').value;
+        let url = '/test-mail';
+        if (email) {
+          url += '?to=' + encodeURIComponent(email);
+        }
+        window.open(url, '_blank');
+      }
+    </script>
     
     <div class="card shadow-sm mt-4 border-danger">
         <div class="card-header bg-danger text-white">

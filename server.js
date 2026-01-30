@@ -321,11 +321,11 @@ async function sendMail(subject, text, html, attachments = [], targetEmail = nul
   const envelope = { from: currentMailFrom, to, subject, text, html, attachments };
   try {
     const info = await mailer.sendMail(envelope);
-    console.log('E-posta gönderildi:', info.messageId);
-    return { ok: true, info };
+    console.log(`E-posta gönderildi. ID: ${info.messageId}, TO: ${to}`);
+    return { ok: true, info, to };
   } catch (err) {
     console.error('E-posta hatası:', err);
-    return { ok: false, error: err.message || 'E-posta gönderilemedi' };
+    return { ok: false, error: err.message || 'E-posta gönderilemedi', to };
   }
 }
 
@@ -517,15 +517,45 @@ checkAndRunMonthlyBackup();
 
 // Routes
 app.get('/test-mail', requireAuth, async (req, res) => {
+  const target = req.query.to || null;
   const result = await sendMail(
-    'Test Maili', 
-    'Bu bir test mailidir.', 
-    '<p>Bu bir <b>test</b> mailidir.</p>'
+    'Test Maili - Sigorta CRM', 
+    'Bu bir test mailidir. Sistem ayarlarınız doğru yapılandırılmış görünüyor.', 
+    '<p>Bu bir <b>test</b> mailidir.</p><p>Sistem ayarlarınız doğru yapılandırılmış görünüyor.</p>',
+    [],
+    target
   );
+  
   if (result.ok) {
-    res.send(`Mail başarıyla gönderildi. Message ID: ${result.info.messageId}`);
+    res.send(`
+      <div style="font-family: sans-serif; padding: 20px; border: 1px solid #ddd; border-radius: 8px; max-width: 600px; margin: 20px auto; background-color: #d4edda; color: #155724;">
+        <h3><i class="bi bi-check-circle"></i> Mail Başarıyla Gönderildi!</h3>
+        <p><strong>Gönderilen Adres:</strong> ${result.to}</p>
+        <p><strong>Message ID:</strong> ${result.info.messageId}</p>
+        <hr>
+        <p>Lütfen <strong>${result.to}</strong> adresinin gelen kutusunu ve <strong>Gereksiz/Spam</strong> klasörünü kontrol edin.</p>
+        <p>Gmail kullanıyorsanız ve kendinize gönderdiyseniz, bazen "Gelen Kutusu" yerine doğrudan "Tüm Postalar" veya "Gönderilmiş Postalar" altına düşebilir.</p>
+        <br>
+        <a href="/settings" style="text-decoration: none; background: #198754; color: white; padding: 10px 20px; border-radius: 5px;">Ayarlara Dön</a>
+      </div>
+    `);
   } else {
-    res.send(`Mail gönderilemedi. Hata: ${result.error} <br> <a href="/">Geri Dön</a>`);
+    res.send(`
+      <div style="font-family: sans-serif; padding: 20px; border: 1px solid #ddd; border-radius: 8px; max-width: 600px; margin: 20px auto; background-color: #f8d7da; color: #721c24;">
+        <h3><i class="bi bi-exclamation-triangle"></i> Mail Gönderilemedi</h3>
+        <p><strong>Hata Detayı:</strong> ${result.error}</p>
+        <p><strong>Hedef Adres:</strong> ${result.to}</p>
+        <hr>
+        <p>Lütfen SMTP ayarlarınızı kontrol edin:</p>
+        <ul>
+           <li>Gmail Uygulama Şifresi doğru mu? (16 hane, boşluksuz)</li>
+           <li>Port 587 ve Secure: Hayır seçili mi?</li>
+           <li>Antivirüs programınız giden mailleri engelliyor olabilir mi?</li>
+        </ul>
+        <br>
+        <a href="/settings" style="text-decoration: none; background: #dc3545; color: white; padding: 10px 20px; border-radius: 5px;">Ayarlara Dön</a>
+      </div>
+    `);
   }
 });
 app.get('/', async (req, res) => {
