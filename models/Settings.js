@@ -10,7 +10,9 @@ const SettingsSchema = new mongoose.Schema({
   smtp_user: String,
   smtp_pass: String,
   smtp_secure: Boolean, // true for 465, false for other ports usually
-  smtp_from: String
+  smtp_from: String,
+  notification_email: String, // Where to send system notifications
+  app_url: String // e.g. https://crm.mysite.com
 });
 
 module.exports = mongoose.model('Settings', SettingsSchema);

@@ -110,6 +110,18 @@
             </div>
           </div>
 
+          <div class="mb-3">
+            <label class="form-label">Sistem Bildirimleri Alıcısı (Opsiyonel)</label>
+            <input type="email" class="form-control" name="notification_email" value="<%= settings.notification_email || '' %>" placeholder="admin@sirketiniz.com (Boş bırakılırsa gönderen adres kullanılır)">
+            <div class="form-text">Poliçe bitiş uyarıları ve sistem bildirimleri bu adrese gönderilecektir.</div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Sistem Web Adresi (URL) (Opsiyonel)</label>
+            <input type="url" class="form-control" name="app_url" value="<%= settings.app_url || '' %>" placeholder="https://crm.sirketiniz.com">
+            <div class="form-text">E-postalara "Sisteme Git" butonu ekler ve gönderim kaynağını bu alan adı olarak gösterir.</div>
+          </div>
+
           <div class="d-grid gap-2">
             <button type="submit" class="btn btn-primary">SMTP Ayarlarını Kaydet</button>
             <div class="input-group">

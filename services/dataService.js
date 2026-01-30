@@ -313,7 +313,8 @@ const DataService = {
         admin_pass: password,
         ...smtpSettings
       };
-      
+      if (smtpSettings.app_url) update.app_url = smtpSettings.app_url;
+
       await Settings.findOneAndUpdate(
         { key: 'admin_config' },
         update,
@@ -324,12 +325,9 @@ const DataService = {
       if (!data.settings) data.settings = {};
       data.settings.admin_user = username;
       data.settings.admin_pass = password;
-      
-      // Save SMTP settings to file as well
       if (smtpSettings) {
         Object.assign(data.settings, smtpSettings);
       }
-      
       saveFile(data);
     }
   },

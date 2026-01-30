@@ -30,7 +30,8 @@ const SESSION_SECRET = process.env.SESSION_SECRET || 'change-this';
 const MAIL_MODE = process.env.MAIL_MODE || 'console';
 // Remove const MAIL_FROM, use dynamic
 let currentMailFrom = process.env.MAIL_FROM || 'no-reply@example.com'; 
-const MAIL_TO = process.env.MAIL_TO || '';
+let globalMailTo = process.env.MAIL_TO || '';
+let globalAppUrl = process.env.APP_URL || '';
 const EMERGENCY_RESET_CODE = process.env.EMERGENCY_RESET_CODE || '';
 
 let mailer = null;
@@ -56,6 +57,17 @@ async function initMailer() {
   const dbPass = settings.smtp_pass;
   const dbSecure = settings.smtp_secure; // boolean
   const dbFrom = settings.smtp_from;
+  const dbAppUrl = settings.app_url;
+  
+  // Update Global Notification Email
+  if (settings.notification_email) {
+      globalMailTo = settings.notification_email;
+  } else {
+      globalMailTo = process.env.MAIL_TO || '';
+  }
+  
+  // Update Global App URL
+  globalAppUrl = dbAppUrl || process.env.APP_URL || '';
 
   // Use configured "From" -> "User Email" -> "Env From" -> Default
   if (dbFrom) {
@@ -327,9 +339,14 @@ async function sendMail(subject, text, html, attachments = [], targetEmail = nul
   }
   // Try to determine 'to' address if not provided. 
   // If targetEmail is null, we usually want to send TO the admin (APP_USER_EMAIL or the sender themselves if testing)
-  // For notifications to the owner, we use MAIL_TO or fallback
-  const to = targetEmail || MAIL_TO || process.env.APP_USER_EMAIL || currentMailFrom;
+  // For notifications to the owner, we use globalMailTo or fallback
+  const to = targetEmail || globalMailTo || process.env.APP_USER_EMAIL || currentMailFrom;
   
+  // Append App URL to HTML if available
+  if (globalAppUrl && html) {
+      html += `<br><hr><p><a href="${globalAppUrl}" style="background-color: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Sisteme Git</a></p>`;
+  }
+
   const envelope = { from: currentMailFrom, to, subject, text, html, attachments };
   try {
     const info = await mailer.sendMail(envelope);
@@ -953,7 +970,7 @@ app.post('/settings', requireAuth, requireAdmin, async (req, res) => {
   const data = await getContext();
   
   if (req.body.action === 'smtp') {
-    const { smtp_host, smtp_port, smtp_user, smtp_pass, smtp_secure, smtp_from } = req.body;
+    const { smtp_host, smtp_port, smtp_user, smtp_pass, smtp_secure, smtp_from, notification_email, app_url } = req.body;
     
     const smtpSettings = {
         smtp_host: smtp_host ? smtp_host.trim() : '',
@@ -961,7 +978,9 @@ app.post('/settings', requireAuth, requireAdmin, async (req, res) => {
         smtp_user: smtp_user ? smtp_user.trim() : '',
         smtp_pass: smtp_pass ? smtp_pass.trim() : '',
         smtp_secure: smtp_secure === 'true',
-        smtp_from: smtp_from ? smtp_from.trim() : ''
+        smtp_from: smtp_from ? smtp_from.trim() : '',
+        notification_email: notification_email ? notification_email.trim() : '',
+        app_url: app_url ? app_url.trim() : ''
     };
     
     // Preserve existing admin credentials
@@ -995,7 +1014,9 @@ app.post('/settings', requireAuth, requireAdmin, async (req, res) => {
       smtp_user: data.settings?.smtp_user,
       smtp_pass: data.settings?.smtp_pass,
       smtp_secure: data.settings?.smtp_secure,
-      smtp_from: data.settings?.smtp_from
+      smtp_from: data.settings?.smtp_from,
+      notification_email: data.settings?.notification_email,
+      app_url: data.settings?.app_url
   };
 
   await dataService.updateSettings(finalUsername, finalPassword, currentSmtp);
