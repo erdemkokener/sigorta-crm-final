@@ -78,11 +78,18 @@ async function initMailer() {
   }
 
   // 2. Env Vars Fallback
-  const finalHost = dbHost || process.env.SMTP_HOST;
-  const finalPort = dbPort || Number(process.env.SMTP_PORT || 587);
-  const finalUser = dbUser || process.env.SMTP_USER;
-  const finalPass = dbPass || process.env.SMTP_PASS;
-  const finalSecure = (dbSecure !== undefined) ? dbSecure : (process.env.SMTP_SECURE === 'true');
+  let finalHost = dbHost || process.env.SMTP_HOST;
+  let finalPort = dbPort || Number(process.env.SMTP_PORT || 587);
+  let finalUser = dbUser || process.env.SMTP_USER;
+  let finalPass = dbPass || process.env.SMTP_PASS;
+  let finalSecure = (dbSecure !== undefined) ? dbSecure : (process.env.SMTP_SECURE === 'true');
+  
+  // Force Gmail settings for better compatibility on Render/Cloud
+  if (finalHost === 'smtp.gmail.com') {
+      console.log('Mailer: Gmail tespit edildi, bağlantı ayarları optimize ediliyor (Port 465, SSL, IPv4)...');
+      finalPort = 465;
+      finalSecure = true;
+  }
   
   if (MAIL_MODE === 'console' && !finalHost) {
     console.log('Mailer: Console modu (SMTP ayarı yok).');
@@ -408,6 +415,7 @@ async function sendMail(subject, text, html, attachments = [], targetEmail = nul
              connectionTimeout: 15000,
              greetingTimeout: 15000,
              socketTimeout: 25000,
+             family: 4, // Force IPv4
              tls: { rejectUnauthorized: false }
          };
          if (retryConfig.auth.user && retryConfig.auth.pass) {
