@@ -96,7 +96,6 @@ async function initMailer() {
       for (const conf of configs) {
            try {
                const tryTransport = { 
-                   ...transportConfig, 
                    host: 'smtp.gmail.com',
                    port: conf.port, 
                    secure: conf.secure,
