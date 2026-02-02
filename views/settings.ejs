@@ -105,8 +105,9 @@
               </select>
             </div>
             <div class="col-md-6 mb-3">
-              <label class="form-label">Gönderen Adı (Opsiyonel)</label>
-              <input type="text" class="form-control" name="smtp_from" value="<%= settings.smtp_from || '' %>" placeholder="Sigorta CRM">
+              <label class="form-label">Özel Gönderici Adresi (From)</label>
+              <input type="text" class="form-control" name="smtp_from" value="<%= settings.smtp_from || '' %>" placeholder="Örn: Sigorta CRM <info@sirketiniz.com>">
+              <div class="form-text small">SMTP Kullanıcı Adınız bir ID ise (örn: Brevo), buraya <strong>doğrulanmış</strong> e-posta adresinizi yazın.</div>
             </div>
           </div>
 
