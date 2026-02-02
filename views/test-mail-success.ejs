@@ -1,0 +1,33 @@
+<div class="row justify-content-center">
+  <div class="col-md-8">
+    <div class="card border-success">
+      <div class="card-header bg-success text-white">
+        <h5 class="mb-0"><i class="bi bi-check-circle-fill me-2"></i>Test Maili Başarılı</h5>
+      </div>
+      <div class="card-body text-center py-5">
+        <div class="mb-4">
+            <i class="bi bi-envelope-check text-success" style="font-size: 4rem;"></i>
+        </div>
+        <h4 class="card-title">Mail Gönderildi!</h4>
+        <p class="card-text lead">
+            Test maili başarıyla <strong><%= email %></strong> adresine gönderildi.
+        </p>
+        <p class="text-muted">
+            Lütfen gelen kutunuzu (ve gereksiz/spam klasörünü) kontrol edin.
+        </p>
+        
+        <% if (info) { %>
+        <div class="alert alert-light border text-start mt-4">
+            <h6>Teknik Detaylar:</h6>
+            <pre class="mb-0" style="font-size: 0.8rem;"><%= JSON.stringify(info, null, 2) %></pre>
+        </div>
+        <% } %>
+
+        <div class="d-grid gap-2 d-sm-flex justify-content-sm-center mt-4">
+          <a href="/settings" class="btn btn-primary px-4">Ayarlara Dön</a>
+          <a href="/" class="btn btn-outline-secondary px-4">Ana Sayfaya Dön</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
