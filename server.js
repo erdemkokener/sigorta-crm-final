@@ -99,7 +99,8 @@ async function initMailer() {
       tls: { rejectUnauthorized: false },
       connectionTimeout: 10000,
       greetingTimeout: 10000,
-      socketTimeout: 20000
+      socketTimeout: 20000,
+      family: 4 // Force IPv4 to prevent IPv6 timeouts on cloud providers
   };
   
   if (globalAppUrl) {
@@ -125,7 +126,7 @@ async function initMailer() {
         const msg = err && err.message ? err.message.toLowerCase() : '';
         const timeoutLike = code === 'ETIMEDOUT' || code === 'ECONNREFUSED' || code === 'ESOCKET' || code === 'ENOTFOUND' || msg.includes('timeout') || msg.includes('timed out') || msg.includes('refused') || msg.includes('socket') || msg.includes('not found');
         if (finalHost === 'smtp.gmail.com' && timeoutLike) {
-             const retryConfig = { ...transportConfig, port: 465, secure: true, connectionTimeout: 15000, greetingTimeout: 15000, socketTimeout: 25000 };
+             const retryConfig = { ...transportConfig, port: 465, secure: true, connectionTimeout: 15000, greetingTimeout: 15000, socketTimeout: 25000, family: 4 };
              const retryMailer = nodemailer.createTransport(retryConfig);
              try {
                  await retryMailer.verify();
