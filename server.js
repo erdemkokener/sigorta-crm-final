@@ -2144,9 +2144,11 @@ app.get('/reports/refunds/export.xlsx', requireAuth, async (req, res) => {
 });
 
 // TEST MAIL ROUTE
-app.post('/test-mail', requireAuth, requireAdmin, async (req, res) => {
-    const targetEmail = req.body.email;
-    if (!targetEmail) return res.status(400).send('Email adresi gerekli');
+app.all('/test-mail', requireAuth, requireAdmin, async (req, res) => {
+    // Support both GET (query) and POST (body)
+    const targetEmail = req.body.email || req.query.to || req.query.email || req.session.user.username; // Fallback to current user
+    
+    if (!targetEmail) return res.status(400).send('Email adresi bulunamadı. Lütfen bir hedef adres belirtin.');
 
     console.log('Test maili isteği alındı:', targetEmail);
     try {
@@ -2165,7 +2167,31 @@ app.post('/test-mail', requireAuth, requireAdmin, async (req, res) => {
                  info: result.info 
              });
         } else {
-             res.status(500).send('Mail gönderilemedi: ' + result.error);
+             // Enhance error message for timeouts
+             let errorMsg = result.error;
+             let hint = "";
+             
+             if (errorMsg.includes('ETIMEDOUT') || errorMsg.includes('Connection timeout')) {
+                 hint = `
+                 <div class="alert alert-warning mt-3">
+                    <strong>Olası Çözüm:</strong><br>
+                    Sunucunuz (Render vb.) Port 587'ye erişimi kısıtlıyor olabilir.<br>
+                    Lütfen <strong>Ayarlar</strong> sayfasından şunları deneyin:<br>
+                    1. <strong>Güvenli Bağlantı (Secure):</strong> Evet (SSL - Port 465)<br>
+                    2. <strong>Port:</strong> 465
+                 </div>`;
+             }
+             
+             res.send(`
+                <div style="font-family: sans-serif; padding: 20px; max-width: 600px; margin: 0 auto;">
+                    <h2 style="color: #dc3545;">Mail Gönderilemedi</h2>
+                    <p><strong>Hata Detayı:</strong> ${errorMsg}</p>
+                    <p><strong>Hedef Adres:</strong> ${targetEmail}</p>
+                    ${hint}
+                    <hr>
+                    <a href="/settings" style="display: inline-block; padding: 10px 20px; background: #0d6efd; color: white; text-decoration: none; border-radius: 5px;">Ayarlara Dön</a>
+                </div>
+             `);
         }
     } catch (error) {
         console.error('Test mail hatası:', error);

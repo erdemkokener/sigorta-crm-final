@@ -130,17 +130,35 @@
             </div>
           </div>
         </form>
+        
+        <form id="testMailForm" action="/test-mail" method="POST" target="_blank" style="display:none;">
+            <input type="hidden" name="email" id="hiddenTestEmail">
+        </form>
       </div>
     </div>
     
     <script>
       function sendTestMail() {
-        const email = document.getElementById('testEmailTarget').value;
-        let url = '/test-mail';
-        if (email) {
-          url += '?to=' + encodeURIComponent(email);
+        const emailInput = document.getElementById('testEmailTarget');
+        // Eğer boşsa varsayılan bildirim adresini veya placeholder'ı kullanmaya çalışalım
+        // Ama en iyisi kullanıcıdan istemek veya sunucunun varsayılanı kullanmasına izin vermek
+        // Sunucu tarafında req.body.email boşsa hata dönüyor, o yüzden burada zorlayalım veya boş gönderelim (sunucu user mailini kullanır)
+        
+        let email = emailInput.value;
+        if (!email) {
+            // Eğer boşsa, formdaki notification_email'i almayı dene
+            const notifEmail = document.querySelector('input[name="notification_email"]').value;
+            if (notifEmail) email = notifEmail;
+            else {
+                 // O da yoksa gönderen adresi (smtp_user)
+                 const smtpUser = document.querySelector('input[name="smtp_user"]').value;
+                 if (smtpUser) email = smtpUser;
+            }
         }
-        window.open(url, '_blank');
+        
+        // Formu doldur ve gönder
+        document.getElementById('hiddenTestEmail').value = email;
+        document.getElementById('testMailForm').submit();
       }
     </script>
     
