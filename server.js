@@ -552,6 +552,22 @@ async function checkExpirationsAndNotify(force = false) {
       sentCount++;
     }
 
+    // Vize Bitiş (15 Gün Kala)
+    const visaDate = p.policy_details && p.policy_details.visa_date ? dayjs(p.policy_details.visa_date) : null;
+    if (visaDate) {
+      const daysToVisa = visaDate.diff(today, 'day');
+      // 15 Gün Kala
+      if (daysToVisa === 15 && !p.notified_visa_15) {
+        await sendMail(
+          'Araç Vize Hatırlatması (15 Gün Kaldı)',
+          `Araç Plakası: ${p.policy_details.plate || '-'}\nVize Bitiş Tarihi: ${p.policy_details.visa_date}\nMüşteri: ${p.customer_name}\nTelefon: ${p.customer_phone || '-'}`,
+          `<p>Araç Plakası: <b>${p.policy_details.plate || '-'}</b></p><p>Vize Bitiş Tarihi: <b>${p.policy_details.visa_date}</b> (15 gün kaldı)</p><p>Müşteri: <b>${p.customer_name}</b></p><p>Telefon: <b>${p.customer_phone || '-'}</b></p>`
+        );
+        await dataService.updatePolicy(p.id, { notified_visa_15: true });
+        sentCount++;
+      }
+    }
+
     // Son Gün (0 Gün Kala)
     if ((days === 0 && !p.notified_end) || (force && days === 0)) {
       await sendMail(
