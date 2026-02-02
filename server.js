@@ -2256,8 +2256,10 @@ app.all('/test-mail', requireAuth, requireAdmin, async (req, res) => {
                     <strong>Olası Çözüm:</strong><br>
                     Sunucunuz (Render vb.) Port 587'ye erişimi kısıtlıyor olabilir.<br>
                     Lütfen <strong>Ayarlar</strong> sayfasından şunları deneyin:<br>
-                    1. <strong>Güvenli Bağlantı (Secure):</strong> Evet (SSL - Port 465)<br>
-                    2. <strong>Port:</strong> 465
+                    1. <strong>Alternatif Port:</strong> 2525 (Secure: Hayır)<br>
+                    2. <strong>Güvenli Port:</strong> 465 (Secure: Evet)<br>
+                    <br>
+                    <em>Not: Brevo/Sendinblue için Port 2525 genellikle en iyi sonucu verir.</em>
                  </div>`;
              }
              
