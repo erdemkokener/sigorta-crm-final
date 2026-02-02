@@ -95,6 +95,14 @@ async function initMailer() {
           { service: 'gmail', auth: { user: finalUser, pass: finalPass } }
       ];
 
+      // Debug DNS
+      try {
+        require('dns').resolve4('smtp.gmail.com', (err, addresses) => {
+            if (err) console.error('Mailer: DNS Çözümleme Hatası (smtp.gmail.com):', err.code);
+            else console.log('Mailer: DNS Başarılı (smtp.gmail.com):', addresses);
+        });
+      } catch (e) { console.error('Mailer: DNS check error:', e); }
+
       for (const conf of configs) {
            try {
                let tryTransport;
@@ -102,7 +110,11 @@ async function initMailer() {
                     tryTransport = {
                         service: 'gmail',
                         auth: conf.auth,
-                        tls: { rejectUnauthorized: false }
+                        tls: { rejectUnauthorized: false },
+                        family: 4,
+                        connectionTimeout: 30000,
+                        greetingTimeout: 30000,
+                        socketTimeout: 45000
                     };
                } else {
                    tryTransport = { 
