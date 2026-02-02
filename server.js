@@ -2143,6 +2143,36 @@ app.get('/reports/refunds/export.xlsx', requireAuth, async (req, res) => {
   res.end();
 });
 
+// TEST MAIL ROUTE
+app.post('/test-mail', requireAuth, requireAdmin, async (req, res) => {
+    const targetEmail = req.body.email;
+    if (!targetEmail) return res.status(400).send('Email adresi gerekli');
+
+    console.log('Test maili isteği alındı:', targetEmail);
+    try {
+        const result = await sendMail(
+            'Test Maili - Sigorta CRM',
+            'Bu bir test mailidir. Sisteminiz mail gönderebiliyor.',
+            '<h3>Tebrikler!</h3><p>SMTP ayarlarınız doğru yapılandırılmış görünüyor.</p>',
+            [],
+            targetEmail
+        );
+
+        if (result.ok) {
+             res.render('test-mail-success', { 
+                 title: 'Test Başarılı', 
+                 email: targetEmail,
+                 info: result.info 
+             });
+        } else {
+             res.status(500).send('Mail gönderilemedi: ' + result.error);
+        }
+    } catch (error) {
+        console.error('Test mail hatası:', error);
+        res.status(500).send('Bir hata oluştu: ' + error.message);
+    }
+});
+
 app.use((req, res) => {
   res.status(404).send('Sayfa bulunamadı');
 });
