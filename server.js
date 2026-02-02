@@ -104,9 +104,9 @@ async function initMailer() {
       secure: finalSecure,
       auth: { user: finalUser, pass: finalPass },
       tls: { rejectUnauthorized: false },
-      connectionTimeout: 10000,
-      greetingTimeout: 10000,
-      socketTimeout: 20000,
+      connectionTimeout: 60000, // Increased to 60s
+      greetingTimeout: 30000,   // Increased to 30s
+      socketTimeout: 60000,     // Increased to 60s
       family: 4 // Force IPv4 to prevent IPv6 timeouts on cloud providers
   };
   
