@@ -110,6 +110,9 @@ async function initMailer() {
 
   if (finalHost && finalUser && finalPass) {
     console.log(`Mailer: SMTP yapılandırılıyor (${finalHost}:${finalPort})...`);
+    // Fail fast on 587 to allow retry
+    if (finalPort === 587) transportConfig.connectionTimeout = 10000; 
+    
     mailer = nodemailer.createTransport(transportConfig);
     
     try {
@@ -117,8 +120,27 @@ async function initMailer() {
         console.log('Mailer: SMTP bağlantısı başarılı.');
     } catch (err) {
         console.error('Mailer: SMTP bağlantı hatası:', err.message);
-        lastSmtpError = err.message;
-        mailer = null; 
+        
+        // Auto-fix for Gmail 587 timeout -> Try 465
+        const isTimeout = err.code === 'ETIMEDOUT' || err.message.toLowerCase().includes('timeout');
+        if (finalHost === 'smtp.gmail.com' && finalPort === 587 && isTimeout) {
+             console.log('Mailer: Gmail 587 zaman aşımı algılandı. Port 465 (SSL) ile otomatik tekrar deneniyor...');
+             const retryConfig = { ...transportConfig, port: 465, secure: true, connectionTimeout: 15000 };
+             const retryMailer = nodemailer.createTransport(retryConfig);
+             try {
+                 await retryMailer.verify();
+                 console.log('Mailer: Port 465 ile bağlantı başarılı! Otomatik düzeltme uygulandı.');
+                 mailer = retryMailer;
+                 lastSmtpError = null;
+                 return; // Success
+             } catch (retryErr) {
+                 console.error('Mailer: Port 465 ile de başarısız:', retryErr.message);
+                 lastSmtpError = retryErr.message;
+             }
+        } else {
+            lastSmtpError = err.message;
+        }
+        if (!mailer) mailer = null; 
     }
   } else {
     if (finalHost || finalUser) {
