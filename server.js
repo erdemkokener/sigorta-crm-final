@@ -83,22 +83,34 @@ async function initMailer() {
   const finalUser = dbUser || process.env.SMTP_USER;
   const finalPass = dbPass || process.env.SMTP_PASS;
   const finalSecure = (dbSecure !== undefined) ? dbSecure : (process.env.SMTP_SECURE === 'true');
-
+  
   if (MAIL_MODE === 'console' && !finalHost) {
     console.log('Mailer: Console modu (SMTP ayarı yok).');
     mailer = nodemailer.createTransport({ jsonTransport: true });
     return;
   }
 
-  if (finalHost && finalUser && finalPass) {
-    console.log(`Mailer: SMTP yapılandırılıyor (${finalHost}:${finalPort})...`);
-    mailer = nodemailer.createTransport({
+  // Set name for HELO/EHLO using globalAppUrl if available
+  const transportConfig = {
       host: finalHost,
       port: finalPort,
       secure: finalSecure,
       auth: { user: finalUser, pass: finalPass },
       tls: { rejectUnauthorized: false }
-    });
+  };
+  
+  if (globalAppUrl) {
+      try {
+          const hostname = new URL(globalAppUrl).hostname;
+          if (hostname && hostname !== 'localhost') {
+              transportConfig.name = hostname;
+          }
+      } catch (e) { /* ignore invalid url */ }
+  }
+
+  if (finalHost && finalUser && finalPass) {
+    console.log(`Mailer: SMTP yapılandırılıyor (${finalHost}:${finalPort})...`);
+    mailer = nodemailer.createTransport(transportConfig);
     
     try {
         await mailer.verify();
