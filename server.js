@@ -389,6 +389,39 @@ async function sendMail(subject, text, html, attachments = [], targetEmail = nul
     return { ok: true, info, to };
   } catch (err) {
     console.error('E-posta hatası:', err);
+    
+    // Auto-fix retry logic for Gmail Timeout (if initMailer didn't catch it)
+    const isTimeout = err.code === 'ETIMEDOUT' || err.message.toLowerCase().includes('timeout');
+    if (isTimeout && currentMailFrom.includes('gmail.com')) {
+         console.log('E-posta gönderimi sırasında zaman aşımı! Port 465 ile acil durum denemesi yapılıyor...');
+         const nodemailer = require('nodemailer');
+         const retryConfig = {
+             host: 'smtp.gmail.com',
+             port: 465,
+             secure: true,
+             auth: { 
+                user: process.env.SMTP_USER || currentMailFrom,
+                pass: process.env.SMTP_PASS 
+             },
+             connectionTimeout: 10000,
+             tls: { rejectUnauthorized: false }
+         };
+         
+         if (retryConfig.auth.user && retryConfig.auth.pass) {
+             try {
+                 const emergencyMailer = nodemailer.createTransport(retryConfig);
+                 const info = await emergencyMailer.sendMail(envelope);
+                 console.log(`Acil durum (Port 465) ile gönderim başarılı. ID: ${info.messageId}`);
+                 // Update global mailer for future use
+                 mailer = emergencyMailer;
+                 return { ok: true, info, to, note: 'Recovered via Port 465' };
+             } catch (retryErr) {
+                 console.error('Acil durum denemesi de başarısız:', retryErr.message);
+                 return { ok: false, error: 'Tüm denemeler başarısız. ' + retryErr.message, to };
+             }
+         }
+    }
+    
     return { ok: false, error: err.message || 'E-posta gönderilemedi', to };
   }
 }
