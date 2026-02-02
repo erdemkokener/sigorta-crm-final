@@ -90,9 +90,9 @@ async function initMailer() {
       
       const configs = [
           { port: 465, secure: true },
-          { port: 587, secure: false } // Fallback to 587
-          // Try Service: 'Gmail' as last resort
-          { service: 'Gmail', auth: { user: finalUser, pass: finalPass } }
+          { port: 587, secure: false }, // Fallback to 587
+          // Try service-based transport as last resort
+          { service: 'gmail', auth: { user: finalUser, pass: finalPass } }
       ];
 
       for (const conf of configs) {
@@ -100,7 +100,7 @@ async function initMailer() {
                let tryTransport;
                if (conf.service) {
                     tryTransport = {
-                        service: 'Gmail',
+                        service: 'gmail',
                         auth: conf.auth,
                         tls: { rejectUnauthorized: false }
                     };
