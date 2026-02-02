@@ -96,7 +96,10 @@ async function initMailer() {
       port: finalPort,
       secure: finalSecure,
       auth: { user: finalUser, pass: finalPass },
-      tls: { rejectUnauthorized: false }
+      tls: { rejectUnauthorized: false },
+      connectionTimeout: 10000,
+      greetingTimeout: 10000,
+      socketTimeout: 20000
   };
   
   if (globalAppUrl) {
@@ -110,9 +113,7 @@ async function initMailer() {
 
   if (finalHost && finalUser && finalPass) {
     console.log(`Mailer: SMTP yapılandırılıyor (${finalHost}:${finalPort})...`);
-    // Fail fast on 587 to allow retry
-    if (finalPort === 587) transportConfig.connectionTimeout = 10000; 
-    
+    if (finalPort === 587) transportConfig.connectionTimeout = 10000;
     mailer = nodemailer.createTransport(transportConfig);
     
     try {
@@ -120,27 +121,24 @@ async function initMailer() {
         console.log('Mailer: SMTP bağlantısı başarılı.');
     } catch (err) {
         console.error('Mailer: SMTP bağlantı hatası:', err.message);
-        
-        // Auto-fix for Gmail 587 timeout -> Try 465
-        const isTimeout = err.code === 'ETIMEDOUT' || err.message.toLowerCase().includes('timeout');
-        if (finalHost === 'smtp.gmail.com' && finalPort === 587 && isTimeout) {
-             console.log('Mailer: Gmail 587 zaman aşımı algılandı. Port 465 (SSL) ile otomatik tekrar deneniyor...');
-             const retryConfig = { ...transportConfig, port: 465, secure: true, connectionTimeout: 15000 };
+        const code = err && err.code ? err.code : '';
+        const msg = err && err.message ? err.message.toLowerCase() : '';
+        const timeoutLike = code === 'ETIMEDOUT' || code === 'ECONNREFUSED' || code === 'ESOCKET' || code === 'ENOTFOUND' || msg.includes('timeout') || msg.includes('timed out') || msg.includes('refused') || msg.includes('socket') || msg.includes('not found');
+        if (finalHost === 'smtp.gmail.com' && timeoutLike) {
+             const retryConfig = { ...transportConfig, port: 465, secure: true, connectionTimeout: 15000, greetingTimeout: 15000, socketTimeout: 25000 };
              const retryMailer = nodemailer.createTransport(retryConfig);
              try {
                  await retryMailer.verify();
-                 console.log('Mailer: Port 465 ile bağlantı başarılı! Otomatik düzeltme uygulandı.');
                  mailer = retryMailer;
                  lastSmtpError = null;
-                 return; // Success
+                 return;
              } catch (retryErr) {
-                 console.error('Mailer: Port 465 ile de başarısız:', retryErr.message);
                  lastSmtpError = retryErr.message;
              }
         } else {
             lastSmtpError = err.message;
         }
-        if (!mailer) mailer = null; 
+        mailer = null; 
     }
   } else {
     if (finalHost || finalUser) {
@@ -389,39 +387,39 @@ async function sendMail(subject, text, html, attachments = [], targetEmail = nul
     return { ok: true, info, to };
   } catch (err) {
     console.error('E-posta hatası:', err);
-    
-    // Auto-fix retry logic for Gmail Timeout (if initMailer didn't catch it)
-    const isTimeout = err.code === 'ETIMEDOUT' || err.message.toLowerCase().includes('timeout');
-    if (isTimeout && currentMailFrom.includes('gmail.com')) {
-         console.log('E-posta gönderimi sırasında zaman aşımı! Port 465 ile acil durum denemesi yapılıyor...');
+    const code = err && err.code ? err.code : '';
+    const msg = err && err.message ? err.message.toLowerCase() : '';
+    const timeoutLike = code === 'ETIMEDOUT' || code === 'ECONNREFUSED' || code === 'ESOCKET' || code === 'ENOTFOUND' || msg.includes('timeout') || msg.includes('timed out') || msg.includes('refused') || msg.includes('socket') || msg.includes('not found');
+    if (timeoutLike && currentMailFrom.includes('gmail.com')) {
          const nodemailer = require('nodemailer');
+         let user = process.env.SMTP_USER || currentMailFrom;
+         let pass = process.env.SMTP_PASS || '';
+         try {
+             const ctx = await getContext();
+             user = ctx.settings?.smtp_user || user;
+             pass = ctx.settings?.smtp_pass || pass;
+         } catch (_) {}
          const retryConfig = {
              host: 'smtp.gmail.com',
              port: 465,
              secure: true,
-             auth: { 
-                user: process.env.SMTP_USER || currentMailFrom,
-                pass: process.env.SMTP_PASS 
-             },
-             connectionTimeout: 10000,
+             auth: { user, pass },
+             connectionTimeout: 15000,
+             greetingTimeout: 15000,
+             socketTimeout: 25000,
              tls: { rejectUnauthorized: false }
          };
-         
          if (retryConfig.auth.user && retryConfig.auth.pass) {
              try {
                  const emergencyMailer = nodemailer.createTransport(retryConfig);
                  const info = await emergencyMailer.sendMail(envelope);
-                 console.log(`Acil durum (Port 465) ile gönderim başarılı. ID: ${info.messageId}`);
-                 // Update global mailer for future use
                  mailer = emergencyMailer;
-                 return { ok: true, info, to, note: 'Recovered via Port 465' };
+                 return { ok: true, info, to, note: 'Recovered via 465' };
              } catch (retryErr) {
-                 console.error('Acil durum denemesi de başarısız:', retryErr.message);
-                 return { ok: false, error: 'Tüm denemeler başarısız. ' + retryErr.message, to };
+                 return { ok: false, error: 'Tüm denemeler başarısız: ' + (retryErr.message || ''), to };
              }
          }
     }
-    
     return { ok: false, error: err.message || 'E-posta gönderilemedi', to };
   }
 }
