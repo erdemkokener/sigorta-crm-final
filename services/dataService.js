@@ -72,6 +72,8 @@ const DataService = {
         if (s.key === 'admin_config') {
           settings.admin_user = s.admin_user;
           settings.admin_pass = s.admin_pass;
+          // Merge all SMTP and other settings from DB
+          Object.assign(settings, s.toObject());
         }
       });
 
