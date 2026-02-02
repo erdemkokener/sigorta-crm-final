@@ -91,23 +91,35 @@ async function initMailer() {
       const configs = [
           { port: 465, secure: true },
           { port: 587, secure: false } // Fallback to 587
+          // Try Service: 'Gmail' as last resort
+          { service: 'Gmail', auth: { user: finalUser, pass: finalPass } }
       ];
 
       for (const conf of configs) {
            try {
-               const tryTransport = { 
-                   host: 'smtp.gmail.com',
-                   port: conf.port, 
-                   secure: conf.secure,
-                   auth: { user: finalUser, pass: finalPass },
-                   connectionTimeout: 30000, // 30s timeout
-                   greetingTimeout: 30000,
-                   socketTimeout: 45000,
-                   family: 4, // Force IPv4
-                   tls: { rejectUnauthorized: false }
-               };
-               // Only set name if not localhost
-               if (globalAppUrl) {
+               let tryTransport;
+               if (conf.service) {
+                    tryTransport = {
+                        service: 'Gmail',
+                        auth: conf.auth,
+                        tls: { rejectUnauthorized: false }
+                    };
+               } else {
+                   tryTransport = { 
+                       host: 'smtp.gmail.com',
+                       port: conf.port, 
+                       secure: conf.secure,
+                       auth: { user: finalUser, pass: finalPass },
+                       connectionTimeout: 30000, // 30s timeout
+                       greetingTimeout: 30000,
+                       socketTimeout: 45000,
+                       family: 4, // Force IPv4
+                       tls: { rejectUnauthorized: false }
+                   };
+               }
+
+               // Only set name if not localhost and not using service
+               if (globalAppUrl && !conf.service) {
                     try {
                         const hostname = new URL(globalAppUrl).hostname;
                         if (hostname && hostname !== 'localhost') tryTransport.name = hostname;
@@ -117,12 +129,13 @@ async function initMailer() {
                const tryMailer = nodemailer.createTransport(tryTransport);
                await tryMailer.verify();
                mailer = tryMailer;
-               console.log(`Mailer: Gmail bağlantısı başarılı (Port ${conf.port}).`);
+               console.log(`Mailer: Gmail bağlantısı başarılı (${conf.service || 'Port ' + conf.port}).`);
                lastSmtpError = null;
                return; // Success!
            } catch (e) {
-               console.error(`Mailer: Port ${conf.port} denemesi başarısız:`, e.message);
-               lastSmtpError = `Port ${conf.port} hatası: ` + e.message;
+               console.error(`Mailer: ${conf.service || 'Port ' + conf.port} denemesi başarısız:`, e.message);
+               // Append error to see history
+               lastSmtpError = (lastSmtpError ? lastSmtpError + ' | ' : '') + `${conf.service || 'Port ' + conf.port}: ` + e.message;
            }
       }
       // If we get here, both failed
