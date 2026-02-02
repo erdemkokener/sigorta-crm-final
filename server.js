@@ -87,8 +87,49 @@ async function initMailer() {
   // Force Gmail settings for better compatibility on Render/Cloud
   if (finalHost === 'smtp.gmail.com') {
       console.log('Mailer: Gmail tespit edildi, bağlantı ayarları optimize ediliyor (Port 465, SSL, IPv4)...');
-      finalPort = 465;
-      finalSecure = true;
+      
+      const configs = [
+          { port: 465, secure: true },
+          { port: 587, secure: false } // Fallback to 587
+      ];
+
+      for (const conf of configs) {
+           try {
+               const tryTransport = { 
+                   ...transportConfig, 
+                   host: 'smtp.gmail.com',
+                   port: conf.port, 
+                   secure: conf.secure,
+                   auth: { user: finalUser, pass: finalPass },
+                   connectionTimeout: 30000, // 30s timeout
+                   greetingTimeout: 30000,
+                   socketTimeout: 45000,
+                   family: 4, // Force IPv4
+                   tls: { rejectUnauthorized: false }
+               };
+               // Only set name if not localhost
+               if (globalAppUrl) {
+                    try {
+                        const hostname = new URL(globalAppUrl).hostname;
+                        if (hostname && hostname !== 'localhost') tryTransport.name = hostname;
+                    } catch (_) {}
+               }
+
+               const tryMailer = nodemailer.createTransport(tryTransport);
+               await tryMailer.verify();
+               mailer = tryMailer;
+               console.log(`Mailer: Gmail bağlantısı başarılı (Port ${conf.port}).`);
+               lastSmtpError = null;
+               return; // Success!
+           } catch (e) {
+               console.error(`Mailer: Port ${conf.port} denemesi başarısız:`, e.message);
+               lastSmtpError = `Port ${conf.port} hatası: ` + e.message;
+           }
+      }
+      // If we get here, both failed
+      mailer = null;
+      console.log('Mailer: Gmail için tüm bağlantı denemeleri başarısız oldu.');
+      return;
   }
   
   if (MAIL_MODE === 'console' && !finalHost) {
@@ -374,6 +415,12 @@ async function filterPolicies(query) {
 }
 
 async function sendMail(subject, text, html, attachments = [], targetEmail = null) {
+  // Lazy init attempt if mailer is null
+  if (!mailer) {
+      console.log('Mailer kurulu değil, yeniden başlatılıyor...');
+      await initMailer();
+  }
+
   if (!mailer) {
     console.log('Mailer kurulu değil, e-posta atlanıyor.');
     return { ok: false, error: 'Mailer yapılandırılmamış veya bağlantı hatası' + (lastSmtpError ? ': ' + lastSmtpError : '') };
