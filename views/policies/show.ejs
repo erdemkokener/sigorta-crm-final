@@ -135,6 +135,10 @@
                     <% } %>
                 </div>
             </div>
+            <div class="col-md-6">
+                <label class="text-muted small">Vize Bitiş Tarihi</label>
+                <div class="fw-bold"><%= policy.policy_details && policy.policy_details.visa_date ? policy.policy_details.visa_date : '-' %></div>
+            </div>
             <% if (policy.policy_type === 'Trafik' || policy.policy_type === 'Kasko' || policy.policy_type === 'Tehlikeli Madde Mali Sorumluluk' || policy.policy_type === 'Koltuk Sigortası' || policy.policy_type === 'Kısa Süreli Trafik') { %>
               <div class="col-md-6">
                 <label class="text-muted small">Plaka</label>

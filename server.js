@@ -1379,6 +1379,7 @@ app.get('/customers/export.xlsx', requireAuth, async (req, res) => {
           phone: c.phone,
           issue_date: p.issue_date || p.start_date || '', // Tanzim Tarihi (Yoksa Başlangıç)
           end_date: p.end_date || '',
+          visa_date: details.visa_date || '',
           plate: plate,
           registration_no: registration_no,
           profession: profession,
@@ -1397,6 +1398,7 @@ app.get('/customers/export.xlsx', requireAuth, async (req, res) => {
     { header: 'Telefon', key: 'phone', width: 16 },
     { header: 'Tanzim Tarihi', key: 'issue_date', width: 15 },
     { header: 'Bitiş Tarihi', key: 'end_date', width: 15 },
+    { header: 'Vize Bitiş Tarihi', key: 'visa_date', width: 15 },
     { header: 'Plaka', key: 'plate', width: 15 },
     { header: 'Ruhsat Tescil No', key: 'registration_no', width: 20 },
     { header: 'Meslek', key: 'profession', width: 20 },
@@ -2080,6 +2082,7 @@ app.get('/policies/export.xlsx', requireAuth, async (req, res) => {
     { header: 'Satışçı', key: 'salesperson', width: 20 },
     { header: 'Tanzim Tarihi', key: 'issue_date', width: 15 },
     { header: 'Bitiş Tarihi', key: 'end_date', width: 15 },
+    { header: 'Vize Bitiş Tarihi', key: 'visa_date', width: 15 },
     { header: 'Plaka', key: 'plate', width: 15 },
     { header: 'Ruhsat Tescil No', key: 'registration_no', width: 20 },
     { header: 'Meslek', key: 'profession', width: 20 },
@@ -2128,6 +2131,7 @@ app.get('/policies/export.xlsx', requireAuth, async (req, res) => {
       salesperson: salespersonName,
       issue_date: p.issue_date || p.start_date || '', // Tanzim Tarihi
       end_date: comp.end_date,
+      visa_date: details.visa_date || '',
       plate: plate,
       registration_no: registration_no,
       profession: profession,
