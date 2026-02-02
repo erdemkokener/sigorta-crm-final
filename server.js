@@ -85,87 +85,12 @@ async function initMailer() {
   let finalSecure = (dbSecure !== undefined) ? dbSecure : (process.env.SMTP_SECURE === 'true');
   
   // Force Gmail settings for better compatibility on Render/Cloud
-  if (finalHost === 'smtp.gmail.com') {
-      console.log('Mailer: Gmail tespit edildi, bağlantı ayarları optimize ediliyor (Port 465, SSL, IPv4)...');
-      
-      const configs = [
-          // 1. Try Google Mail (Alternate Host) with Pool
-          { pool: true, port: 465, secure: true, host: 'smtp.googlemail.com' },
-          // 2. Try Standard Gmail with Pool
-          { pool: true, port: 465, secure: true, host: 'smtp.gmail.com' },
-          // 3. Try Standard Port 587
-          { port: 587, secure: false, host: 'smtp.gmail.com' },
-          // 4. Service mode fallback
-          { service: 'gmail' }
-      ];
-
-      // Debug DNS
-      try {
-        require('dns').resolve4('smtp.gmail.com', (err, addresses) => {
-            if (err) console.error('Mailer: DNS Çözümleme Hatası (smtp.gmail.com):', err.code);
-            else console.log('Mailer: DNS Başarılı (smtp.gmail.com):', addresses);
-        });
-      } catch (e) { console.error('Mailer: DNS check error:', e); }
-
-      for (const conf of configs) {
-           try {
-               let tryTransport;
-               if (conf.service) {
-                    tryTransport = {
-                        service: 'gmail',
-                        auth: { user: finalUser, pass: finalPass },
-                        tls: { rejectUnauthorized: false },
-                        family: 4,
-                        connectionTimeout: 20000, // Reduced to avoid long waits
-                        greetingTimeout: 20000
-                    };
-               } else {
-                   tryTransport = { 
-                       host: conf.host || 'smtp.gmail.com',
-                       port: conf.port, 
-                       secure: conf.secure,
-                       auth: { user: finalUser, pass: finalPass },
-                       connectionTimeout: 20000,
-                       greetingTimeout: 20000,
-                       socketTimeout: 30000,
-                       family: 4, // Force IPv4
-                       tls: { rejectUnauthorized: false }
-                   };
-                   
-                   // Add Pool options if requested
-                   if (conf.pool) {
-                       tryTransport.pool = true;
-                       tryTransport.maxConnections = 1;
-                       tryTransport.rateLimit = 1;
-                   }
-               }
-
-               // Only set name if not localhost and not using service
-               if (globalAppUrl && !conf.service) {
-                    try {
-                        const hostname = new URL(globalAppUrl).hostname;
-                        if (hostname && hostname !== 'localhost') tryTransport.name = hostname;
-                    } catch (_) {}
-               }
-
-               const tryMailer = nodemailer.createTransport(tryTransport);
-               await tryMailer.verify();
-               mailer = tryMailer;
-               console.log(`Mailer: Gmail bağlantısı başarılı (${conf.service || 'Port ' + conf.port}).`);
-               lastSmtpError = null;
-               return; // Success!
-           } catch (e) {
-               console.error(`Mailer: ${conf.service || 'Port ' + conf.port} denemesi başarısız:`, e.message);
-               // Append error to see history
-               lastSmtpError = (lastSmtpError ? lastSmtpError + ' | ' : '') + `${conf.service || 'Port ' + conf.port}: ` + e.message;
-           }
-      }
-      // If we get here, both failed
-      mailer = null;
-      console.log('Mailer: Gmail için tüm bağlantı denemeleri başarısız oldu.');
-      return;
-  }
+  // if (finalHost === 'smtp.gmail.com') { ... } block removed for simplicity and reliability with other providers
   
+  if (finalHost === 'smtp.gmail.com') {
+      console.log('Mailer: Gmail tespit edildi, standart optimizasyonlar uygulanıyor (IPv4)...');
+  }
+
   if (MAIL_MODE === 'console' && !finalHost) {
     console.log('Mailer: Console modu (SMTP ayarı yok).');
     mailer = nodemailer.createTransport({ jsonTransport: true });
