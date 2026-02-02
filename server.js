@@ -89,10 +89,14 @@ async function initMailer() {
       console.log('Mailer: Gmail tespit edildi, bağlantı ayarları optimize ediliyor (Port 465, SSL, IPv4)...');
       
       const configs = [
-          { port: 465, secure: true },
-          { port: 587, secure: false }, // Fallback to 587
-          // Try service-based transport as last resort
-          { service: 'gmail', auth: { user: finalUser, pass: finalPass } }
+          // 1. Try Google Mail (Alternate Host) with Pool
+          { pool: true, port: 465, secure: true, host: 'smtp.googlemail.com' },
+          // 2. Try Standard Gmail with Pool
+          { pool: true, port: 465, secure: true, host: 'smtp.gmail.com' },
+          // 3. Try Standard Port 587
+          { port: 587, secure: false, host: 'smtp.gmail.com' },
+          // 4. Service mode fallback
+          { service: 'gmail' }
       ];
 
       // Debug DNS
@@ -109,25 +113,31 @@ async function initMailer() {
                if (conf.service) {
                     tryTransport = {
                         service: 'gmail',
-                        auth: conf.auth,
+                        auth: { user: finalUser, pass: finalPass },
                         tls: { rejectUnauthorized: false },
                         family: 4,
-                        connectionTimeout: 30000,
-                        greetingTimeout: 30000,
-                        socketTimeout: 45000
+                        connectionTimeout: 20000, // Reduced to avoid long waits
+                        greetingTimeout: 20000
                     };
                } else {
                    tryTransport = { 
-                       host: 'smtp.gmail.com',
+                       host: conf.host || 'smtp.gmail.com',
                        port: conf.port, 
                        secure: conf.secure,
                        auth: { user: finalUser, pass: finalPass },
-                       connectionTimeout: 30000, // 30s timeout
-                       greetingTimeout: 30000,
-                       socketTimeout: 45000,
+                       connectionTimeout: 20000,
+                       greetingTimeout: 20000,
+                       socketTimeout: 30000,
                        family: 4, // Force IPv4
                        tls: { rejectUnauthorized: false }
                    };
+                   
+                   // Add Pool options if requested
+                   if (conf.pool) {
+                       tryTransport.pool = true;
+                       tryTransport.maxConnections = 1;
+                       tryTransport.rateLimit = 1;
+                   }
                }
 
                // Only set name if not localhost and not using service
