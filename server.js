@@ -970,11 +970,22 @@ app.get('/salespersons/:id/export/policies', requireAuth, async (req, res) => {
 
 app.get('/settings', requireAuth, requireAdmin, async (req, res) => {
   const data = await getContext();
+  const settings = data.settings || {};
+
+  // Fill in defaults from Env Vars for display if DB is empty
+  if (!settings.smtp_host) settings.smtp_host = process.env.SMTP_HOST;
+  if (!settings.smtp_port) settings.smtp_port = process.env.SMTP_PORT ? Number(process.env.SMTP_PORT) : undefined;
+  if (!settings.smtp_user) settings.smtp_user = process.env.SMTP_USER;
+  // Don't show password for security, or show placeholder? Better to leave empty or show if user wants.
+  // if (!settings.smtp_pass) settings.smtp_pass = process.env.SMTP_PASS; 
+  if (settings.smtp_secure === undefined && process.env.SMTP_SECURE) settings.smtp_secure = process.env.SMTP_SECURE === 'true';
+  if (!settings.app_url) settings.app_url = process.env.APP_URL || process.env.RENDER_EXTERNAL_URL;
+
   res.render('settings', { 
     title: 'Ayarlar', 
     msg: req.query.msg, 
     error: req.query.error,
-    settings: data.settings || {},
+    settings: settings,
     smtpError: lastSmtpError
   });
 });
