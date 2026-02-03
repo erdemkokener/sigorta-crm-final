@@ -441,8 +441,8 @@ async function sendMail(subject, text, html, attachments = [], targetEmail = nul
 
 async function checkAndRunMonthlyBackup() {
   const today = dayjs();
-  // Run only on the 1st day of the month
-  if (today.date() !== 1) return;
+  // Ayın ilk 10 günü içinde çalışsın, eğer yapılmadıysa.
+  if (today.date() > 10) return;
 
   const backupDir = path.join(__dirname, 'backups');
   if (!fs.existsSync(backupDir)) {
