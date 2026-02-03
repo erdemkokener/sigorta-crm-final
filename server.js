@@ -487,6 +487,7 @@ async function checkAndRunMonthlyBackup() {
       { header: 'Tür', key: 'policy_type', width: 15 },
       { header: 'Başlangıç', key: 'start_date', width: 15 },
       { header: 'Bitiş', key: 'end_date', width: 15 },
+      { header: 'Vize Bitiş', key: 'visa_date', width: 15 },
       { header: 'Prim', key: 'premium', width: 10 },
       { header: 'Durum', key: 'status', width: 10 }
     ];
