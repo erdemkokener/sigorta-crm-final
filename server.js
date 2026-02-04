@@ -533,10 +533,16 @@ async function checkExpirationsAndNotify(force = false) {
     
     // 14 Gün Kala
     if ((days === 14 && !p.notified_14) || (force && days === 14)) {
+      const plate = (p.policy_details && p.policy_details.plate) ? p.policy_details.plate : '-';
       await sendMail(
-        'Poliçe bitimine 14 gün kaldı',
-        `Poliçe ${p.policy_number} (${p.customer_name}) ${p.end_date} tarihinde bitecek.\nTelefon: ${p.customer_phone || '-'}`,
-        `<p>Poliçe <b>${p.policy_number}</b> (${p.customer_name}) <b>${p.end_date}</b> tarihinde bitecek.</p><p>Telefon: <b>${p.customer_phone || '-'}</b></p>`
+        `Poliçe bitimine 14 gün kaldı - ${plate}`,
+        `Müşteri: ${p.customer_name}\nTelefon: ${p.customer_phone || '-'}\nPlaka: ${plate}\nPoliçe No: ${p.policy_number}\nBitiş Tarihi: ${p.end_date}`,
+        `<p>Poliçe bitimine 14 gün kaldı.</p>
+         <p><b>Müşteri:</b> ${p.customer_name}</p>
+         <p><b>Telefon:</b> ${p.customer_phone || '-'}</p>
+         <p><b>Plaka:</b> ${plate}</p>
+         <p><b>Poliçe No:</b> ${p.policy_number}</p>
+         <p><b>Bitiş Tarihi:</b> ${p.end_date}</p>`
       );
       await dataService.updatePolicy(p.id, { notified_14: true });
       sentCount++;
@@ -544,10 +550,16 @@ async function checkExpirationsAndNotify(force = false) {
 
     // 1 Gün Kala
     if ((days === 1 && !p.notified_1) || (force && days === 1)) {
+      const plate = (p.policy_details && p.policy_details.plate) ? p.policy_details.plate : '-';
       await sendMail(
-        'Poliçe bitimine 1 gün kaldı',
-        `Poliçe ${p.policy_number} (${p.customer_name}) yarın (${p.end_date}) bitiyor.\nTelefon: ${p.customer_phone || '-'}`,
-        `<p>Poliçe <b>${p.policy_number}</b> (${p.customer_name}) yarın (<b>${p.end_date}</b>) bitiyor.</p><p>Telefon: <b>${p.customer_phone || '-'}</b></p>`
+        `Poliçe bitimine 1 gün kaldı - ${plate}`,
+        `Müşteri: ${p.customer_name}\nTelefon: ${p.customer_phone || '-'}\nPlaka: ${plate}\nPoliçe No: ${p.policy_number}\nBitiş Tarihi: ${p.end_date}`,
+        `<p>Poliçe bitimine 1 gün kaldı.</p>
+         <p><b>Müşteri:</b> ${p.customer_name}</p>
+         <p><b>Telefon:</b> ${p.customer_phone || '-'}</p>
+         <p><b>Plaka:</b> ${plate}</p>
+         <p><b>Poliçe No:</b> ${p.policy_number}</p>
+         <p><b>Bitiş Tarihi:</b> ${p.end_date}</p>`
       );
       await dataService.updatePolicy(p.id, { notified_1: true });
       sentCount++;
@@ -571,10 +583,16 @@ async function checkExpirationsAndNotify(force = false) {
 
     // Son Gün (0 Gün Kala)
     if ((days === 0 && !p.notified_end) || (force && days === 0)) {
+      const plate = (p.policy_details && p.policy_details.plate) ? p.policy_details.plate : '-';
       await sendMail(
-        'Poliçe bugün bitiyor',
-        `Poliçe ${p.policy_number} (${p.customer_name}) bugün (${p.end_date}) bitiyor.\nTelefon: ${p.customer_phone || '-'}`,
-        `<p>Poliçe <b>${p.policy_number}</b> (${p.customer_name}) bugün (<b>${p.end_date}</b>) bitiyor.</p><p>Telefon: <b>${p.customer_phone || '-'}</b></p>`
+        `Poliçe bugün bitiyor - ${plate}`,
+        `Müşteri: ${p.customer_name}\nTelefon: ${p.customer_phone || '-'}\nPlaka: ${plate}\nPoliçe No: ${p.policy_number}\nBitiş Tarihi: ${p.end_date}`,
+        `<p>Poliçe bugün bitiyor.</p>
+         <p><b>Müşteri:</b> ${p.customer_name}</p>
+         <p><b>Telefon:</b> ${p.customer_phone || '-'}</p>
+         <p><b>Plaka:</b> ${plate}</p>
+         <p><b>Poliçe No:</b> ${p.policy_number}</p>
+         <p><b>Bitiş Tarihi:</b> ${p.end_date}</p>`
       );
       await dataService.updatePolicy(p.id, { notified_end: true });
       sentCount++;
