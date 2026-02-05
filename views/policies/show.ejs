@@ -3,6 +3,11 @@
     <h1 class="h3"><i class="bi bi-file-earmark-text"></i> Poliçe Detayı: <%= policy.policy_number %></h1>
   </div>
   <div class="col-md-4 text-end">
+    <% if (policy.status !== 'Satıldı') { %>
+      <button type="button" class="btn btn-dark" data-bs-toggle="modal" data-bs-target="#soldModal">
+        <i class="bi bi-tag-fill"></i> Satıldı
+      </button>
+    <% } %>
     <a href="/policies/<%= policy.id %>/edit" class="btn btn-warning"><i class="bi bi-pencil"></i> Düzenle</a>
     <a href="/policies?<%= typeof qs !== 'undefined' ? qs : '' %>" class="btn btn-secondary"><i class="bi bi-arrow-left"></i> Listeye Dön</a>
   </div>
@@ -83,6 +88,8 @@
                         <span class="badge bg-success">Aktif</span>
                     <% } else if (policy.status === 'cancelled' || policy.status === 'İptal') { %>
                         <span class="badge bg-danger">İptal</span>
+                    <% } else if (policy.status === 'Satıldı') { %>
+                        <span class="badge bg-dark">Satıldı</span>
                     <% } else { %>
                         <span class="badge bg-secondary"><%= policy.status %></span>
                     <% } %>
@@ -139,6 +146,29 @@
                 <label class="text-muted small">Vize Bitiş Tarihi</label>
                 <div class="fw-bold"><%= policy.policy_details && policy.policy_details.visa_date ? policy.policy_details.visa_date : '-' %></div>
             </div>
+
+            <% if (policy.status === 'Satıldı') { %>
+              <div class="col-12 mt-3">
+                <div class="alert alert-dark">
+                  <h6 class="alert-heading fw-bold"><i class="bi bi-info-circle"></i> Araç Satış Bilgileri</h6>
+                  <hr>
+                  <div class="row">
+                    <div class="col-md-4">
+                      <small class="text-muted">Satış Tarihi</small>
+                      <div class="fw-bold"><%= policy.policy_details && policy.policy_details.sale_date ? policy.policy_details.sale_date : '-' %></div>
+                    </div>
+                    <div class="col-md-4">
+                      <small class="text-muted">Noter</small>
+                      <div class="fw-bold"><%= policy.policy_details && policy.policy_details.notary_name ? policy.policy_details.notary_name : '-' %></div>
+                    </div>
+                    <div class="col-md-4">
+                      <small class="text-muted">Yevmiye No</small>
+                      <div class="fw-bold"><%= policy.policy_details && policy.policy_details.journal_no ? policy.policy_details.journal_no : '-' %></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            <% } %>
             <% if (policy.policy_type === 'Trafik' || policy.policy_type === 'Kasko' || policy.policy_type === 'Tehlikeli Madde Mali Sorumluluk' || policy.policy_type === 'Koltuk Sigortası' || policy.policy_type === 'Kısa Süreli Trafik') { %>
               <div class="col-md-6">
                 <label class="text-muted small">Plaka</label>
