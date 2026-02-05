@@ -777,12 +777,12 @@ app.post('/login', async (req, res) => {
     const ok = await bcrypt.compare(password, existingUser.password_hash);
     if (ok) {
       req.session.user = { id: existingUser._id || existingUser.id, username: existingUser.username, role: existingUser.role, isAdmin: existingUser.role === 'owner' || existingUser.role === 'admin' };
-      return res.redirect('/policies');
+      return res.redirect('/');
     }
   }
   if (username === validUser && password === validPass) {
     req.session.user = { username: validUser, role: 'owner', isAdmin: true };
-    return res.redirect('/policies');
+    return res.redirect('/');
   }
   res.status(401).render('auth/login', { title: 'Giriş', error: 'Kullanıcı adı veya şifre hatalı' });
 });
