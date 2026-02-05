@@ -238,3 +238,38 @@
   </div>
 </div>
 
+<!-- Sold Modal -->
+<div class="modal fade" id="soldModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form action="/policies/<%= policy.id %>/sold" method="post">
+        <div class="modal-header">
+          <h5 class="modal-title">Araç Satışı Bildir</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">Satış Tarihi</label>
+            <input type="date" class="form-control" name="sale_date" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Noter İsmi</label>
+            <input type="text" class="form-control" name="notary_name" placeholder="Örn: Ankara 12. Noterliği">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Yevmiye No</label>
+            <input type="text" class="form-control" name="journal_no" placeholder="Örn: 12345">
+          </div>
+          <div class="alert alert-warning small">
+            <i class="bi bi-exclamation-triangle"></i> Bu işlem poliçe durumunu "Satıldı" yapacak ve otomatik hatırlatma maillerini durduracaktır.
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+          <button type="submit" class="btn btn-dark">Kaydet ve Satıldı Olarak İşaretle</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+

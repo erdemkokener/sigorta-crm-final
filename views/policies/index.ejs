@@ -171,6 +171,8 @@
                <span class="badge bg-success">Aktif</span>
              <% } else if (p.status === 'cancelled' || p.status === 'İptal') { %>
                <span class="badge bg-danger">İptal</span>
+             <% } else if (p.status === 'Satıldı') { %>
+               <span class="badge bg-dark">Satıldı</span>
              <% } else { %>
                <span class="badge bg-secondary"><%= p.status %></span>
              <% } %>

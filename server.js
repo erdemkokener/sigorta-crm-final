@@ -528,6 +528,9 @@ async function checkExpirationsAndNotify(force = false) {
     // Kısa Süreli Trafik hariç
     if (p.policy_type === 'Kısa Süreli Trafik') continue;
 
+    // Satıldı ise bildirim yapma
+    if (p.status === 'Satıldı') continue;
+
     const end = dayjs(p.end_date).startOf('day');
     const days = end.diff(today, 'day');
     
@@ -2015,6 +2018,33 @@ app.get('/policies/:id/edit', requireAuth, async (req, res) => {
   if (!p) return res.status(404).send('Poliçe bulunamadı');
   const salespersons = data.salespersons || [];
   res.render('policies/edit', { title: 'Poliçe Düzenle', policy: p, customers: data.customers, salespersons });
+});
+
+app.post('/policies/:id/sold', requireAuth, async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    const { sale_date, notary_name, journal_no } = req.body;
+    
+    // Mevcut poliçeyi al
+    const data = await getContext();
+    const p = data.policies.find(x => x.id === id);
+    if (!p) return res.status(404).send('Poliçe bulunamadı');
+
+    const details = p.policy_details || {};
+    details.sale_date = sale_date;
+    details.notary_name = notary_name;
+    details.journal_no = journal_no;
+
+    await dataService.updatePolicy(id, {
+      status: 'Satıldı',
+      policy_details: details
+    });
+    
+    res.redirect('/policies/' + id + '?msg=' + encodeURIComponent('Araç satıldı olarak işaretlendi.'));
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('İşlem sırasında hata oluştu: ' + err.message);
+  }
 });
 
 app.post('/policies/:id', requireAuth, async (req, res) => {
