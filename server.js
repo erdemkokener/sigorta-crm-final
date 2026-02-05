@@ -751,7 +751,14 @@ app.get('/', async (req, res) => {
     policiesEndingToday, 
     policiesEndingThisWeek, 
     policiesStartingToday,
-    reminders
+    reminders,
+    stats: {
+      activePolicyCount,
+      totalPolicyCount,
+      activeCustomerCount,
+      totalCustomerCount,
+      policyTypes
+    }
   });
 });
 
