@@ -58,16 +58,69 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
-        <div class="d-flex justify-content-center mb-3">
-          <div class="btn-group" role="group">
-            <input type="radio" class="btn-check" name="chartType" id="chartAll" autocomplete="off" checked>
-            <label class="btn btn-outline-primary" for="chartAll">Tüm Aktif Poliçeler</label>
+        
+        <!-- Controls -->
+        <div class="card bg-light mb-3">
+            <div class="card-body py-2">
+                <div class="row align-items-center g-2">
+                    <div class="col-auto">
+                        <label class="fw-bold small">Görünüm:</label>
+                    </div>
+                    <div class="col-auto">
+                        <div class="btn-group btn-group-sm" role="group">
+                            <input type="radio" class="btn-check" name="chartFilterType" id="filterAll" value="all" checked>
+                            <label class="btn btn-outline-primary" for="filterAll">Genel (Aktif)</label>
 
-            <input type="radio" class="btn-check" name="chartType" id="chartMonth" autocomplete="off">
-            <label class="btn btn-outline-primary" for="chartMonth">Bu Ay Yapılanlar</label>
-          </div>
+                            <input type="radio" class="btn-check" name="chartFilterType" id="filterYearly" value="yearly">
+                            <label class="btn btn-outline-primary" for="filterYearly">Yıllık</label>
+
+                            <input type="radio" class="btn-check" name="chartFilterType" id="filterMonthly" value="monthly">
+                            <label class="btn btn-outline-primary" for="filterMonthly">Aylık</label>
+                        </div>
+                    </div>
+
+                    <!-- Year Select -->
+                    <div class="col-auto filter-control" id="yearControl" style="display:none;">
+                        <select class="form-select form-select-sm" id="chartYear">
+                            <% 
+                            const currentYear = new Date().getFullYear();
+                            for(let y = currentYear + 1; y >= currentYear - 5; y--) { 
+                            %>
+                                <option value="<%= y %>" <%= y === currentYear ? 'selected' : '' %>><%= y %></option>
+                            <% } %>
+                        </select>
+                    </div>
+
+                    <!-- Month Select -->
+                    <div class="col-auto filter-control" id="monthControl" style="display:none;">
+                        <select class="form-select form-select-sm" id="chartMonth">
+                            <option value="1">Ocak</option>
+                            <option value="2">Şubat</option>
+                            <option value="3">Mart</option>
+                            <option value="4">Nisan</option>
+                            <option value="5">Mayıs</option>
+                            <option value="6">Haziran</option>
+                            <option value="7">Temmuz</option>
+                            <option value="8">Ağustos</option>
+                            <option value="9">Eylül</option>
+                            <option value="10">Ekim</option>
+                            <option value="11">Kasım</option>
+                            <option value="12">Aralık</option>
+                        </select>
+                    </div>
+
+                    <div class="col-auto filter-control" id="updateBtnControl" style="display:none;">
+                        <button type="button" class="btn btn-sm btn-primary" id="updateChartBtn">
+                            <i class="bi bi-arrow-repeat"></i> Güncelle
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
-        <canvas id="policyTypeChart"></canvas>
+
+        <div style="min-height: 300px;">
+            <canvas id="policyTypeChart"></canvas>
+        </div>
       </div>
     </div>
   </div>
@@ -78,10 +131,14 @@
   document.addEventListener('DOMContentLoaded', function() {
     const ctx = document.getElementById('policyTypeChart');
     if (ctx) {
-      const policyTypesAll = <%- JSON.stringify(stats.policyTypes) %>;
-      const policyTypesMonthly = <%- JSON.stringify(stats.policyTypesMonthly) %>;
-      
+      // Initial Data (All Active)
+      const initialData = <%- JSON.stringify(stats.policyTypes) %>;
       let chartInstance = null;
+
+      // Current Date Defaults
+      const today = new Date();
+      const currentMonth = today.getMonth() + 1;
+      document.getElementById('chartMonth').value = currentMonth;
 
       function renderChart(dataSet) {
         if (chartInstance) {
@@ -91,6 +148,11 @@
         const labels = Object.keys(dataSet);
         const data = Object.values(dataSet);
         const total = data.reduce((a, b) => a + b, 0);
+
+        if (total === 0) {
+            // Optional: Show "No Data" message?
+            // For now, empty chart is fine, maybe title update
+        }
 
         chartInstance = new Chart(ctx, {
           type: 'doughnut',
@@ -108,6 +170,7 @@
           },
           options: {
             responsive: true,
+            maintainAspectRatio: false,
             plugins: {
               legend: { position: 'bottom' },
               tooltip: {
@@ -130,18 +193,69 @@
       }
 
       // Initial Render
-      renderChart(policyTypesAll);
+      renderChart(initialData);
 
-      // Listen for toggle
-      document.querySelectorAll('input[name="chartType"]').forEach(radio => {
-        radio.addEventListener('change', (e) => {
-          if (e.target.id === 'chartMonth') {
-            renderChart(policyTypesMonthly);
-          } else {
-            renderChart(policyTypesAll);
-          }
-        });
-      });
+      // UI Logic
+      const radios = document.querySelectorAll('input[name="chartFilterType"]');
+      const yearControl = document.getElementById('yearControl');
+      const monthControl = document.getElementById('monthControl');
+      const updateBtnControl = document.getElementById('updateBtnControl');
+      const updateBtn = document.getElementById('updateChartBtn');
+
+      function toggleControls() {
+        const type = document.querySelector('input[name="chartFilterType"]:checked').value;
+        if (type === 'all') {
+            yearControl.style.display = 'none';
+            monthControl.style.display = 'none';
+            updateBtnControl.style.display = 'none';
+            // Reset to All Data
+            renderChart(initialData);
+        } else if (type === 'yearly') {
+            yearControl.style.display = 'block';
+            monthControl.style.display = 'none';
+            updateBtnControl.style.display = 'block';
+        } else if (type === 'monthly') {
+            yearControl.style.display = 'block';
+            monthControl.style.display = 'block';
+            updateBtnControl.style.display = 'block';
+        }
+      }
+
+      radios.forEach(r => r.addEventListener('change', toggleControls));
+
+      // Fetch Logic
+      async function fetchAndUpdate() {
+        const type = document.querySelector('input[name="chartFilterType"]:checked').value;
+        const year = document.getElementById('chartYear').value;
+        const month = document.getElementById('chartMonth').value;
+
+        let url = `/api/stats/policy-distribution?year=${year}`;
+        if (type === 'monthly') {
+            url += `&month=${month}`;
+        }
+
+        try {
+            updateBtn.disabled = true;
+            updateBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
+            
+            const res = await fetch(url);
+            if (!res.ok) throw new Error('Veri alınamadı');
+            const data = await res.json();
+            renderChart(data);
+
+        } catch (err) {
+            alert('Hata: ' + err.message);
+        } finally {
+            updateBtn.disabled = false;
+            updateBtn.innerHTML = '<i class="bi bi-arrow-repeat"></i> Güncelle';
+        }
+      }
+
+      updateBtn.addEventListener('click', fetchAndUpdate);
+
+      // Trigger update automatically when switching to Year/Month if values are present?
+      // Better to wait for user to click Update or just default to current selection.
+      // Let's keep manual update button to be explicit.
     }
   });
 </script>

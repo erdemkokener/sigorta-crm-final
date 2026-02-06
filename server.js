@@ -2153,6 +2153,50 @@ app.get('/api/policies', requireAuth, async (req, res) => {
   res.json(items);
 });
 
+app.get('/api/stats/policy-distribution', requireAuth, async (req, res) => {
+  const { year, month } = req.query;
+  const data = await getContext();
+  
+  if (!year) {
+    return res.status(400).json({ error: 'Year parameter is required' });
+  }
+
+  const policies = data.policies.filter(p => {
+    // Basic Active Check
+    // We might want to see distribution of *all* policies sold in that period, or only active ones?
+    // User asked "Bu ay yapılanlar" (Made this month) -> implies sale date (start_date) regardless of current status?
+    // But usually we filter by active for "Active Policy Distribution". 
+    // Let's stick to "Made in this period" logic but keep them if they are not cancelled?
+    // Actually, user context was "Distribution of Active Policies" initially.
+    // But "Bu ay yapılanlar" usually means production report.
+    // Let's filter by: Start Date in range AND Status != Cancelled.
+    
+    const s = (p.status || '').toLowerCase();
+    if (s === 'cancelled' || s === 'iptal') return false;
+
+    const d = dayjs(p.start_date);
+    if (!d.isValid()) return false;
+
+    if (d.year() !== parseInt(year)) return false;
+    
+    if (month && month !== '') {
+      // month is 1-based (1=Jan) or 0-based? dayjs.month() is 0-11.
+      // Let's assume frontend sends 1-12.
+      if (d.month() + 1 !== parseInt(month)) return false;
+    }
+
+    return true;
+  });
+
+  const distribution = {};
+  policies.forEach(p => {
+    const type = p.policy_type || 'Diğer';
+    distribution[type] = (distribution[type] || 0) + 1;
+  });
+
+  res.json(distribution);
+});
+
 app.get('/policies/export.xlsx', requireAuth, async (req, res) => {
   const data = await getContext();
   const salespersons = data.salespersons || [];
