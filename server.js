@@ -746,6 +746,20 @@ app.get('/', async (req, res) => {
     }))
     .sort((a, b) => a.reminder_date_obj.diff(b.reminder_date_obj));
 
+  // Calculate Stats
+  const activePolicies = data.policies.filter(p => (p.status || '').toLowerCase() === 'active' || (p.status || '').toLowerCase() === 'aktif');
+  const activePolicyCount = activePolicies.length;
+  const totalPolicyCount = data.policies.length;
+  const totalCustomerCount = data.customers.length;
+  const activeCustomerIds = new Set(activePolicies.map(p => p.customer_id));
+  const activeCustomerCount = activeCustomerIds.size;
+  
+  const policyTypes = {};
+  activePolicies.forEach(p => {
+    const type = p.policy_type || 'Diğer';
+    policyTypes[type] = (policyTypes[type] || 0) + 1;
+  });
+
   res.render('dashboard', { 
     title: 'Panel', 
     policiesEndingToday, 
