@@ -760,6 +760,19 @@ app.get('/', async (req, res) => {
     policyTypes[type] = (policyTypes[type] || 0) + 1;
   });
 
+  const currentMonthStart = today.startOf('month');
+  const currentMonthEnd = today.endOf('month');
+  const monthlyPolicies = data.policies.filter(p => {
+    const d = dayjs(p.start_date); // Using start_date as sale/issue date
+    return d.isAfter(currentMonthStart.subtract(1, 'day')) && d.isBefore(currentMonthEnd.add(1, 'day'));
+  });
+  
+  const policyTypesMonthly = {};
+  monthlyPolicies.forEach(p => {
+    const type = p.policy_type || 'Diğer';
+    policyTypesMonthly[type] = (policyTypesMonthly[type] || 0) + 1;
+  });
+
   res.render('dashboard', { 
     title: 'Panel', 
     policiesEndingToday, 
@@ -771,7 +784,8 @@ app.get('/', async (req, res) => {
       totalPolicyCount,
       activeCustomerCount,
       totalCustomerCount,
-      policyTypes
+      policyTypes,
+      policyTypesMonthly
     }
   });
 });

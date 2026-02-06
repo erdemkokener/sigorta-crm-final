@@ -54,10 +54,19 @@
   <div class="modal-dialog modal-lg">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title">Aktif Poliçe Dağılımı</h5>
+        <h5 class="modal-title">Poliçe Dağılımı</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
+        <div class="d-flex justify-content-center mb-3">
+          <div class="btn-group" role="group">
+            <input type="radio" class="btn-check" name="chartType" id="chartAll" autocomplete="off" checked>
+            <label class="btn btn-outline-primary" for="chartAll">Tüm Aktif Poliçeler</label>
+
+            <input type="radio" class="btn-check" name="chartType" id="chartMonth" autocomplete="off">
+            <label class="btn btn-outline-primary" for="chartMonth">Bu Ay Yapılanlar</label>
+          </div>
+        </div>
         <canvas id="policyTypeChart"></canvas>
       </div>
     </div>
@@ -69,38 +78,69 @@
   document.addEventListener('DOMContentLoaded', function() {
     const ctx = document.getElementById('policyTypeChart');
     if (ctx) {
-      const policyTypes = <%- JSON.stringify(stats.policyTypes) %>;
-      const labels = Object.keys(policyTypes);
-      const data = Object.values(policyTypes);
+      const policyTypesAll = <%- JSON.stringify(stats.policyTypes) %>;
+      const policyTypesMonthly = <%- JSON.stringify(stats.policyTypesMonthly) %>;
       
-      new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-          labels: labels,
-          datasets: [{
-            label: 'Poliçe Sayısı',
-            data: data,
-            backgroundColor: [
-              '#0d6efd',
-              '#198754',
-              '#ffc107',
-              '#dc3545',
-              '#6610f2',
-              '#fd7e14',
-              '#20c997',
-              '#6c757d'
-            ],
-            hoverOffset: 4
-          }]
-        },
-        options: {
-          responsive: true,
-          plugins: {
-            legend: {
-              position: 'bottom',
+      let chartInstance = null;
+
+      function renderChart(dataSet) {
+        if (chartInstance) {
+          chartInstance.destroy();
+        }
+
+        const labels = Object.keys(dataSet);
+        const data = Object.values(dataSet);
+        const total = data.reduce((a, b) => a + b, 0);
+
+        chartInstance = new Chart(ctx, {
+          type: 'doughnut',
+          data: {
+            labels: labels,
+            datasets: [{
+              label: 'Poliçe Sayısı',
+              data: data,
+              backgroundColor: [
+                '#0d6efd', '#198754', '#ffc107', '#dc3545',
+                '#6610f2', '#fd7e14', '#20c997', '#6c757d'
+              ],
+              hoverOffset: 4
+            }]
+          },
+          options: {
+            responsive: true,
+            plugins: {
+              legend: { position: 'bottom' },
+              tooltip: {
+                callbacks: {
+                  label: function(context) {
+                    let label = context.label || '';
+                    let value = context.raw || 0;
+                    if (label) {
+                      label += ': ';
+                    }
+                    let percentage = total > 0 ? Math.round((value / total) * 100) : 0;
+                    label += value + ' (' + percentage + '%)';
+                    return label;
+                  }
+                }
+              }
             }
           }
-        }
+        });
+      }
+
+      // Initial Render
+      renderChart(policyTypesAll);
+
+      // Listen for toggle
+      document.querySelectorAll('input[name="chartType"]').forEach(radio => {
+        radio.addEventListener('change', (e) => {
+          if (e.target.id === 'chartMonth') {
+            renderChart(policyTypesMonthly);
+          } else {
+            renderChart(policyTypesAll);
+          }
+        });
       });
     }
   });
