@@ -531,6 +531,10 @@ async function checkExpirationsAndNotify(force = false) {
     // Satıldı ise bildirim yapma
     if (p.status === 'Satıldı') continue;
 
+    const enriched = attachCustomer(p, data);
+    const customerName = enriched.customer_name || '';
+    const customerPhone = enriched.customer_phone || '';
+
     const end = dayjs(p.end_date).startOf('day');
     const days = end.diff(today, 'day');
     
@@ -539,10 +543,10 @@ async function checkExpirationsAndNotify(force = false) {
       const plate = (p.policy_details && p.policy_details.plate) ? p.policy_details.plate : '-';
       await sendMail(
         `Poliçe bitimine 14 gün kaldı - ${plate}`,
-        `Müşteri: ${p.customer_name}\nTelefon: ${p.customer_phone || '-'}\nPlaka: ${plate}\nPoliçe No: ${p.policy_number}\nBitiş Tarihi: ${p.end_date}`,
+        `Müşteri: ${customerName}\nTelefon: ${customerPhone || '-'}\nPlaka: ${plate}\nPoliçe No: ${p.policy_number}\nBitiş Tarihi: ${p.end_date}`,
         `<p>Poliçe bitimine 14 gün kaldı.</p>
-         <p><b>Müşteri:</b> ${p.customer_name}</p>
-         <p><b>Telefon:</b> ${p.customer_phone || '-'}</p>
+         <p><b>Müşteri:</b> ${customerName}</p>
+         <p><b>Telefon:</b> ${customerPhone || '-'}</p>
          <p><b>Plaka:</b> ${plate}</p>
          <p><b>Poliçe No:</b> ${p.policy_number}</p>
          <p><b>Bitiş Tarihi:</b> ${p.end_date}</p>`
@@ -556,10 +560,10 @@ async function checkExpirationsAndNotify(force = false) {
       const plate = (p.policy_details && p.policy_details.plate) ? p.policy_details.plate : '-';
       await sendMail(
         `Poliçe bitimine 1 gün kaldı - ${plate}`,
-        `Müşteri: ${p.customer_name}\nTelefon: ${p.customer_phone || '-'}\nPlaka: ${plate}\nPoliçe No: ${p.policy_number}\nBitiş Tarihi: ${p.end_date}`,
+        `Müşteri: ${customerName}\nTelefon: ${customerPhone || '-'}\nPlaka: ${plate}\nPoliçe No: ${p.policy_number}\nBitiş Tarihi: ${p.end_date}`,
         `<p>Poliçe bitimine 1 gün kaldı.</p>
-         <p><b>Müşteri:</b> ${p.customer_name}</p>
-         <p><b>Telefon:</b> ${p.customer_phone || '-'}</p>
+         <p><b>Müşteri:</b> ${customerName}</p>
+         <p><b>Telefon:</b> ${customerPhone || '-'}</p>
          <p><b>Plaka:</b> ${plate}</p>
          <p><b>Poliçe No:</b> ${p.policy_number}</p>
          <p><b>Bitiş Tarihi:</b> ${p.end_date}</p>`
@@ -576,8 +580,8 @@ async function checkExpirationsAndNotify(force = false) {
       if (daysToVisa === 15 && !p.notified_visa_15) {
         await sendMail(
           'Araç Vize Hatırlatması (15 Gün Kaldı)',
-          `Araç Plakası: ${p.policy_details.plate || '-'}\nVize Bitiş Tarihi: ${p.policy_details.visa_date}\nMüşteri: ${p.customer_name}\nTelefon: ${p.customer_phone || '-'}`,
-          `<p>Araç Plakası: <b>${p.policy_details.plate || '-'}</b></p><p>Vize Bitiş Tarihi: <b>${p.policy_details.visa_date}</b> (15 gün kaldı)</p><p>Müşteri: <b>${p.customer_name}</b></p><p>Telefon: <b>${p.customer_phone || '-'}</b></p>`
+          `Araç Plakası: ${p.policy_details.plate || '-'}\nVize Bitiş Tarihi: ${p.policy_details.visa_date}\nMüşteri: ${customerName}\nTelefon: ${customerPhone || '-'}`,
+          `<p>Araç Plakası: <b>${p.policy_details.plate || '-'}</b></p><p>Vize Bitiş Tarihi: <b>${p.policy_details.visa_date}</b> (15 gün kaldı)</p><p>Müşteri: <b>${customerName}</b></p><p>Telefon: <b>${customerPhone || '-'}</b></p>`
         );
         await dataService.updatePolicy(p.id, { notified_visa_15: true });
         sentCount++;
@@ -589,10 +593,10 @@ async function checkExpirationsAndNotify(force = false) {
       const plate = (p.policy_details && p.policy_details.plate) ? p.policy_details.plate : '-';
       await sendMail(
         `Poliçe bugün bitiyor - ${plate}`,
-        `Müşteri: ${p.customer_name}\nTelefon: ${p.customer_phone || '-'}\nPlaka: ${plate}\nPoliçe No: ${p.policy_number}\nBitiş Tarihi: ${p.end_date}`,
+        `Müşteri: ${customerName}\nTelefon: ${customerPhone || '-'}\nPlaka: ${plate}\nPoliçe No: ${p.policy_number}\nBitiş Tarihi: ${p.end_date}`,
         `<p>Poliçe bugün bitiyor.</p>
-         <p><b>Müşteri:</b> ${p.customer_name}</p>
-         <p><b>Telefon:</b> ${p.customer_phone || '-'}</p>
+         <p><b>Müşteri:</b> ${customerName}</p>
+         <p><b>Telefon:</b> ${customerPhone || '-'}</p>
          <p><b>Plaka:</b> ${plate}</p>
          <p><b>Poliçe No:</b> ${p.policy_number}</p>
          <p><b>Bitiş Tarihi:</b> ${p.end_date}</p>`
