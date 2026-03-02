@@ -3,6 +3,9 @@
     <h1 class="h3"><i class="bi bi-file-earmark-text"></i> Poliçe Detayı: <%= policy.policy_number %></h1>
   </div>
   <div class="col-md-4 text-end">
+    <a href="/policies/related/<%= policy.id %>" class="btn btn-primary me-2">
+      <i class="bi bi-plus-circle"></i> Aynı Araç için Yeni Poliçe
+    </a>
     <% if (policy.status !== 'Satıldı') { %>
       <button type="button" class="btn btn-dark" data-bs-toggle="modal" data-bs-target="#soldModal">
         <i class="bi bi-tag-fill"></i> Satıldı
@@ -169,7 +172,7 @@
                 </div>
               </div>
             <% } %>
-            <% if (policy.policy_type === 'Trafik' || policy.policy_type === 'Kasko' || policy.policy_type === 'Tehlikeli Madde Mali Sorumluluk' || policy.policy_type === 'Koltuk Sigortası' || policy.policy_type === 'Kısa Süreli Trafik') { %>
+            <% if (policy.policy_type === 'Trafik' || policy.policy_type === 'Kasko' || policy.policy_type === 'İMM' || policy.policy_type === 'Tehlikeli Madde Mali Sorumluluk' || policy.policy_type === 'Koltuk Sigortası' || policy.policy_type === 'Kısa Süreli Trafik') { %>
               <div class="col-md-6">
                 <label class="text-muted small">Plaka</label>
                 <div class="fw-bold"><%= policy.policy_details && policy.policy_details.plate ? policy.policy_details.plate : '-' %></div>
@@ -302,4 +305,3 @@
     </div>
   </div>
 </div>
-

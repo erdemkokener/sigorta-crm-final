@@ -95,7 +95,7 @@
             <select class="form-select" name="policy_type">
               <% 
                 const pType = (typeof prefill !== 'undefined' && prefill.policy_type) ? prefill.policy_type : 'Diğer';
-                const types = ['Trafik', 'Kasko', 'Konut', 'DASK', 'Sağlık', 'Tehlikeli Madde Mali Sorumluluk', 'Koltuk Sigortası', 'Kısa Süreli Trafik', 'Diğer'];
+                const types = ['Trafik', 'Kasko', 'İMM', 'Konut', 'DASK', 'Sağlık', 'Tehlikeli Madde Mali Sorumluluk', 'Koltuk Sigortası', 'Kısa Süreli Trafik', 'Diğer'];
               %>
               <% types.forEach(t => { %>
                 <option value="<%= t %>" <%= pType === t ? 'selected' : '' %>><%= t %></option>
@@ -366,7 +366,7 @@
   function updateSpecialFields() {
     const policyType = policyTypeSelect.value;
     trafikKaskoFields.forEach(function (el) {
-      el.style.display = (policyType === 'Trafik' || policyType === 'Kasko' || policyType === 'Tehlikeli Madde Mali Sorumluluk' || policyType === 'Koltuk Sigortası' || policyType === 'Kısa Süreli Trafik') ? '' : 'none';
+      el.style.display = (policyType === 'Trafik' || policyType === 'Kasko' || policyType === 'İMM' || policyType === 'Tehlikeli Madde Mali Sorumluluk' || policyType === 'Koltuk Sigortası' || policyType === 'Kısa Süreli Trafik') ? '' : 'none';
     });
     kaskoOnlyFields.forEach(function (el) {
       el.style.display = policyType === 'Kasko' ? '' : 'none';

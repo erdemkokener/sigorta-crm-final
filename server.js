@@ -1974,6 +1974,50 @@ app.get('/policies/renew/:id', requireAuth, async (req, res) => {
   });
 });
 
+// Aynı araç ve müşteri için hızlı ekleme (trafik/kasko/imm gibi ikinci poliçeler)
+app.get('/policies/related/:id', requireAuth, async (req, res) => {
+  const id = Number(req.params.id);
+  const data = await getContext();
+  const basePolicy = data.policies.find(p => p.id === id);
+  if (!basePolicy) return res.status(404).send('Poliçe bulunamadı');
+
+  const details = basePolicy.policy_details || {};
+  const prefill = {
+    customer_id: basePolicy.customer_id,
+    salesperson_id: basePolicy.salesperson_id || '',
+    // Kullanıcı poliçe türünü seçecek
+    // Şirket ve poliçe no kullanıcı tarafından girilecek
+    insurer: '',
+    policy_number: '',
+    issue_date: '',
+    start_date: '',
+    end_date: '',
+    description: '',
+    policy_details: {
+      plate: details.plate || '',
+      registration_no: details.registration_no || '',
+      vehicle_type: details.vehicle_type || '',
+      visa_date: details.visa_date || ''
+    },
+    premium: '',
+    premium_paid: '',
+    payment_note: '',
+    commission: '',
+    commission_refund: '',
+    salesperson_commission: '',
+    custom_reminder_date: '',
+    custom_reminder_note: ''
+  };
+
+  const salespersons = data.salespersons || [];
+  res.render('policies/new', {
+    title: 'Bağlı Poliçe Ekle',
+    customers: data.customers,
+    salespersons,
+    prefill
+  });
+});
+
 app.post('/policies', requireAuth, async (req, res) => {
   try {
     const { customer_id, insurer, policy_number, start_date, end_date, description, status, issue_date, policy_type, premium, premium_paid, payment_note, commission, commission_refund, custom_reminder_date, custom_reminder_note, salesperson_commission, salesperson_id } = req.body;
