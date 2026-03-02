@@ -1928,7 +1928,24 @@ app.post('/policies/import', requireAuth, (req, res, next) => {
 app.get('/policies/new', requireAuth, async (req, res) => {
   const data = await getContext();
   const salespersons = data.salespersons || [];
-  res.render('policies/new', { title: 'Yeni Poliçe', customers: data.customers, salespersons });
+  const prefill = {};
+  
+  if (req.query.customer_id) {
+    prefill.customer_id = Number(req.query.customer_id);
+    
+    // Müşterinin varsayılan satışçısını bulalım
+    const customer = data.customers.find(c => c.id === prefill.customer_id);
+    if (customer && customer.salesperson_id) {
+      prefill.salesperson_id = customer.salesperson_id;
+    }
+  }
+
+  res.render('policies/new', { 
+    title: 'Yeni Poliçe', 
+    customers: data.customers, 
+    salespersons,
+    prefill 
+  });
 });
 
 app.get('/policies/renew/:id', requireAuth, async (req, res) => {
