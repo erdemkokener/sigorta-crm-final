@@ -1268,16 +1268,19 @@ app.get('/customers', requireAuth, async (req, res) => {
   const debtorsFilter = req.query.filter === 'debtors';
 
   let customers = data.customers.map(c => {
-    // Hesaplama: (Toplam Poliçe Primi - Poliçe Ödenen) + Manuel Borç - Genel Tahsilatlar
-    const cPolicies = data.policies.filter(p => p.customer_id === c.id);
-    const cPayments = data.payments ? data.payments.filter(p => p.customer_id === c.id) : [];
+    // Hesaplama: (Toplam Poliçe Primi - Poliçe Ödenen) + Manuel Borç - (Genel Tahsilatlar - Poliçeye Uygulanan Tahsilatlar)
+    // applied_amount düşülür çünkü o tutar zaten premium_paid içine dahil edildi.
+    const cPolicies = data.policies.filter(p => p.customer_id == c.id);
+    const cPayments = data.payments ? data.payments.filter(p => p.customer_id == c.id) : [];
     
     const totalPremium = cPolicies.reduce((sum, p) => sum + Number(p.premium || 0), 0);
     const totalPaidPolicy = cPolicies.reduce((sum, p) => sum + Number(p.premium_paid || 0), 0);
     const totalCollections = cPayments.reduce((sum, pay) => sum + Number(pay.amount || 0), 0);
+    const totalApplied = cPayments.reduce((sum, pay) => sum + Number(pay.applied_amount || 0), 0);
     const manualDebt = Number(c.manual_debt || 0);
 
-    const balance = (totalPremium - totalPaidPolicy) + manualDebt - totalCollections;
+    // Bakiye = (Poliçe Borçları) + Manuel Borç - (Kullanılmamış/Bakiye Ödemeler)
+    const balance = (totalPremium - totalPaidPolicy) + manualDebt - (totalCollections - totalApplied);
     return { ...c, balance };
   });
 
@@ -1289,7 +1292,7 @@ app.get('/customers', requireAuth, async (req, res) => {
       (c.email || '').toLocaleLowerCase('tr-TR').includes(q) ||
       (c.plate || '').toLocaleLowerCase('tr-TR').includes(q) ||
       data.policies.some(p =>
-        p.customer_id === c.id && (
+        p.customer_id == c.id && (
           (p.policy_number || '').toLocaleLowerCase('tr-TR').includes(q) ||
           (p.policy_details && p.policy_details.plate && p.policy_details.plate.toLocaleLowerCase('tr-TR').includes(q))
         )
@@ -1344,15 +1347,17 @@ app.get('/customers/export.xlsx', requireAuth, async (req, res) => {
   const debtorsFilter = req.query.filter === 'debtors';
 
   let customers = data.customers.map(c => {
-    const cPolicies = data.policies.filter(p => p.customer_id === c.id);
-    const cPayments = data.payments ? data.payments.filter(p => p.customer_id === c.id) : [];
+    // applied_amount düşülür çünkü o tutar zaten premium_paid içine dahil edildi.
+    const cPolicies = data.policies.filter(p => p.customer_id == c.id);
+    const cPayments = data.payments ? data.payments.filter(p => p.customer_id == c.id) : [];
     
     const totalPremium = cPolicies.reduce((sum, p) => sum + Number(p.premium || 0), 0);
     const totalPaidPolicy = cPolicies.reduce((sum, p) => sum + Number(p.premium_paid || 0), 0);
     const totalCollections = cPayments.reduce((sum, pay) => sum + Number(pay.amount || 0), 0);
+    const totalApplied = cPayments.reduce((sum, pay) => sum + Number(pay.applied_amount || 0), 0);
     const manualDebt = Number(c.manual_debt || 0);
 
-    const balance = (totalPremium - totalPaidPolicy) + manualDebt - totalCollections;
+    const balance = (totalPremium - totalPaidPolicy) + manualDebt - (totalCollections - totalApplied);
     return { ...c, balance };
   });
 
@@ -1364,7 +1369,7 @@ app.get('/customers/export.xlsx', requireAuth, async (req, res) => {
       (c.email || '').toLocaleLowerCase('tr-TR').includes(q) ||
       (c.plate || '').toLocaleLowerCase('tr-TR').includes(q) ||
       data.policies.some(p =>
-        p.customer_id === c.id && (
+        p.customer_id == c.id && (
           (p.policy_number || '').toLocaleLowerCase('tr-TR').includes(q) ||
           (p.policy_details && p.policy_details.plate && p.policy_details.plate.toLocaleLowerCase('tr-TR').includes(q))
         )
@@ -1525,7 +1530,7 @@ app.get('/customers/:id', requireAuth, async (req, res) => {
 
   // Müşteriye ait poliçeleri bul ve hesaplamaları yap
   const policies = data.policies
-    .filter(p => p.customer_id === id)
+    .filter(p => p.customer_id == id)
     .map(p => policyWithComputed(p))
     .sort((a, b) => a.end_date.localeCompare(b.end_date) || b.id - a.id);
 
@@ -1533,6 +1538,7 @@ app.get('/customers/:id', requireAuth, async (req, res) => {
 
   // İstatistikler
   const totalCollections = payments.reduce((sum, pay) => sum + Number(pay.amount || 0), 0);
+  const totalApplied = payments.reduce((sum, pay) => sum + Number(pay.applied_amount || 0), 0);
   const manualDebt = Number(customer.manual_debt || 0);
 
   const stats = {
@@ -1542,17 +1548,15 @@ app.get('/customers/:id', requireAuth, async (req, res) => {
     totalPremium: policies.reduce((sum, p) => sum + Number(p.premium_total || 0), 0),
     totalPaidPolicy: policies.reduce((sum, p) => sum + Number(p.premium_paid || 0), 0),
     totalCollections,
+    totalApplied,
     manualDebt
   };
-
-  // Eski (Hatalı) Kod:
-  // stats.totalRemaining = stats.manualDebt - stats.totalCollections;
 
   // Yeni (Doğru) Kod:
   // Toplam Poliçe Borcu = (Toplam Prim - Poliçe Bazlı Ödenen)
   const totalPolicyDebt = stats.totalPremium - stats.totalPaidPolicy;
-  // Genel Kalan = Poliçe Borçları + Manuel Borç - Genel Tahsilatlar
-  stats.totalRemaining = totalPolicyDebt + stats.manualDebt - stats.totalCollections;
+  // Genel Kalan = Poliçe Borçları + Manuel Borç - (Genel Tahsilatlar - Poliçeye Uygulanan Kısım)
+  stats.totalRemaining = totalPolicyDebt + stats.manualDebt - (stats.totalCollections - stats.totalApplied);
 
   // Poliçe Dağılımı Hesapla
   const policyDistribution = {};
@@ -1582,14 +1586,14 @@ app.get('/customers/:id/invoice', requireAuth, async (req, res) => {
   if (!customer) return res.status(404).send('Müşteri bulunamadı');
 
   const policies = data.policies
-    .filter(p => p.customer_id === id)
+    .filter(p => p.customer_id == id)
     .map(p => policyWithComputed(p))
     .sort((a, b) => a.end_date.localeCompare(b.end_date) || b.id - a.id);
 
   const payments = await dataService.getPaymentsByCustomer(id);
-  // Toplam Tahsilat (Poliçeye uygulanmamış kısım "Bakiye/Kredi" olarak sayılır)
-  // applied_amount düşülür ki çift sayım olmasın (poliçeye işlenen kısım zaten totalPaidPolicy içinde)
-  const totalCollections = payments.reduce((sum, pay) => sum + (Number(pay.amount || 0) - Number(pay.applied_amount || 0)), 0);
+  // Toplam Tahsilat
+  const totalCollections = payments.reduce((sum, pay) => sum + Number(pay.amount || 0), 0);
+  const totalApplied = payments.reduce((sum, pay) => sum + Number(pay.applied_amount || 0), 0);
   const manualDebt = Number(customer.manual_debt || 0);
 
   const stats = {
@@ -1599,6 +1603,7 @@ app.get('/customers/:id/invoice', requireAuth, async (req, res) => {
     totalPremium: policies.reduce((sum, p) => sum + Number(p.premium_total || 0), 0),
     totalPaidPolicy: policies.reduce((sum, p) => sum + Number(p.premium_paid || 0), 0),
     totalCollections,
+    totalApplied,
     manualDebt
   };
   
@@ -1606,8 +1611,9 @@ app.get('/customers/:id/invoice', requireAuth, async (req, res) => {
   // Toplam Alacak = Tüm Poliçe Primleri + Manuel Borç
   stats.totalReceivable = stats.totalPremium + stats.manualDebt;
 
-  // Toplam Ödenen = Poliçe Bazlı Ödenenler + Genel Tahsilatlar
-  stats.totalPaidAll = stats.totalPaidPolicy + stats.totalCollections;
+  // Toplam Ödenen = Poliçe Bazlı Ödenenler + (Tahsilatların Poliçeye İşlenmemiş Kısmı)
+  // Aslında daha basit: Toplam Ödenen = Poliçe Bazlı Ödenenler + Unapplied Payments
+  stats.totalPaidAll = stats.totalPaidPolicy + (stats.totalCollections - stats.totalApplied);
 
   // Kalan Bakiye
   stats.totalRemaining = stats.totalReceivable - stats.totalPaidAll;
@@ -1652,7 +1658,7 @@ app.post('/customers/:id/invoice', requireAuth, async (req, res) => {
   }
 
   // 1. Ödemeyi poliçe borçlarına dağıt
-  const customerPolicies = data.policies.filter(p => p.customer_id === id);
+  const customerPolicies = data.policies.filter(p => p.customer_id == id);
   customerPolicies.sort((a, b) => new Date(a.start_date) - new Date(b.start_date));
 
   let remainingToDistribute = amount;
@@ -2208,9 +2214,36 @@ app.post('/policies/reset-data', requireAuth, async (req, res) => {
   res.redirect('/policies?msg=' + encodeURIComponent('Tüm veriler başarıyla sıfırlandı.'));
 });
 
-app.post('/api/trigger-notifications', async (req, res) => {
-  const sent = await checkExpirationsAndNotify(true);
-  res.redirect('/policies?msg=' + encodeURIComponent(`${sent} adet bildirim gönderildi.`));
+app.post('/api/test-mail', requireAuth, async (req, res) => {
+  try {
+    const data = await getContext();
+    const settings = data.settings || {};
+    const to = settings.notification_email || settings.smtp_user;
+    
+    if (!to) {
+      return res.redirect('/settings?msg=Hata: Alıcı adresi (Sistem Bildirimleri Alıcısı) ayarlanmamış.');
+    }
+
+    await sendMail(
+      'Sistem Test Maili',
+      'Bu bir test mailidir. SMTP ayarlarınızın doğru çalıştığını gösterir.',
+      '<h3>Sistem Test Maili</h3><p>Bu bir test mailidir. SMTP ayarlarınızın doğru çalıştığını gösterir.</p><p>Eğer bu maili aldıysanız, sistem bildirimleri başarıyla çalışacaktır.</p>'
+    );
+    
+    res.redirect('/settings?msg=Test maili başarıyla gönderildi: ' + to);
+  } catch (err) {
+    lastSmtpError = err.message;
+    res.redirect('/settings?msg=Test maili gönderilirken hata oluştu: ' + err.message);
+  }
+});
+
+app.post('/api/trigger-notifications', requireAuth, async (req, res) => {
+  try {
+    const sent = await checkExpirationsAndNotify(true);
+    res.redirect('/policies?msg=' + encodeURIComponent(`${sent} adet bildirim gönderildi.`));
+  } catch (err) {
+    res.redirect('/policies?msg=Hata: ' + err.message);
+  }
 });
 
 app.get('/api/policies', requireAuth, async (req, res) => {
