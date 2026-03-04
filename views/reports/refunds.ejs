@@ -11,6 +11,13 @@
   <div class="card-body">
     <form method="GET" action="/reports/refunds" class="row g-3 align-items-end">
       <div class="col-md-3">
+        <label class="form-label">Tarih Tipi</label>
+        <select class="form-select" name="date_type">
+          <option value="start" <%= query.date_type === 'start' ? 'selected' : '' %>>Poliçe Başlangıç Tarihi</option>
+          <option value="issue" <%= query.date_type === 'issue' ? 'selected' : '' %>>Poliçe Tanzim Tarihi</option>
+        </select>
+      </div>
+      <div class="col-md-3">
         <label class="form-label">Başlangıç Tarihi</label>
         <input type="date" class="form-control" name="start_date" value="<%= query.start_date %>">
       </div>

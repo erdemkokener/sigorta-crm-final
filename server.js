@@ -2432,12 +2432,14 @@ app.get('/reports/refunds', requireAuth, async (req, res) => {
   let policies = data.policies.map(p => attachCustomer(p, data));
   
   // Filter by date if provided
-  const { start_date, end_date } = req.query;
+  const { start_date, end_date, date_type } = req.query;
+  const dType = date_type === 'issue' ? 'issue_date' : 'start_date';
+
   if (start_date) {
-    policies = policies.filter(p => (p.issue_date || p.start_date) >= start_date);
+    policies = policies.filter(p => (p[dType] || p.start_date) >= start_date);
   }
   if (end_date) {
-    policies = policies.filter(p => (p.issue_date || p.start_date) <= end_date);
+    policies = policies.filter(p => (p[dType] || p.start_date) <= end_date);
   }
 
   // Calculate Stats
@@ -2469,12 +2471,14 @@ app.get('/reports/refunds/export.xlsx', requireAuth, async (req, res) => {
   const data = await getContext();
   let policies = data.policies.map(p => attachCustomer(p, data));
   
-  const { start_date, end_date } = req.query;
+  const { start_date, end_date, date_type } = req.query;
+  const dType = date_type === 'issue' ? 'issue_date' : 'start_date';
+
   if (start_date) {
-    policies = policies.filter(p => (p.issue_date || p.start_date) >= start_date);
+    policies = policies.filter(p => (p[dType] || p.start_date) >= start_date);
   }
   if (end_date) {
-    policies = policies.filter(p => (p.issue_date || p.start_date) <= end_date);
+    policies = policies.filter(p => (p[dType] || p.start_date) <= end_date);
   }
 
   const wb = new ExcelJS.Workbook();
@@ -2493,7 +2497,7 @@ app.get('/reports/refunds/export.xlsx', requireAuth, async (req, res) => {
     const comm = Number(p.commission) || 0;
     const ref = Number(p.commission_refund) || 0;
     ws.addRow({
-      date: p.issue_date || p.start_date,
+      date: p[dType] || p.start_date,
       policy_number: p.policy_number,
       customer: p.customer_name,
       insurer: p.insurer,
