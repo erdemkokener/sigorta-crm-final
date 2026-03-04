@@ -459,12 +459,10 @@ async function runBackupAndMail(manual = false) {
     const wbCustomers = new ExcelJS.Workbook();
     const wsCustomers = wbCustomers.addWorksheet('Müşteriler');
     wsCustomers.columns = [
-      { header: 'ID', key: 'id', width: 10 },
       { header: 'Ad Soyad', key: 'name', width: 30 },
-      { header: 'Telefon', key: 'phone', width: 15 },
       { header: 'TC/VKN', key: 'id_no', width: 15 },
-      { header: 'Email', key: 'email', width: 25 },
-      { header: 'Adres', key: 'address', width: 30 }
+      { header: 'Telefon', key: 'phone', width: 15 },
+      { header: 'Açıklama', key: 'description', width: 40 }
     ];
     wsCustomers.addRows(customers);
     const customerFilePath = path.join(backupDir, `Musteriler-${monthStr}.xlsx`);
@@ -474,19 +472,28 @@ async function runBackupAndMail(manual = false) {
     const wbPolicies = new ExcelJS.Workbook();
     const wsPolicies = wbPolicies.addWorksheet('Poliçeler');
     wsPolicies.columns = [
+      { header: 'Ad Soyad', key: 'customer_name', width: 25 },
+      { header: 'Plaka', key: 'plate', width: 15 },
+      { header: 'Ruhsat Tescil No', key: 'registration_no', width: 20 },
       { header: 'Poliçe No', key: 'policy_number', width: 15 },
-      { header: 'Müşteri', key: 'customer_name', width: 20 },
-      { header: 'Şirket', key: 'insurer', width: 15 },
-      { header: 'Tür', key: 'policy_type', width: 15 },
-      { header: 'Başlangıç', key: 'start_date', width: 15 },
-      { header: 'Bitiş', key: 'end_date', width: 15 },
-      { header: 'Vize Bitiş', key: 'visa_date', width: 15 },
-      { header: 'Prim', key: 'premium', width: 10 },
-      { header: 'Durum', key: 'status', width: 10 }
+      { header: 'Tanzim Tarihi', key: 'issue_date', width: 15 },
+      { header: 'Başlangıç Tarihi', key: 'start_date', width: 15 },
+      { header: 'Bitiş Tarihi', key: 'end_date', width: 15 },
+      { header: 'UAVT (Adres Kodu)', key: 'address_code', width: 20 },
+      { header: 'Poliçe Türü', key: 'policy_type', width: 15 },
+      { header: 'Şirket', key: 'insurer', width: 15 }
     ];
     
-    // Attach customer names
-    const policiesWithNames = policies.map(p => attachCustomer(p, data));
+    // Attach customer names and flatten details
+    const policiesWithNames = policies.map(p => {
+      const enriched = attachCustomer(p, data);
+      return {
+        ...enriched,
+        plate: p.policy_details ? p.policy_details.plate : '',
+        registration_no: p.policy_details ? p.policy_details.registration_no : '',
+        address_code: p.policy_details ? p.policy_details.address_code : ''
+      };
+    });
     wsPolicies.addRows(policiesWithNames);
     const policyFilePath = path.join(backupDir, `Policeler-${monthStr}.xlsx`);
     await wbPolicies.xlsx.writeFile(policyFilePath);
