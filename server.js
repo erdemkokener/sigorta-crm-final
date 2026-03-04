@@ -462,7 +462,7 @@ async function runBackupAndMail(manual = false) {
       { header: 'Ad Soyad', key: 'name', width: 30 },
       { header: 'TC/VKN', key: 'id_no', width: 15 },
       { header: 'Telefon', key: 'phone', width: 15 },
-      { header: 'Açıklama', key: 'description', width: 40 }
+      { header: 'Müşteri Notu', key: 'note', width: 40 }
     ];
     wsCustomers.addRows(customers);
     const customerFilePath = path.join(backupDir, `Musteriler-${monthStr}.xlsx`);
@@ -473,6 +473,8 @@ async function runBackupAndMail(manual = false) {
     const wsPolicies = wbPolicies.addWorksheet('Poliçeler');
     wsPolicies.columns = [
       { header: 'Ad Soyad', key: 'customer_name', width: 25 },
+      { header: 'TC/VKN', key: 'customer_id_no', width: 15 },
+      { header: 'Telefon', key: 'customer_phone', width: 15 },
       { header: 'Plaka', key: 'plate', width: 15 },
       { header: 'Ruhsat Tescil No', key: 'registration_no', width: 20 },
       { header: 'Poliçe No', key: 'policy_number', width: 15 },
@@ -480,8 +482,7 @@ async function runBackupAndMail(manual = false) {
       { header: 'Başlangıç Tarihi', key: 'start_date', width: 15 },
       { header: 'Bitiş Tarihi', key: 'end_date', width: 15 },
       { header: 'UAVT (Adres Kodu)', key: 'address_code', width: 20 },
-      { header: 'Poliçe Türü', key: 'policy_type', width: 15 },
-      { header: 'Şirket', key: 'insurer', width: 15 }
+      { header: 'Poliçe Türü', key: 'policy_type', width: 15 }
     ];
     
     // Attach customer names and flatten details
@@ -489,6 +490,8 @@ async function runBackupAndMail(manual = false) {
       const enriched = attachCustomer(p, data);
       return {
         ...enriched,
+        customer_id_no: enriched.customer_id_no || '',
+        customer_phone: enriched.customer_phone || '',
         plate: p.policy_details ? p.policy_details.plate : '',
         registration_no: p.policy_details ? p.policy_details.registration_no : '',
         address_code: p.policy_details ? p.policy_details.address_code : ''
