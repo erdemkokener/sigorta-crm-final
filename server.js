@@ -439,23 +439,16 @@ async function sendMail(subject, text, html, attachments = [], targetEmail = nul
   }
 }
 
-async function checkAndRunMonthlyBackup() {
+async function runBackupAndMail(manual = false) {
   const today = dayjs();
-  // Ayın ilk 10 günü içinde çalışsın, eğer yapılmadıysa.
-  if (today.date() > 10) return;
-
+  const monthStr = today.format('YYYY-MM-DD-HHmm');
   const backupDir = path.join(__dirname, 'backups');
+  
   if (!fs.existsSync(backupDir)) {
     fs.mkdirSync(backupDir, { recursive: true });
   }
 
-  const monthStr = today.format('YYYY-MM');
-  const backupFlagFile = path.join(backupDir, `backup-${monthStr}.done`);
-
-  // Check if already done for this month
-  if (fs.existsSync(backupFlagFile)) return;
-
-  console.log('Aylık yedekleme başlatılıyor...');
+  console.log(manual ? 'Manuel yedekleme başlatılıyor...' : 'Otomatik yedekleme başlatılıyor...');
   
   try {
     const data = await getContext();
@@ -499,22 +492,50 @@ async function checkAndRunMonthlyBackup() {
     await wbPolicies.xlsx.writeFile(policyFilePath);
 
     // 3. Send Email
+    const title = manual ? `Manuel Yedek - ${monthStr}` : `Otomatik Yedek - ${monthStr}`;
+    const bodyText = manual ? `Kullanıcı tarafından başlatılan ${monthStr} tarihli yedek dosyaları ektedir.` : `Sistem tarafından oluşturulan ${monthStr} tarihli yedek dosyaları ektedir.`;
+
     await sendMail(
-      `Otomatik Yedek - ${monthStr}`,
-      `Ekte ${monthStr} dönemine ait müşteri ve poliçe yedeklerini bulabilirsiniz.`,
-      `<p>Merhaba,</p><p>Sistem tarafından oluşturulan <b>${monthStr}</b> dönemi yedek dosyaları ektedir.</p>`,
+      title,
+      bodyText,
+      `<p>Merhaba,</p><p>${bodyText}</p>`,
       [
         { filename: `Musteriler-${monthStr}.xlsx`, path: customerFilePath },
         { filename: `Policeler-${monthStr}.xlsx`, path: policyFilePath }
       ]
     );
 
-    // 4. Mark as done
-    fs.writeFileSync(backupFlagFile, new Date().toISOString());
-    console.log('Aylık yedekleme tamamlandı ve mail gönderildi.');
+    console.log('Yedekleme tamamlandı ve mail gönderildi.');
+    return true;
 
   } catch (err) {
     console.error('Yedekleme hatası:', err);
+    throw err;
+  }
+}
+
+async function checkAndRunMonthlyBackup() {
+  const today = dayjs();
+  // Ayın ilk 10 günü içinde çalışsın, eğer yapılmadıysa.
+  if (today.date() > 10) return;
+
+  const backupDir = path.join(__dirname, 'backups');
+  if (!fs.existsSync(backupDir)) {
+    fs.mkdirSync(backupDir, { recursive: true });
+  }
+
+  const monthStr = today.format('YYYY-MM');
+  const backupFlagFile = path.join(backupDir, `backup-${monthStr}.done`);
+
+  // Check if already done for this month
+  if (fs.existsSync(backupFlagFile)) return;
+
+  try {
+    await runBackupAndMail(false);
+    // 4. Mark as done
+    fs.writeFileSync(backupFlagFile, new Date().toISOString());
+  } catch (err) {
+    console.error('Otomatik yedekleme hatası:', err);
   }
 }
 
@@ -2212,6 +2233,16 @@ app.post('/policies/reset-data', requireAuth, async (req, res) => {
   }
   await dataService.resetData();
   res.redirect('/policies?msg=' + encodeURIComponent('Tüm veriler başarıyla sıfırlandı.'));
+});
+
+app.post('/api/manual-backup', requireAuth, async (req, res) => {
+  try {
+    await runBackupAndMail(true);
+    res.redirect('/settings?msg=Yedekleme başarıyla tamamlandı ve mail gönderildi.');
+  } catch (err) {
+    lastSmtpError = err.message;
+    res.redirect('/settings?msg=Yedekleme sırasında hata oluştu: ' + err.message);
+  }
 });
 
 app.post('/api/test-mail', requireAuth, async (req, res) => {
