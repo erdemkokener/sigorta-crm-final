@@ -1773,148 +1773,166 @@ app.post('/payments/:id/delete', requireAuth, requireAdmin, async (req, res) => 
   
  // Müşteri Borç Listesi Excel İndir
  app.get('/customers/:id/debts/export-excel', requireAuth, async (req, res) => {
-  const id = Number(req.params.id);
-  const data = await getContext();
-  const customer = data.customers.find(c => c.id === id);
-  if (!customer) return res.status(404).send('Müşteri bulunamadı');
+  try {
+    const id = Number(req.params.id);
+    const data = await getContext();
+    const customer = data.customers.find(c => c.id == id);
+    if (!customer) return res.status(404).send('Müşteri bulunamadı');
 
-  const policies = data.policies
-    .filter(p => p.customer_id == id)
-    .map(p => policyWithComputed(p))
-    .filter(p => (Number(p.premium_total || 0) - Number(p.premium_paid || 0)) > 0);
+    const policies = data.policies
+      .filter(p => p.customer_id == id)
+      .map(p => policyWithComputed(p))
+      .filter(p => (Number(p.premium_total || 0) - Number(p.premium_paid || 0)) > 0);
 
-  const wb = new ExcelJS.Workbook();
-  const ws = wb.addWorksheet('Borç Listesi');
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet('Borç Listesi');
 
-  ws.columns = [
-    { header: 'Plaka', key: 'plate', width: 15 },
-    { header: 'Tanzim Tarihi', key: 'issue_date', width: 20 },
-    { header: 'Poliçe No', key: 'policy_number', width: 20 },
-    { header: 'Poliçe Türü', key: 'policy_type', width: 20 },
-    { header: 'Toplam Prim', key: 'premium_total', width: 15 },
-    { header: 'Ödenen', key: 'premium_paid', width: 15 },
-    { header: 'Kalan Borç', key: 'remaining', width: 15 }
-  ];
+    ws.columns = [
+      { header: 'Plaka', key: 'plate', width: 15 },
+      { header: 'Tanzim Tarihi', key: 'issue_date', width: 20 },
+      { header: 'Poliçe No', key: 'policy_number', width: 20 },
+      { header: 'Poliçe Türü', key: 'policy_type', width: 20 },
+      { header: 'Toplam Prim', key: 'premium_total', width: 15 },
+      { header: 'Ödenen', key: 'premium_paid', width: 15 },
+      { header: 'Kalan Borç', key: 'remaining', width: 15 }
+    ];
 
-  policies.forEach(p => {
-    const total = Number(p.premium_total || 0);
-    const paid = Number(p.premium_paid || 0);
-    ws.addRow({
-      plate: (p.policy_details && p.policy_details.plate) || '-',
-      issue_date: p.issue_date || '-',
-      policy_number: p.policy_number,
-      policy_type: p.policy_type || 'Diğer',
-      premium_total: total.toFixed(2),
-      premium_paid: paid.toFixed(2),
-      remaining: (total - paid).toFixed(2)
+    policies.forEach(p => {
+      const total = Number(p.premium_total || 0);
+      const paid = Number(p.premium_paid || 0);
+      ws.addRow({
+        plate: (p.policy_details && p.policy_details.plate) || '-',
+        issue_date: p.issue_date || '-',
+        policy_number: p.policy_number || '-',
+        policy_type: p.policy_type || 'Diğer',
+        premium_total: total.toFixed(2),
+        premium_paid: paid.toFixed(2),
+        remaining: (total - paid).toFixed(2)
+      });
     });
-  });
 
-  // Manuel Borç varsa ekle
-  if (Number(customer.manual_debt || 0) > 0) {
+    // Manuel Borç varsa ekle
+    if (Number(customer.manual_debt || 0) > 0) {
+      ws.addRow({});
+      ws.addRow({
+        plate: 'MANUEL BORÇ',
+        remaining: Number(customer.manual_debt).toFixed(2)
+      });
+    }
+
+    // Genel Toplam
+    const payments = await dataService.getPaymentsByCustomer(id);
+    const totalCollections = payments.reduce((sum, pay) => sum + Number(pay.amount || 0), 0);
+    const totalApplied = payments.reduce((sum, pay) => sum + Number(pay.applied_amount || 0), 0);
+    const unappliedPayments = totalCollections - totalApplied;
+
+    const totalPolicyDebt = policies.reduce((sum, p) => sum + (Number(p.premium_total || 0) - Number(p.premium_paid || 0)), 0);
+    const finalBalance = totalPolicyDebt + Number(customer.manual_debt || 0) - unappliedPayments;
+
     ws.addRow({});
+    if (unappliedPayments > 0) {
+      ws.addRow({
+        plate: 'POLİÇEYE İŞLENMEMİŞ ÖDEMELER (AVANS/BAKİYE)',
+        remaining: '-' + unappliedPayments.toFixed(2)
+      });
+    }
     ws.addRow({
-      plate: 'MANUEL BORÇ',
-      remaining: Number(customer.manual_debt).toFixed(2)
+      plate: 'GENEL TOPLAM BORÇ',
+      remaining: finalBalance.toFixed(2)
     });
+
+    const safeName = (customer.name || 'borc_listesi').replace(/[^a-zA-Z0-9]/g, '_');
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="borc_listesi_${safeName}.xlsx"`);
+    await wb.xlsx.write(res);
+    res.end();
+  } catch (err) {
+    console.error('Excel export error:', err);
+    res.status(500).send('Excel dosyası oluşturulurken hata oluştu: ' + err.message);
   }
-
-  // Genel Toplam
-  const payments = await dataService.getPaymentsByCustomer(id);
-  const totalCollections = payments.reduce((sum, pay) => sum + Number(pay.amount || 0), 0);
-  const totalApplied = payments.reduce((sum, pay) => sum + Number(pay.applied_amount || 0), 0);
-  const unappliedPayments = totalCollections - totalApplied;
-
-  const totalPolicyDebt = policies.reduce((sum, p) => sum + (Number(p.premium_total || 0) - Number(p.premium_paid || 0)), 0);
-  const finalBalance = totalPolicyDebt + Number(customer.manual_debt || 0) - unappliedPayments;
-
-  ws.addRow({});
-  if (unappliedPayments > 0) {
-    ws.addRow({
-      plate: 'POLİÇEYE İŞLENMEMİŞ ÖDEMELER (AVANS/BAKİYE)',
-      remaining: '-' + unappliedPayments.toFixed(2)
-    });
-  }
-  ws.addRow({
-    plate: 'GENEL TOPLAM BORÇ',
-    remaining: finalBalance.toFixed(2)
-  });
-
-  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-  res.setHeader('Content-Disposition', `attachment; filename="borc_listesi_${customer.name.replace(/\s+/g, '_')}.xlsx"`);
-  await wb.xlsx.write(res);
-  res.end();
 });
 
 // Müşteri Borç Listesi PDF İndir
 app.get('/customers/:id/debts/export-pdf', requireAuth, async (req, res) => {
-  const id = Number(req.params.id);
-  const data = await getContext();
-  const customer = data.customers.find(c => c.id === id);
-  if (!customer) return res.status(404).send('Müşteri bulunamadı');
+  try {
+    const id = Number(req.params.id);
+    const data = await getContext();
+    const customer = data.customers.find(c => c.id == id);
+    if (!customer) return res.status(404).send('Müşteri bulunamadı');
 
-  const policies = data.policies
-    .filter(p => p.customer_id == id)
-    .map(p => policyWithComputed(p))
-    .filter(p => (Number(p.premium_total || 0) - Number(p.premium_paid || 0)) > 0);
+    const policies = data.policies
+      .filter(p => p.customer_id == id)
+      .map(p => policyWithComputed(p))
+      .filter(p => (Number(p.premium_total || 0) - Number(p.premium_paid || 0)) > 0);
 
-  const doc = new PDFDocument({ margin: 30, size: 'A4' });
-  
-  // Set headers for PDF download
-  res.setHeader('Content-Type', 'application/pdf');
-  res.setHeader('Content-Disposition', `attachment; filename="borc_listesi_${customer.name.replace(/\s+/g, '_')}.pdf"`);
-  doc.pipe(res);
+    const doc = new PDFDocument({ margin: 30, size: 'A4' });
+    
+    const safeName = (customer.name || 'borc_listesi').replace(/[^a-zA-Z0-9]/g, '_');
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="borc_listesi_${safeName}.pdf"`);
+    doc.pipe(res);
 
-  // PDF Content
-  doc.fontSize(18).text('BORÇ DETAY LİSTESİ', { align: 'center' });
-  doc.moveDown();
-  doc.fontSize(12).text(`Müşteri: ${customer.name}`);
-  doc.text(`Tarih: ${dayjs().format('DD.MM.YYYY HH:mm')}`);
-  doc.moveDown();
+    // PDF Content
+    doc.fontSize(18).text('BORC DETAY LISTESI', { align: 'center' });
+    doc.moveDown();
+    doc.fontSize(12).text(`Musteri: ${customer.name}`);
+    doc.text(`Tarih: ${dayjs().format('DD.MM.YYYY HH:mm')}`);
+    doc.moveDown();
 
-  const tableData = policies.map(p => {
-    const total = Number(p.premium_total || 0);
-    const paid = Number(p.premium_paid || 0);
-    return [
-      (p.policy_details && p.policy_details.plate) || '-',
-      p.issue_date || '-',
-      p.policy_number,
-      p.policy_type || 'Diğer',
-      (total - paid).toFixed(2) + ' TL'
-    ];
-  });
+    const tableData = policies.map(p => {
+      const total = Number(p.premium_total || 0);
+      const paid = Number(p.premium_paid || 0);
+      return [
+        (p.policy_details && p.policy_details.plate) || '-',
+        p.issue_date || '-',
+        p.policy_number || '-',
+        p.policy_type || 'Diger',
+        (total - paid).toFixed(2) + ' TL'
+      ];
+    });
 
-  const table = {
-    title: "Poliçe Borçları",
-    headers: ["Plaka", "Tanzim", "Poliçe No", "Tür", "Borç"],
-    rows: tableData,
-  };
+    if (tableData.length > 0) {
+      const table = {
+        title: "Police Borclari",
+        headers: ["Plaka", "Tanzim", "Police No", "Tur", "Borc"],
+        rows: tableData,
+      };
 
-  await doc.table(table, { 
-    prepareHeader: () => doc.fontSize(10).font("Helvetica-Bold"),
-    prepareRow: (row, indexColumn, indexRow, rectRow, rectCell) => doc.fontSize(10).font("Helvetica"),
-  });
+      await doc.table(table, { 
+        prepareHeader: () => doc.fontSize(10),
+        prepareRow: (row, indexColumn, indexRow, rectRow, rectCell) => doc.fontSize(10),
+      });
+    } else {
+      doc.text('Aktif police borcu bulunamadi.');
+    }
 
-  doc.moveDown();
+    doc.moveDown();
 
-  // Calculation for totals
-  const payments = await dataService.getPaymentsByCustomer(id);
-  const totalCollections = payments.reduce((sum, pay) => sum + Number(pay.amount || 0), 0);
-  const totalApplied = payments.reduce((sum, pay) => sum + Number(pay.applied_amount || 0), 0);
-  const unappliedPayments = totalCollections - totalApplied;
-  const totalPolicyDebt = policies.reduce((sum, p) => sum + (Number(p.premium_total || 0) - Number(p.premium_paid || 0)), 0);
-  const finalBalance = totalPolicyDebt + Number(customer.manual_debt || 0) - unappliedPayments;
+    // Calculation for totals
+    const payments = await dataService.getPaymentsByCustomer(id);
+    const totalCollections = payments.reduce((sum, pay) => sum + Number(pay.amount || 0), 0);
+    const totalApplied = payments.reduce((sum, pay) => sum + Number(pay.applied_amount || 0), 0);
+    const unappliedPayments = totalCollections - totalApplied;
+    const totalPolicyDebt = policies.reduce((sum, p) => sum + (Number(p.premium_total || 0) - Number(p.premium_paid || 0)), 0);
+    const finalBalance = totalPolicyDebt + Number(customer.manual_debt || 0) - unappliedPayments;
 
-  if (Number(customer.manual_debt || 0) > 0) {
-    doc.text(`Manuel Borç: ${Number(customer.manual_debt).toFixed(2)} TL`, { align: 'right' });
+    if (Number(customer.manual_debt || 0) > 0) {
+      doc.text(`Manuel Borc: ${Number(customer.manual_debt).toFixed(2)} TL`, { align: 'right' });
+    }
+    if (unappliedPayments > 0) {
+      doc.text(`Islenmemis Odemeler: -${unappliedPayments.toFixed(2)} TL`, { align: 'right' });
+    }
+    doc.moveDown(0.5);
+    doc.fontSize(14).text(`GENEL TOPLAM BORC: ${finalBalance.toFixed(2)} TL`, { align: 'right' });
+
+    doc.end();
+  } catch (err) {
+    console.error('PDF export error:', err);
+    // If headers already sent, we can't send error response
+    if (!res.headersSent) {
+      res.status(500).send('PDF dosyası oluşturulurken hata oluştu: ' + err.message);
+    }
   }
-  if (unappliedPayments > 0) {
-    doc.text(`İşlenmemiş Ödemeler: -${unappliedPayments.toFixed(2)} TL`, { align: 'right' });
-  }
-  doc.moveDown(0.5);
-  doc.fontSize(14).font("Helvetica-Bold").text(`GENEL TOPLAM BORÇ: ${finalBalance.toFixed(2)} TL`, { align: 'right' });
-
-  doc.end();
 });
 
 app.get('/customers/:id/edit', requireAuth, async (req, res) => {
