@@ -134,9 +134,19 @@
       </div>
       <div class="col-md-4">
         <div class="card bg-warning text-dark h-100">
-          <div class="card-body text-center">
+          <div class="card-body text-center position-relative">
             <h6 class="card-title">Kalan Borç</h6>
             <h2 class="display-6"><%= stats.totalRemaining.toFixed ? stats.totalRemaining.toFixed(2) : stats.totalRemaining %></h2>
+            <div class="mt-2">
+              <div class="btn-group w-100">
+                <a href="/customers/<%= customer.id %>/debts/export-excel" class="btn btn-sm btn-outline-dark">
+                  <i class="bi bi-file-earmark-excel"></i> Excel
+                </a>
+                <a href="/customers/<%= customer.id %>/debts/export-pdf" class="btn btn-sm btn-outline-dark">
+                  <i class="bi bi-file-earmark-pdf"></i> PDF
+                </a>
+              </div>
+            </div>
           </div>
         </div>
       </div>

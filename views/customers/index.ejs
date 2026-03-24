@@ -175,6 +175,10 @@
                 </a>
               <% } %>
               <a href="/customers/<%= c.id %>" class="btn btn-outline-primary" title="Detay"><i class="bi bi-eye"></i></a>
+              <% if (c.balance && c.balance > 0.01) { %>
+                <a href="/customers/<%= c.id %>/debts/export-excel" class="btn btn-outline-dark" title="Excel Borç Listesi"><i class="bi bi-file-earmark-excel"></i></a>
+                <a href="/customers/<%= c.id %>/debts/export-pdf" class="btn btn-outline-dark" title="PDF Borç Listesi"><i class="bi bi-file-earmark-pdf"></i></a>
+              <% } %>
               <a href="/customers/<%= c.id %>/edit" class="btn btn-outline-warning" title="Düzenle"><i class="bi bi-pencil"></i></a>
               <% if (user && user.isAdmin) { %>
                 <form action="/customers/<%= c.id %>/delete" method="post" class="d-inline" onsubmit="return confirm('Müşteri silinecek. Emin misiniz?')">
