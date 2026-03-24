@@ -162,29 +162,47 @@
       <a href="/policies/new?customer_id=<%= customer.id %>" class="btn btn-sm btn-primary"><i class="bi bi-plus-lg"></i> Yeni Poliçe Ekle</a>
     </div>
   </div>
-  <div class="card-body p-0">
-    <div class="p-3 border-bottom">
-      <div class="row g-2 align-items-end">
-        <div class="col-md-4">
-          <label class="form-label">Arama</label>
-          <div class="input-group">
-            <input type="text" class="form-control" id="policyFilterQuery" placeholder="Plaka / Poliçe No">
-            <button class="btn btn-primary" type="button" id="policyFilterBtn"><i class="bi bi-search"></i> Ara</button>
+    <div class="card-body p-0">
+      <div class="p-3 border-bottom">
+        <form method="GET" action="/customers/<%= customer.id %>" class="row g-2 align-items-end">
+          <div class="col-md-3">
+            <label class="form-label">Arama</label>
+            <div class="input-group">
+              <input type="text" class="form-control" name="q" id="policyFilterQuery" placeholder="Plaka / Poliçe No" value="<%= query.q || '' %>">
+            </div>
           </div>
-        </div>
-        <div class="col-md-3">
-          <label class="form-label">Başlangıç Tarihi (En erken)</label>
-          <input type="date" class="form-control" id="policyStartFrom">
-        </div>
-        <div class="col-md-3">
-          <label class="form-label">Bitiş Tarihi (En geç)</label>
-          <input type="date" class="form-control" id="policyEndTo">
-        </div>
-        <div class="col-md-2">
-          <button type="button" class="btn btn-outline-secondary w-100" id="policyFilterClear">Temizle</button>
-        </div>
+          <div class="col-md-3">
+            <label class="form-label">Sıralama</label>
+            <div class="input-group">
+              <select class="form-select" name="sort_by">
+                <% const sb = query.sort_by || 'end_date' %>
+                <option value="end_date" <%= sb==='end_date'?'selected':'' %>>Bitiş Tarihi</option>
+                <option value="start_date" <%= sb==='start_date'?'selected':'' %>>Başlangıç Tarihi</option>
+                <option value="issue_date" <%= sb==='issue_date'?'selected':'' %>>Tanzim Tarihi</option>
+              </select>
+              <select class="form-select" name="sort_order" style="max-width: 90px;">
+                <% const so = query.sort_order || 'desc' %>
+                <option value="asc" <%= so==='asc'?'selected':'' %>>Artan</option>
+                <option value="desc" <%= so==='desc'?'selected':'' %>>Azalan</option>
+              </select>
+            </div>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label">En Erken</label>
+            <input type="date" class="form-control" name="start_from" id="policyStartFrom" value="<%= query.start_from || '' %>">
+          </div>
+          <div class="col-md-2">
+            <label class="form-label">En Geç</label>
+            <input type="date" class="form-control" name="end_to" id="policyEndTo" value="<%= query.end_to || '' %>">
+          </div>
+          <div class="col-md-2">
+            <div class="d-grid gap-1">
+              <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-filter"></i> Uygula</button>
+              <a href="/customers/<%= customer.id %>" class="btn btn-outline-secondary btn-sm">Temizle</a>
+            </div>
+          </div>
+        </form>
       </div>
-    </div>
     <div class="table-responsive">
       <table class="table table-sm table-hover mb-0" style="font-size: 0.75rem;">
         <thead class="table-light">
@@ -192,6 +210,7 @@
             <th>Poliçe No</th>
             <th>Şirket</th>
             <th>Tür</th>
+            <th>Tanzim</th>
             <th>Başlangıç</th>
             <th>Bitiş</th>
             <th>Kalan Gün</th>
@@ -202,7 +221,7 @@
         </thead>
         <tbody>
           <% if (policies.length === 0) { %>
-            <tr><td colspan="9" class="text-center py-4">Kayıtlı poliçe bulunamadı.</td></tr>
+            <tr><td colspan="10" class="text-center py-4">Kayıtlı poliçe bulunamadı.</td></tr>
           <% } else { %>
             <% policies.forEach(p => { %>
               <tr data-plate="<%= (p.policy_details && p.policy_details.plate) || '' %>" 
@@ -215,6 +234,7 @@
                 <td><a href="/policies/<%= p.id %>" class="text-decoration-none fw-bold"><%= p.policy_number %></a></td>
                 <td><%= p.insurer %></td>
                 <td><span class="badge bg-secondary"><%= p.policy_type %></span></td>
+                <td><%= p.issue_date || p.start_date %></td>
                 <td><%= p.start_date %></td>
                 <td><%= p.end_date %></td>
                 <td>

@@ -90,6 +90,22 @@
         <label class="form-label">Tanzim (Bitiş)</label>
         <input type="date" class="form-control" name="issue_to" value="<%= (typeof qs !== 'undefined' && new URLSearchParams(qs).get('issue_to')) || '' %>">
       </div>
+      <div class="col-md-3">
+        <label class="form-label">Sıralama</label>
+        <div class="input-group">
+          <select class="form-select" name="sort_by">
+            <% const sb = (typeof qs !== 'undefined' && new URLSearchParams(qs).get('sort_by')) || 'end_date' %>
+            <option value="end_date" <%= sb==='end_date'?'selected':'' %>>Bitiş Tarihi</option>
+            <option value="start_date" <%= sb==='start_date'?'selected':'' %>>Başlangıç Tarihi</option>
+            <option value="issue_date" <%= sb==='issue_date'?'selected':'' %>>Tanzim Tarihi</option>
+          </select>
+          <select class="form-select" name="sort_order" style="max-width: 100px;">
+            <% const so = (typeof qs !== 'undefined' && new URLSearchParams(qs).get('sort_order')) || 'desc' %>
+            <option value="asc" <%= so==='asc'?'selected':'' %>>Artan</option>
+            <option value="desc" <%= so==='desc'?'selected':'' %>>Azalan</option>
+          </select>
+        </div>
+      </div>
       <div class="col-12">
         <div class="form-check form-check-inline">
           <% const incMissed = (typeof qs !== 'undefined' && new URLSearchParams(qs).get('include_missed')) === 'true' %>
@@ -130,6 +146,7 @@
         <th>Sigortacı</th>
         <th>Tür</th>
         <th>Poliçe No</th>
+        <th>Tanzim</th>
         <th>Başlangıç</th>
         <th>Bitiş</th>
         <th>Kalan</th>
@@ -140,7 +157,7 @@
     <tbody>
       <% if (policies.length === 0) { %>
         <tr>
-          <td colspan="11" class="text-center py-5 text-muted">
+          <td colspan="12" class="text-center py-5 text-muted">
             <i class="bi bi-inbox display-4 d-block mb-3"></i>
             Kayıt bulunamadı.
           </td>
@@ -158,6 +175,7 @@
           <td><%= p.insurer %></td>
           <td><span class="badge bg-info text-dark"><%= p.policy_type || 'Diğer' %></span></td>
           <td><%= p.policy_number %></td>
+          <td><%= p.issue_date || p.start_date %></td>
           <td><%= p.start_date %></td>
           <td><%= p.end_date %></td>
           <td>

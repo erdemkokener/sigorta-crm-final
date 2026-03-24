@@ -360,15 +360,30 @@ async function filterPolicies(query) {
   }
 
   // Sort
+  const sortBy = query.sort_by || 'end_date';
+  const sortOrder = query.sort_order === 'asc' ? 1 : -1;
+
   if (includeMissed) {
       // Sort by Virtual Date (Day/Month) to interleave
       finalItems.sort((a, b) => {
           const da = dayjs(a.end_date).year(2000); 
           const db = dayjs(b.end_date).year(2000);
-          return da.diff(db);
+          return da.diff(db) * sortOrder;
       });
   } else {
-      finalItems.sort((a, b) => a.end_date.localeCompare(b.end_date) || b.id - a.id);
+      finalItems.sort((a, b) => {
+          let valA = a[sortBy] || '';
+          let valB = b[sortBy] || '';
+          
+          if (sortBy === 'issue_date') {
+              valA = a.issue_date || a.start_date || '';
+              valB = b.issue_date || b.start_date || '';
+          }
+
+          if (valA < valB) return -1 * sortOrder;
+          if (valA > valB) return 1 * sortOrder;
+          return (b.id - a.id) * sortOrder;
+      });
   }
 
   return finalItems;
@@ -1561,10 +1576,44 @@ app.get('/customers/:id', requireAuth, async (req, res) => {
   }
 
   // Müşteriye ait poliçeleri bul ve hesaplamaları yap
-  const policies = data.policies
+  const sortBy = req.query.sort_by || 'end_date';
+  const sortOrder = req.query.sort_order === 'asc' ? 1 : -1;
+  const q = (req.query.q || '').toLocaleLowerCase('tr-TR');
+  const startFrom = req.query.start_from || '';
+  const endTo = req.query.end_to || '';
+
+  let policies = data.policies
     .filter(p => p.customer_id == id)
-    .map(p => policyWithComputed(p))
-    .sort((a, b) => a.end_date.localeCompare(b.end_date) || b.id - a.id);
+    .map(p => policyWithComputed(p));
+
+  // Filtreleme
+  if (q) {
+    policies = policies.filter(p => 
+      (p.policy_number || '').toLocaleLowerCase('tr-TR').includes(q) ||
+      (p.policy_details && p.policy_details.plate && String(p.policy_details.plate).toLocaleLowerCase('tr-TR').includes(q))
+    );
+  }
+  if (startFrom) {
+    policies = policies.filter(p => p.start_date >= startFrom);
+  }
+  if (endTo) {
+    policies = policies.filter(p => p.end_date <= endTo);
+  }
+
+  // Sıralama
+  policies.sort((a, b) => {
+    let valA = a[sortBy] || '';
+    let valB = b[sortBy] || '';
+    
+    if (sortBy === 'issue_date') {
+      valA = a.issue_date || a.start_date || '';
+      valB = b.issue_date || b.start_date || '';
+    }
+
+    if (valA < valB) return -1 * sortOrder;
+    if (valA > valB) return 1 * sortOrder;
+    return (b.id - a.id) * sortOrder;
+  });
 
   const payments = await dataService.getPaymentsByCustomer(id);
 
@@ -1607,7 +1656,8 @@ app.get('/customers/:id', requireAuth, async (req, res) => {
   payments,
     stats,
     policyDistribution,
-    salespersonName
+    salespersonName,
+    query: req.query
   });
 });
 
