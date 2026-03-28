@@ -12,6 +12,9 @@
       </button>
     <% } %>
     <a href="/policies/<%= policy.id %>/edit" class="btn btn-warning"><i class="bi bi-pencil"></i> Düzenle</a>
+    <form action="/policies/<%= policy.id %>/delete" method="POST" class="d-inline" onsubmit="return confirm('Bu poliçeyi tamamen silmek istediğinize emin misiniz? Bu işlem geri alınamaz.');">
+      <button type="submit" class="btn btn-danger"><i class="bi bi-trash"></i> Sil</button>
+    </form>
     <a href="/policies?<%= typeof qs !== 'undefined' ? qs : '' %>" class="btn btn-secondary"><i class="bi bi-arrow-left"></i> Listeye Dön</a>
   </div>
 </div>
