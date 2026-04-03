@@ -2115,8 +2115,11 @@ app.post('/policies/import', requireAuth, (req, res, next) => {
     await wb.xlsx.readFile(req.file.path);
     const ws = wb.getWorksheet(1);
     const data = await getContext();
+    
     let importedCount = 0;
     let updatedCount = 0;
+    let nextCustId = data.nextCustomerId || 1;
+    let nextPolId = data.nextId || 1;
 
     const rowsToProcess = [];
     ws.eachRow((row, rowNumber) => {
@@ -2124,58 +2127,69 @@ app.post('/policies/import', requireAuth, (req, res, next) => {
       rowsToProcess.push(row);
     });
 
+    // Verileri gruplayarak toplu işlem yapalım (Performans için)
+    let processed = 0;
+    const totalRows = rowsToProcess.length;
+    console.log(`Toplu içe aktarma başladı: ${totalRows} satır işlenecek.`);
+
     for (const row of rowsToProcess) {
+      processed++;
+      if (processed % 100 === 0) console.log(`İlerleme: ${processed}/${totalRows}...`);
       // Sütun Düzeni (Yeni Format):
       // 1: Şirket Adı, 2: Acente Branş Adı, 3: Tanzim Tarihi, 4: Baş. Tarihi, 5: Bit. Tarihi, 
-      // 6: Tam Poliçe No, 7: Zeyil Adı, 8: Sigortalı, 9: Müşteri TC No, 10: Müşteri Vergi No, 11: Plaka
-      const insurer = row.getCell(1).text;
-      const policyType = row.getCell(2).text;
-      const issueDate = row.getCell(3).text;
-      const startDate = row.getCell(4).text;
-      const endDate = row.getCell(5).text;
-      const policyNumber = row.getCell(6).text;
-      const zeyilType = row.getCell(7).text; // Zeyil Adı (Poliçe, Prim iade, Prim ilave vb.)
-      const customerName = row.getCell(8).text;
-      const idNo = row.getCell(9).text || row.getCell(10).text; // TC veya Vergi No
-      const plate = row.getCell(11).text;
+      // 6: Tam Poliçe No, 7: Zeyil Adı, 8: Sigortalı, 9: Müşteri TC No, 10: Müşteri Vergi No, 11: Plaka, 12: Telefon
+      const insurer = row.getCell(1).text?.trim();
+      const policyType = row.getCell(2).text?.trim();
+      const issueDate = row.getCell(3).text?.trim();
+      const startDate = row.getCell(4).text?.trim();
+      const endDate = row.getCell(5).text?.trim();
+      const policyNumber = row.getCell(6).text?.trim();
+      const zeyilType = row.getCell(7).text?.trim();
+      const customerName = row.getCell(8).text?.trim();
+      const idNo = (row.getCell(9).text || row.getCell(10).text)?.trim();
+      const plate = row.getCell(11).text?.trim();
+      const phone = row.getCell(12).text?.trim();
 
       if (!customerName || !policyNumber) continue;
 
-      // Müşteriyi bul veya oluştur
       let customer = null;
-      
-      // 1. Önce TC/VKN ile ara (En güvenli yol)
       if (idNo) {
-        customer = data.customers.find(c => c.id_no === idNo);
+        customer = data.customers.find(c => String(c.id_no) === String(idNo));
       }
-      
-      // 2. Bulunamazsa İsim ile ara
       if (!customer) {
         customer = data.customers.find(c => c.name.toLowerCase() === customerName.toLowerCase());
       }
 
       if (!customer) {
-        customer = await dataService.createCustomer({
+        // Yeni müşteri
+        customer = {
+          id: nextCustId++,
           name: customerName,
-          phone: '',
+          phone: phone || '',
           id_no: idNo || '',
           email: '',
           birth_date: ''
-        });
+        };
+        // DB'ye hemen kaydedelim (ID çakışması olmaması için dataService üzerinden değil doğrudan modelle de yapılabilir ama dataService tercih edelim)
+        const created = await dataService.createCustomer(customer);
+        customer.id = created.id; // Gerçek ID'yi al
         data.customers.push(customer);
-      } else if (idNo && !customer.id_no) {
-        // Müşteri var ama TC'si eksikse güncelle
-        await dataService.updateCustomer(customer.id, { id_no: idNo });
-        customer.id_no = idNo;
+      } else {
+        // Mevcut müşteri güncelleme
+        let needsUpdate = false;
+        const updateData = {};
+        if (idNo && !customer.id_no) { updateData.id_no = idNo; customer.id_no = idNo; needsUpdate = true; }
+        if (phone && !customer.phone) { updateData.phone = phone; customer.phone = phone; needsUpdate = true; }
+        
+        if (needsUpdate) {
+          await dataService.updateCustomer(customer.id, updateData);
+        }
       }
 
-      // Poliçeyi kontrol et (Poliçe No + Zeyil Durumu)
-      // Zeyil adı "Poliçe" değilse (Prim iade/ilave vb.), bunu poliçe detayına not düşebiliriz 
-      // veya ayrı poliçe olarak kaydedebiliriz. Şimdilik poliçe no ile tekilleştiriyoruz.
-      const existingPolicy = data.policies.find(p => p.policy_number === policyNumber);
+      const existingPolicy = data.policies.find(p => String(p.policy_number) === String(policyNumber));
       
       if (!existingPolicy) {
-        const newPolicy = await dataService.createPolicy({
+        const newPolicy = {
           customer_id: customer.id,
           insurer: insurer || 'Bilinmiyor',
           policy_type: policyType || 'Diğer',
@@ -2193,12 +2207,12 @@ app.post('/policies/import', requireAuth, (req, res, next) => {
             registration_no: '',
             address_code: ''
           }
-        });
+        };
+        await dataService.createPolicy(newPolicy);
         data.policies.push(newPolicy);
         importedCount++;
       } else {
-        // Poliçe varsa durumunu güncelle (İade gelmişse iptal et)
-        if (zeyilType && zeyilType.toLowerCase().includes('iade')) {
+        if (zeyilType && zeyilType.toLowerCase().includes('iade') && existingPolicy.status !== 'İptal Edildi') {
           await dataService.updatePolicy(existingPolicy.id, { status: 'İptal Edildi' });
           existingPolicy.status = 'İptal Edildi';
           updatedCount++;
@@ -2215,7 +2229,9 @@ app.post('/policies/import', requireAuth, (req, res, next) => {
     if (fs.existsSync(req.file.path)) {
       fs.unlinkSync(req.file.path);
     }
-    res.status(500).send('Dosya işlenirken hata oluştu: ' + err.message);
+    if (!res.headersSent) {
+      res.status(500).send('Dosya işlenirken hata oluştu: ' + err.message);
+    }
   }
 });
 
@@ -2383,7 +2399,8 @@ app.get('/policies/template.xlsx', requireAuth, async (req, res) => {
     { header: 'Sigortalı', key: 'name', width: 25 },
     { header: 'Müşteri TC No', key: 'id_no', width: 15 },
     { header: 'Müşteri Vergi No', key: 'tax_no', width: 15 },
-    { header: 'Plaka', key: 'plate', width: 15 }
+    { header: 'Plaka', key: 'plate', width: 15 },
+    { header: 'Telefon', key: 'phone', width: 15 }
   ];
   ws.addRow({
     insurer: 'MAGDEBURGER SİGORTA',
@@ -2396,7 +2413,8 @@ app.get('/policies/template.xlsx', requireAuth, async (req, res) => {
     name: 'ÖRNEK MÜŞTERİ LTD ŞTİ',
     id_no: '',
     tax_no: '5441536271',
-    plate: '45AZG844'
+    plate: '45AZG844',
+    phone: '05551234567'
   });
   
   res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
