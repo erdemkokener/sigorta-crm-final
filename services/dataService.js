@@ -468,11 +468,24 @@ const DataService = {
 
   async resetData() {
     if (db.isConnected()) {
-      await Customer.deleteMany({});
-      await Policy.deleteMany({});
-      // We don't delete settings to not lock out admin
+      await Promise.all([
+        Customer.deleteMany({}),
+        Policy.deleteMany({}),
+        Payment.deleteMany({}),
+        Salesperson.deleteMany({}),
+        SalespersonPayment.deleteMany({}),
+        Reminder.deleteMany({})
+      ]);
+      // Ayarları silmiyoruz (admin girişi ve SMTP ayarları kaybolmasın diye)
     } else {
-      saveFile({ policies: [], nextId: 1, customers: [], nextCustomerId: 1, settings: {} });
+      saveFile({ 
+        policies: [], nextId: 1, 
+        customers: [], nextCustomerId: 1, 
+        payments: [], nextPaymentId: 1,
+        reminders: [], nextReminderId: 1,
+        salespersons: [], nextSalespersonId: 1,
+        settings: {} // Dosya modunda ayarlar basit olduğu için sıfırlanabilir
+      });
     }
   },
 

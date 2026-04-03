@@ -2,6 +2,64 @@
   <div class="col-md-8">
     <h1 class="h3 mb-4">Excel'den Poliçe Yükle</h1>
 
+    <% if (typeof jobId !== 'undefined' && jobId) { %>
+      <div class="card shadow-sm mb-4">
+        <div class="card-body">
+          <h5 class="card-title mb-3"><i class="bi bi-arrow-repeat"></i> İçe Aktarma Durumu</h5>
+          <div class="progress mb-2" role="progressbar" aria-valuemin="0" aria-valuemax="100">
+            <div class="progress-bar" id="importProgressBar" style="width: 0%"></div>
+          </div>
+          <div class="small text-muted" id="importProgressText">Hazırlanıyor...</div>
+          <div class="mt-3 d-flex gap-2">
+            <a href="/policies" class="btn btn-sm btn-outline-secondary">Poliçelere Git</a>
+            <a href="/policies/import" class="btn btn-sm btn-outline-primary">Yeni Yükleme</a>
+          </div>
+        </div>
+      </div>
+      <script>
+        (function () {
+          const jobId = "<%= jobId %>";
+          const bar = document.getElementById('importProgressBar');
+          const text = document.getElementById('importProgressText');
+
+          async function tick() {
+            try {
+              const res = await fetch('/api/import-status/' + encodeURIComponent(jobId));
+              const data = await res.json();
+              if (!data || data.status === 'not_found') {
+                text.textContent = 'Durum bulunamadı. Sayfayı yenileyin.';
+                return;
+              }
+              const total = Number(data.total || 0);
+              const processed = Number(data.processed || 0);
+              const imported = Number(data.imported || 0);
+              const updated = Number(data.updated || 0);
+              const percent = total > 0 ? Math.min(100, Math.round((processed / total) * 100)) : 0;
+              bar.style.width = percent + '%';
+
+              if (data.status === 'running') {
+                text.textContent = `İşleniyor: ${processed}/${total} | Yeni: ${imported} | Güncellenen: ${updated}`;
+                setTimeout(tick, 1500);
+              } else if (data.status === 'done') {
+                bar.classList.add('bg-success');
+                text.textContent = data.message || `Tamamlandı. Yeni: ${imported} | Güncellenen: ${updated}`;
+              } else if (data.status === 'error') {
+                bar.classList.add('bg-danger');
+                text.textContent = 'Hata: ' + (data.error || 'Bilinmeyen hata');
+              } else {
+                text.textContent = 'Durum: ' + data.status;
+              }
+            } catch (e) {
+              text.textContent = 'Durum alınamadı. Sayfayı yenileyin.';
+              setTimeout(tick, 2000);
+            }
+          }
+
+          tick();
+        })();
+      </script>
+    <% } %>
+
     <div class="card shadow-sm mb-4">
       <div class="card-body">
         <h5 class="card-title"><i class="bi bi-info-circle"></i> Nasıl Kullanılır?</h5>

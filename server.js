@@ -9,6 +9,7 @@ const expressLayouts = require('express-ejs-layouts');
 const ExcelJS = require('exceljs');
 const PDFDocument = require('pdfkit-table');
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 const db = require('./db');
 const dataService = require('./services/dataService');
 
@@ -26,6 +27,8 @@ try {
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+const importJobs = new Map();
 
 const USER = process.env.APP_USER || 'admin';
 const PASS = process.env.APP_PASS || 'admin123';
@@ -2286,31 +2289,34 @@ app.get('/policies', requireAuth, async (req, res) => {
 
 app.get('/policies/import', requireAuth, (req, res) => {
   if (!upload) return res.send('Dosya yükleme özelliği için "multer" modülü gerekli. Lütfen "npm install multer" komutunu çalıştırın.');
-  res.render('policies/import', { title: 'Excel İçe Aktar' });
+  res.render('policies/import', { title: 'Excel İçe Aktar', jobId: req.query.job || '' });
 });
 
-app.post('/policies/import', requireAuth, (req, res, next) => {
-  if (!upload) return res.status(500).send('Multer modülü eksik.');
-  upload.single('file')(req, res, next);
-}, async (req, res) => {
-  if (!req.file) return res.status(400).send('Dosya yüklenmedi');
+app.get('/api/import-status/:jobId', requireAuth, (req, res) => {
+  const job = importJobs.get(req.params.jobId);
+  if (!job) return res.json({ status: 'not_found' });
+  res.json(job);
+});
 
-  const wb = new ExcelJS.Workbook();
+async function runPoliciesImportJob(jobId, filePath) {
+  const job = importJobs.get(jobId);
+  if (!job) return;
+
   try {
-    await wb.xlsx.readFile(req.file.path);
+    const wb = new ExcelJS.Workbook();
+    await wb.xlsx.readFile(filePath);
     const ws = wb.getWorksheet(1);
     const data = await getContext();
-    
+
     let importedCount = 0;
     let updatedCount = 0;
-    let nextCustId = data.nextCustomerId || 1;
-    let nextPolId = data.nextId || 1;
 
-    const headerRow = ws.getRow(1);
     const normalizeHeader = (v) => String(v || '')
       .toLocaleLowerCase('tr-TR')
       .replace(/\s+/g, ' ')
       .trim();
+
+    const headerRow = ws.getRow(1);
     const headerByName = new Map();
     for (let i = 1; i <= headerRow.cellCount; i++) {
       const cell = headerRow.getCell(i);
@@ -2354,111 +2360,111 @@ app.post('/policies/import', requireAuth, (req, res, next) => {
           phone: findCol('Telefon') || 12
         };
 
-    const rowsToProcess = [];
-    ws.eachRow((row, rowNumber) => {
-      if (rowNumber === 1) return;
-      rowsToProcess.push(row);
-    });
-
-    // Tarih formatlama yardımcı fonksiyonu
     const formatExcelDate = (cell) => {
       if (!cell || cell.value === null || cell.value === undefined) return '';
-      
-      // Eğer hücre tipi zaten Date ise (ExcelJS otomatik tanımışsa)
+
       if (cell.type === ExcelJS.ValueType.Date || cell.value instanceof Date) {
         const d = dayjs(cell.value);
         return d.isValid() ? d.format('YYYY-MM-DD') : '';
       }
-      
+
       const text = String(cell.value || cell.text || '').trim();
       if (!text) return '';
-      
-      // GG.AA.YYYY veya GG/AA/YYYY formatını kontrol et
+
       const parts = text.split(/[\.\-\/]/);
       if (parts.length === 3) {
         let [d, m, y] = parts;
-        // Yılı 4 haneye tamamla (Örn: 25 -> 2025)
         if (y.length === 2) y = '20' + y;
-        
-        // Eğer format YYYY-MM-DD ise (yıl başta gelmişse)
         if (d.length === 4) {
           return `${d}-${m.padStart(2, '0')}-${y.padStart(2, '0')}`;
         }
-        
-        // Standart Türk formatı kabul et: DD-MM-YYYY
         return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
       }
-      
-      // Diğer formatları dayjs'e bırak
+
       const d = dayjs(text);
       return d.isValid() ? d.format('YYYY-MM-DD') : text;
     };
 
-    // Verileri gruplayarak toplu işlem yapalım (Performans için)
-    let processed = 0;
-    const totalRows = rowsToProcess.length;
-    console.log(`Toplu içe aktarma başladı: ${totalRows} satır işlenecek.`);
+    const normalizeName = (name) => String(name || '')
+      .toLocaleLowerCase('tr-TR')
+      .replace(/\s+/g, ' ')
+      .trim();
 
-    for (const row of rowsToProcess) {
-      processed++;
-      if (processed % 100 === 0) console.log(`İlerleme: ${processed}/${totalRows}...`);
-      
-      const getText = (col) => {
-        if (!col) return '';
-        const c = row.getCell(col);
-        return String(c.value ?? c.text ?? '').trim();
-      };
+    const customersByIdNo = new Map();
+    const customersByName = new Map();
+    for (const c of data.customers || []) {
+      if (c && c.id_no) customersByIdNo.set(String(c.id_no), c);
+      customersByName.set(normalizeName(c?.name), c);
+    }
 
-      const customerName = getText(cols.customerName);
-      const insurer = getText(cols.insurer);
-      const policyType = getText(cols.policyType);
+    const policiesByNumber = new Map();
+    for (const p of data.policies || []) {
+      if (p && p.policy_number) policiesByNumber.set(String(p.policy_number), p);
+    }
+
+    const getText = (row, col) => {
+      if (!col) return '';
+      const c = row.getCell(col);
+      return String(c.value ?? c.text ?? '').trim();
+    };
+
+    const rowCount = ws.rowCount || 0;
+    job.total = Math.max(rowCount - 1, 0);
+    job.processed = 0;
+    job.imported = 0;
+    job.updated = 0;
+
+    for (let r = 2; r <= rowCount; r++) {
+      const row = ws.getRow(r);
+      job.processed++;
+
+      const customerName = getText(row, cols.customerName);
+      const insurer = getText(row, cols.insurer);
+      const policyType = getText(row, cols.policyType);
       const issueDate = formatExcelDate(row.getCell(cols.issueDate));
       const startDate = formatExcelDate(row.getCell(cols.startDate));
       const endDate = formatExcelDate(row.getCell(cols.endDate));
-      const policyNumber = getText(cols.policyNumber);
-      const plate = getText(cols.plate);
-      const zeyilType = isLegacy ? '' : getText(cols.zeyilType);
-      const recordType = isLegacy ? getText(cols.recordType) : '';
-      const idNo = isLegacy ? '' : (getText(cols.idNo) || getText(cols.taxNo));
-      const phone = isLegacy ? '' : getText(cols.phone);
+      const policyNumber = getText(row, cols.policyNumber);
+      const plate = getText(row, cols.plate);
+
+      const zeyilType = isLegacy ? '' : getText(row, cols.zeyilType);
+      const recordType = isLegacy ? getText(row, cols.recordType) : '';
+      const idNo = isLegacy ? '' : (getText(row, cols.idNo) || getText(row, cols.taxNo));
+      const phone = isLegacy ? '' : getText(row, cols.phone);
 
       if (!customerName || !policyNumber) continue;
 
       let customer = null;
-      if (idNo) {
-        customer = data.customers.find(c => String(c.id_no) === String(idNo));
-      }
-      if (!customer) {
-        customer = data.customers.find(c => c.name.toLowerCase() === customerName.toLowerCase());
-      }
+      if (idNo) customer = customersByIdNo.get(String(idNo)) || null;
+      if (!customer) customer = customersByName.get(normalizeName(customerName)) || null;
 
       if (!customer) {
-        customer = {
-          id: nextCustId++,
+        const created = await dataService.createCustomer({
           name: customerName,
           phone: phone || '',
           id_no: idNo || '',
           email: '',
           birth_date: ''
-        };
-        const created = await dataService.createCustomer(customer);
-        customer.id = created.id; // Gerçek ID'yi al
-        data.customers.push(customer);
+        });
+        customer = created;
+        data.customers.push(created);
+        if (created.id_no) customersByIdNo.set(String(created.id_no), created);
+        customersByName.set(normalizeName(created.name), created);
       } else {
-        let needsUpdate = false;
-        const updateData = {};
-        if (idNo && !customer.id_no) { updateData.id_no = idNo; customer.id_no = idNo; needsUpdate = true; }
-        if (phone && !customer.phone) { updateData.phone = phone; customer.phone = phone; needsUpdate = true; }
-        
-        if (needsUpdate) {
-          await dataService.updateCustomer(customer.id, updateData);
+        const updates = {};
+        if (idNo && !customer.id_no) updates.id_no = idNo;
+        if (phone && !customer.phone) updates.phone = phone;
+        if (Object.keys(updates).length > 0) {
+          await dataService.updateCustomer(customer.id, updates);
+          Object.assign(customer, updates);
+          if (customer.id_no) customersByIdNo.set(String(customer.id_no), customer);
+          customersByName.set(normalizeName(customer.name), customer);
         }
       }
 
-      const existingPolicy = data.policies.find(p => String(p.policy_number) === String(policyNumber));
-      
+      const existingPolicy = policiesByNumber.get(String(policyNumber)) || null;
       if (!existingPolicy) {
-        const newPolicy = {
+        const newPolicy = await dataService.createPolicy({
           customer_id: customer.id,
           insurer: insurer || 'Bilinmiyor',
           policy_type: policyType || 'Diğer',
@@ -2478,13 +2484,12 @@ app.post('/policies/import', requireAuth, (req, res, next) => {
             registration_no: '',
             address_code: ''
           }
-        };
-        await dataService.createPolicy(newPolicy);
+        });
         data.policies.push(newPolicy);
+        policiesByNumber.set(String(newPolicy.policy_number), newPolicy);
         importedCount++;
       } else {
         const updates = {};
-
         if (insurer && existingPolicy.insurer !== insurer) updates.insurer = insurer;
         if (policyType && existingPolicy.policy_type !== policyType) updates.policy_type = policyType;
         if (issueDate && existingPolicy.issue_date !== issueDate) updates.issue_date = issueDate;
@@ -2508,21 +2513,42 @@ app.post('/policies/import', requireAuth, (req, res, next) => {
           updatedCount++;
         }
       }
+
+      job.imported = importedCount;
+      job.updated = updatedCount;
     }
 
-    if (fs.existsSync(req.file.path)) {
-      fs.unlinkSync(req.file.path);
-    }
-    res.redirect('/policies?msg=' + encodeURIComponent(`${importedCount} yeni poliçe eklendi, ${updatedCount} poliçe güncellendi.`));
+    job.status = 'done';
+    job.message = `${importedCount} yeni poliçe eklendi, ${updatedCount} poliçe güncellendi.`;
   } catch (err) {
-    console.error('Import Error:', err);
-    if (fs.existsSync(req.file.path)) {
-      fs.unlinkSync(req.file.path);
-    }
-    if (!res.headersSent) {
-      res.status(500).send('Dosya işlenirken hata oluştu: ' + err.message);
-    }
+    job.status = 'error';
+    job.error = err.message || String(err);
+  } finally {
+    try {
+      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    } catch (_) {}
   }
+}
+
+app.post('/policies/import', requireAuth, (req, res, next) => {
+  if (!upload) return res.status(500).send('Multer modülü eksik.');
+  upload.single('file')(req, res, next);
+}, async (req, res) => {
+  if (!req.file) return res.status(400).send('Dosya yüklenmedi');
+
+  const jobId = crypto.randomUUID();
+  importJobs.set(jobId, {
+    status: 'running',
+    processed: 0,
+    total: 0,
+    imported: 0,
+    updated: 0,
+    message: '',
+    error: ''
+  });
+
+  setImmediate(() => runPoliciesImportJob(jobId, req.file.path));
+  res.redirect('/policies/import?job=' + encodeURIComponent(jobId));
 });
 
 app.get('/policies/new', requireAuth, async (req, res) => {

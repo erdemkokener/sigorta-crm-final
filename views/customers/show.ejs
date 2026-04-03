@@ -59,6 +59,22 @@
         </div>
       </div>
     </div>
+
+    <div class="card shadow-sm mt-4">
+      <div class="card-header bg-light">
+        <h5 class="card-title mb-0">Poliçe Listesi</h5>
+      </div>
+      <div class="card-body">
+        <div class="d-grid gap-2">
+          <a href="/customers/<%= customer.id %>/policies/export.xlsx" class="btn btn-success">
+            <i class="bi bi-file-earmark-excel"></i> Excel Olarak İndir
+          </a>
+          <a href="/customers/<%= customer.id %>/policies/export.pdf" class="btn btn-outline-danger">
+            <i class="bi bi-file-earmark-pdf"></i> PDF Olarak İndir
+          </a>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- Özet İstatistikler -->
