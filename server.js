@@ -2524,6 +2524,56 @@ app.get('/policies/:id/edit', requireAuth, async (req, res) => {
   res.render('policies/edit', { title: 'Poliçe Düzenle', policy: p, customers: data.customers, salespersons });
 });
 
+app.post('/policies/delete-cancelled', requireAuth, async (req, res) => {
+  const data = await getContext();
+  const cancelled = data.policies.filter(p => {
+    const s = (p.status || '').toLowerCase().trim();
+    return s === 'cancelled' || s === 'iptal';
+  });
+  
+  for (const p of cancelled) {
+    await dataService.deletePolicy(p.id);
+  }
+  
+  res.redirect('/policies?msg=' + encodeURIComponent(`${cancelled.length} adet iptal edilmiş poliçe silindi.`));
+});
+
+app.post('/policies/reset-data', requireAuth, async (req, res) => {
+  // Veri sıfırlama rotası kullanıcı isteği üzerine tekrar aktif edildi.
+  // DİKKAT: Bu işlem tüm poliçe ve müşteri verilerini kalıcı olarak siler.
+  try {
+    await dataService.resetData();
+    res.redirect('/policies?msg=' + encodeURIComponent('Tüm veriler başarıyla sıfırlandı. Artık temiz bir başlangıç yapabilirsiniz.'));
+  } catch (err) {
+    res.status(500).send('Sıfırlama sırasında hata oluştu: ' + err.message);
+  }
+});
+
+app.post('/policies/delete-cancelled', requireAuth, async (req, res) => {
+  const data = await getContext();
+  const cancelled = data.policies.filter(p => {
+    const s = (p.status || '').toLowerCase().trim();
+    return s === 'cancelled' || s === 'iptal';
+  });
+  
+  for (const p of cancelled) {
+    await dataService.deletePolicy(p.id);
+  }
+  
+  res.redirect('/policies?msg=' + encodeURIComponent(`${cancelled.length} adet iptal edilmiş poliçe silindi.`));
+});
+
+app.post('/policies/reset-data', requireAuth, async (req, res) => {
+  // Veri sıfırlama rotası kullanıcı isteği üzerine tekrar aktif edildi.
+  // DİKKAT: Bu işlem tüm poliçe ve müşteri verilerini kalıcı olarak siler.
+  try {
+    await dataService.resetData();
+    res.redirect('/policies?msg=' + encodeURIComponent('Tüm veriler başarıyla sıfırlandı. Artık temiz bir başlangıç yapabilirsiniz.'));
+  } catch (err) {
+    res.status(500).send('Sıfırlama sırasında hata oluştu: ' + err.message);
+  }
+});
+
 app.post('/policies/:id/sold', requireAuth, async (req, res) => {
   try {
     const id = Number(req.params.id);
@@ -2549,6 +2599,12 @@ app.post('/policies/:id/sold', requireAuth, async (req, res) => {
     console.error(err);
     res.status(500).send('İşlem sırasında hata oluştu: ' + err.message);
   }
+});
+
+app.post('/policies/:id/delete', requireAuth, async (req, res) => {
+  const id = Number(req.params.id);
+  await dataService.deletePolicy(id);
+  res.redirect('/policies');
 });
 
 app.post('/policies/:id', requireAuth, async (req, res) => {
@@ -2582,32 +2638,6 @@ app.post('/policies/:id', requireAuth, async (req, res) => {
     console.error(err);
     res.status(500).send('Poliçe güncellenirken hata oluştu: ' + err.message);
   }
-});
-
-app.post('/policies/:id/delete', requireAuth, async (req, res) => {
-  const id = Number(req.params.id);
-  await dataService.deletePolicy(id);
-  res.redirect('/policies');
-});
-
-app.post('/policies/delete-cancelled', requireAuth, async (req, res) => {
-  const data = await getContext();
-  const cancelled = data.policies.filter(p => {
-    const s = (p.status || '').toLowerCase().trim();
-    return s === 'cancelled' || s === 'iptal';
-  });
-  
-  for (const p of cancelled) {
-    await dataService.deletePolicy(p.id);
-  }
-  
-  res.redirect('/policies?msg=' + encodeURIComponent(`${cancelled.length} adet iptal edilmiş poliçe silindi.`));
-});
-
-app.post('/policies/reset-data', requireAuth, async (req, res) => {
-  // Veri sıfırlama rotası güvenlik için tamamen devre dışı bırakıldı.
-  // Eğer veriyi gerçekten sıfırlamak istiyorsanız, MongoDB üzerinden veya veri dosyasından yapmalısınız.
-  return res.status(403).send('Veri sıfırlama güvenliğiniz için devre dışı bırakıldı.');
 });
 
 app.post('/api/manual-backup', requireAuth, async (req, res) => {
