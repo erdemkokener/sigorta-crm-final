@@ -2116,6 +2116,7 @@ app.post('/policies/import', requireAuth, (req, res, next) => {
     const ws = wb.getWorksheet(1);
     const data = await getContext();
     let importedCount = 0;
+    let updatedCount = 0;
 
     const rowsToProcess = [];
     ws.eachRow((row, rowNumber) => {
@@ -2124,35 +2125,55 @@ app.post('/policies/import', requireAuth, (req, res, next) => {
     });
 
     for (const row of rowsToProcess) {
-      // Sütun Düzeni: 1: Hesap Adı, 2: Ana Branş, 3: Şirket, 4: Tanzim Tarihi, 
-      // 5: Başlangıç Tarihi, 6: Bitiş Tarihi, 7: Poliçe No, 8: Plaka, 9: Kayıt Tipi
-      const customerName = row.getCell(1).text;
+      // Sütun Düzeni (Yeni Format):
+      // 1: Şirket Adı, 2: Acente Branş Adı, 3: Tanzim Tarihi, 4: Baş. Tarihi, 5: Bit. Tarihi, 
+      // 6: Tam Poliçe No, 7: Zeyil Adı, 8: Sigortalı, 9: Müşteri TC No, 10: Müşteri Vergi No, 11: Plaka
+      const insurer = row.getCell(1).text;
       const policyType = row.getCell(2).text;
-      const insurer = row.getCell(3).text;
-      const issueDate = row.getCell(4).text;
-      const startDate = row.getCell(5).text;
-      const endDate = row.getCell(6).text;
-      const policyNumber = row.getCell(7).text;
-      const plate = row.getCell(8).text;
+      const issueDate = row.getCell(3).text;
+      const startDate = row.getCell(4).text;
+      const endDate = row.getCell(5).text;
+      const policyNumber = row.getCell(6).text;
+      const zeyilType = row.getCell(7).text; // Zeyil Adı (Poliçe, Prim iade, Prim ilave vb.)
+      const customerName = row.getCell(8).text;
+      const idNo = row.getCell(9).text || row.getCell(10).text; // TC veya Vergi No
+      const plate = row.getCell(11).text;
 
       if (!customerName || !policyNumber) continue;
 
-      let customer = data.customers.find(c => 
-        c.name.toLowerCase() === customerName.toLowerCase()
-      );
+      // Müşteriyi bul veya oluştur
+      let customer = null;
+      
+      // 1. Önce TC/VKN ile ara (En güvenli yol)
+      if (idNo) {
+        customer = data.customers.find(c => c.id_no === idNo);
+      }
+      
+      // 2. Bulunamazsa İsim ile ara
+      if (!customer) {
+        customer = data.customers.find(c => c.name.toLowerCase() === customerName.toLowerCase());
+      }
 
       if (!customer) {
         customer = await dataService.createCustomer({
           name: customerName,
           phone: '',
-          id_no: '',
+          id_no: idNo || '',
           email: '',
           birth_date: ''
         });
         data.customers.push(customer);
+      } else if (idNo && !customer.id_no) {
+        // Müşteri var ama TC'si eksikse güncelle
+        await dataService.updateCustomer(customer.id, { id_no: idNo });
+        customer.id_no = idNo;
       }
 
+      // Poliçeyi kontrol et (Poliçe No + Zeyil Durumu)
+      // Zeyil adı "Poliçe" değilse (Prim iade/ilave vb.), bunu poliçe detayına not düşebiliriz 
+      // veya ayrı poliçe olarak kaydedebiliriz. Şimdilik poliçe no ile tekilleştiriyoruz.
       const existingPolicy = data.policies.find(p => p.policy_number === policyNumber);
+      
       if (!existingPolicy) {
         const newPolicy = await dataService.createPolicy({
           customer_id: customer.id,
@@ -2162,8 +2183,8 @@ app.post('/policies/import', requireAuth, (req, res, next) => {
           issue_date: issueDate || '',
           start_date: startDate || '',
           end_date: endDate || '',
-          description: '',
-          status: 'active',
+          description: zeyilType ? `Zeyil: ${zeyilType}` : '',
+          status: (zeyilType && zeyilType.toLowerCase().includes('iade')) ? 'İptal Edildi' : 'active',
           created_at: dayjs().toISOString(),
           notified_14: false,
           notified_end: false,
@@ -2175,13 +2196,20 @@ app.post('/policies/import', requireAuth, (req, res, next) => {
         });
         data.policies.push(newPolicy);
         importedCount++;
+      } else {
+        // Poliçe varsa durumunu güncelle (İade gelmişse iptal et)
+        if (zeyilType && zeyilType.toLowerCase().includes('iade')) {
+          await dataService.updatePolicy(existingPolicy.id, { status: 'İptal Edildi' });
+          existingPolicy.status = 'İptal Edildi';
+          updatedCount++;
+        }
       }
     }
 
     if (fs.existsSync(req.file.path)) {
       fs.unlinkSync(req.file.path);
     }
-    res.redirect('/policies?msg=' + encodeURIComponent(`${importedCount} adet poliçe başarıyla eklendi.`));
+    res.redirect('/policies?msg=' + encodeURIComponent(`${importedCount} yeni poliçe eklendi, ${updatedCount} poliçe güncellendi.`));
   } catch (err) {
     console.error('Import Error:', err);
     if (fs.existsSync(req.file.path)) {
@@ -2345,26 +2373,30 @@ app.get('/policies/template.xlsx', requireAuth, async (req, res) => {
   const wb = new ExcelJS.Workbook();
   const ws = wb.addWorksheet('Sablon');
   ws.columns = [
-    { header: 'Hesap Adı', key: 'name', width: 25 },
-    { header: 'Ana Branş', key: 'policy_type', width: 15 },
-    { header: 'Şirket', key: 'insurer', width: 20 },
+    { header: 'Şirket Adı', key: 'insurer', width: 20 },
+    { header: 'Acente Branş Adı', key: 'policy_type', width: 20 },
     { header: 'Tanzim Tarihi', key: 'issue_date', width: 15 },
-    { header: 'Başlangıç Tarihi', key: 'start_date', width: 15 },
-    { header: 'Bitiş Tarihi', key: 'end_date', width: 15 },
-    { header: 'Poliçe No', key: 'policy_number', width: 20 },
-    { header: 'Plaka', key: 'plate', width: 15 },
-    { header: 'Kayıt Tipi', key: 'record_type', width: 15 }
+    { header: 'Baş. Tarihi', key: 'start_date', width: 15 },
+    { header: 'Bit. Tarihi', key: 'end_date', width: 15 },
+    { header: 'Tam Poliçe No', key: 'policy_number', width: 20 },
+    { header: 'Zeyil Adı', key: 'zeyil_type', width: 15 },
+    { header: 'Sigortalı', key: 'name', width: 25 },
+    { header: 'Müşteri TC No', key: 'id_no', width: 15 },
+    { header: 'Müşteri Vergi No', key: 'tax_no', width: 15 },
+    { header: 'Plaka', key: 'plate', width: 15 }
   ];
   ws.addRow({
-    name: 'Örnek Müşteri',
-    policy_type: 'Oto Kaza (Trafik)',
-    insurer: 'AK SİGORTA',
-    issue_date: '02.01.2025',
-    start_date: '02.01.2025',
-    end_date: '02.01.2026',
-    policy_number: '388168447',
-    plate: '35RH603',
-    record_type: 'Normal'
+    insurer: 'MAGDEBURGER SİGORTA',
+    policy_type: 'Trafik',
+    issue_date: '31.10.2025',
+    start_date: '03.11.2025',
+    end_date: '30.12.2025',
+    policy_number: '144298106',
+    zeyil_type: 'Poliçe',
+    name: 'ÖRNEK MÜŞTERİ LTD ŞTİ',
+    id_no: '',
+    tax_no: '5441536271',
+    plate: '45AZG844'
   });
   
   res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
