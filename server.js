@@ -2113,6 +2113,133 @@ app.get('/customers/:id/vehicles/export.xlsx', requireAuth, async (req, res) => 
   res.end();
 });
 
+app.get('/customers/:id/policies/export.xlsx', requireAuth, async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    const data = await getContext();
+    const customer = data.customers.find(c => c.id == id);
+    if (!customer) return res.status(404).send('Müşteri bulunamadı');
+
+    const policies = data.policies
+      .filter(p => p.customer_id == id)
+      .map(p => policyWithComputed(attachCustomer(p, data)))
+      .sort((a, b) => dayjs(b.end_date || '').valueOf() - dayjs(a.end_date || '').valueOf());
+
+    const fmt = (v) => {
+      if (!v) return '';
+      const d = dayjs(v);
+      return d.isValid() ? d.format('DD.MM.YYYY') : String(v);
+    };
+
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet('Poliçeler');
+
+    ws.columns = [
+      { header: 'Poliçe No', key: 'policy_number', width: 20 },
+      { header: 'Şirket', key: 'insurer', width: 22 },
+      { header: 'Tür', key: 'policy_type', width: 18 },
+      { header: 'Tanzim', key: 'issue_date', width: 12 },
+      { header: 'Başlangıç', key: 'start_date', width: 12 },
+      { header: 'Bitiş', key: 'end_date', width: 12 },
+      { header: 'Durum', key: 'status', width: 12 },
+      { header: 'Plaka', key: 'plate', width: 14 },
+      { header: 'Açıklama', key: 'description', width: 40 }
+    ];
+
+    for (const p of policies) {
+      const plate = p.policy_details?.plate ? String(p.policy_details.plate).trim().toUpperCase() : '';
+      ws.addRow({
+        policy_number: p.policy_number || '',
+        insurer: p.insurer || '',
+        policy_type: p.policy_type || '',
+        issue_date: fmt(p.issue_date || p.start_date),
+        start_date: fmt(p.start_date),
+        end_date: fmt(p.end_date),
+        status: p.status || '',
+        plate,
+        description: p.description || ''
+      });
+    }
+
+    const safeName = (customer.name || 'musteri').replace(/[^a-zA-Z0-9]/g, '_');
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="policeler_${safeName}.xlsx"`);
+    await wb.xlsx.write(res);
+    res.end();
+  } catch (err) {
+    console.error('Customer policies export excel error:', err);
+    res.status(500).send('Excel dosyası oluşturulurken hata oluştu: ' + err.message);
+  }
+});
+
+app.get('/customers/:id/policies/export.pdf', requireAuth, async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    const data = await getContext();
+    const customer = data.customers.find(c => c.id == id);
+    if (!customer) return res.status(404).send('Müşteri bulunamadı');
+
+    const policies = data.policies
+      .filter(p => p.customer_id == id)
+      .map(p => policyWithComputed(attachCustomer(p, data)))
+      .sort((a, b) => dayjs(b.end_date || '').valueOf() - dayjs(a.end_date || '').valueOf());
+
+    const fmt = (v) => {
+      if (!v) return '-';
+      const d = dayjs(v);
+      return d.isValid() ? d.format('DD.MM.YYYY') : String(v);
+    };
+
+    const doc = new PDFDocument({ margin: 30, size: 'A4' });
+    const safeName = (customer.name || 'musteri').replace(/[^a-zA-Z0-9]/g, '_');
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="policeler_${safeName}.pdf"`);
+    doc.pipe(res);
+
+    doc.fontSize(18).text('MUSTERI POLICE LISTESI', { align: 'center' });
+    doc.moveDown();
+    doc.fontSize(12).text(`Musteri: ${customer.name}`);
+    doc.text(`Tarih: ${dayjs().format('DD.MM.YYYY HH:mm')}`);
+    doc.moveDown();
+
+    const rows = policies.map(p => {
+      const plate = p.policy_details?.plate ? String(p.policy_details.plate).trim().toUpperCase() : '-';
+      const desc = (p.description || '').toString().replace(/\s+/g, ' ').trim();
+      return [
+        p.policy_number || '-',
+        p.insurer || '-',
+        p.policy_type || '-',
+        fmt(p.issue_date || p.start_date),
+        fmt(p.start_date),
+        fmt(p.end_date),
+        plate,
+        desc || '-'
+      ];
+    });
+
+    if (rows.length > 0) {
+      await doc.table(
+        {
+          title: 'Policeler',
+          headers: ['Poliçe No', 'Şirket', 'Tür', 'Tanzim', 'Baş.', 'Bitiş', 'Plaka', 'Açıklama'],
+          rows
+        },
+        {
+          prepareHeader: () => doc.fontSize(8),
+          prepareRow: () => doc.fontSize(8)
+        }
+      );
+    } else {
+      doc.text('Bu müşteriye ait poliçe bulunamadı.');
+    }
+
+    doc.end();
+  } catch (err) {
+    console.error('Customer policies export pdf error:', err);
+    if (!res.headersSent) res.status(500).send('PDF dosyası oluşturulurken hata oluştu: ' + err.message);
+  }
+});
+
 app.post('/customers/:id', requireAuth, async (req, res) => {
   const id = Number(req.params.id);
   const currentUser = req.session.user;
@@ -2179,9 +2306,57 @@ app.post('/policies/import', requireAuth, (req, res, next) => {
     let nextCustId = data.nextCustomerId || 1;
     let nextPolId = data.nextId || 1;
 
+    const headerRow = ws.getRow(1);
+    const normalizeHeader = (v) => String(v || '')
+      .toLocaleLowerCase('tr-TR')
+      .replace(/\s+/g, ' ')
+      .trim();
+    const headerByName = new Map();
+    for (let i = 1; i <= headerRow.cellCount; i++) {
+      const cell = headerRow.getCell(i);
+      const raw = cell.text || cell.value;
+      const key = normalizeHeader(raw);
+      if (key) headerByName.set(key, i);
+    }
+    const findCol = (...names) => {
+      for (const n of names) {
+        const idx = headerByName.get(normalizeHeader(n));
+        if (idx) return idx;
+      }
+      return null;
+    };
+    const isLegacy = !!findCol('Hesap Adı', 'Hesap Adi');
+
+    const cols = isLegacy
+      ? {
+          customerName: findCol('Hesap Adı', 'Hesap Adi') || 1,
+          policyType: findCol('Ana Branş', 'Ana Brans') || 2,
+          insurer: findCol('Şirket', 'Sirket') || 3,
+          issueDate: findCol('Tanzim Tarihi', 'Tanzim') || 4,
+          startDate: findCol('Başlangıç Tarihi', 'Baslangic Tarihi', 'Başlangıç', 'Baslangic') || 5,
+          endDate: findCol('Bitiş Tarihi', 'Bitis Tarihi', 'Bitiş', 'Bitis') || 6,
+          policyNumber: findCol('Poliçe No', 'Police No') || 7,
+          plate: findCol('Plaka') || 8,
+          recordType: findCol('Kayıt Tipi', 'Kayit Tipi', 'Durum') || 9
+        }
+      : {
+          insurer: findCol('Şirket Adı', 'Sirket Adi', 'Şirket', 'Sirket') || 1,
+          policyType: findCol('Acente Branş Adı', 'Acente Brans Adi', 'Branş', 'Brans', 'Ana Branş', 'Ana Brans') || 2,
+          issueDate: findCol('Tanzim Tarihi', 'Tanzim') || 3,
+          startDate: findCol('Baş. Tarihi', 'Bas. Tarihi', 'Başlangıç Tarihi', 'Baslangic Tarihi', 'Başlangıç', 'Baslangic') || 4,
+          endDate: findCol('Bit. Tarihi', 'Bit. Tarihi', 'Bitiş Tarihi', 'Bitis Tarihi', 'Bitiş', 'Bitis') || 5,
+          policyNumber: findCol('Tam Poliçe No', 'Tam Police No', 'Poliçe No', 'Police No') || 6,
+          zeyilType: findCol('Zeyil Adı', 'Zeyil Adi', 'Zeyil') || 7,
+          customerName: findCol('Sigortalı', 'Sigortali', 'Hesap Adı', 'Hesap Adi') || 8,
+          idNo: findCol('Müşteri TC No', 'Musteri TC No', 'TC', 'TCKN') || 9,
+          taxNo: findCol('Müşteri Vergi No', 'Musteri Vergi No', 'VKN', 'Vergi No') || 10,
+          plate: findCol('Plaka') || 11,
+          phone: findCol('Telefon') || 12
+        };
+
     const rowsToProcess = [];
     ws.eachRow((row, rowNumber) => {
-      if (rowNumber === 1) return; // Header row
+      if (rowNumber === 1) return;
       rowsToProcess.push(row);
     });
 
@@ -2228,20 +2403,24 @@ app.post('/policies/import', requireAuth, (req, res, next) => {
       processed++;
       if (processed % 100 === 0) console.log(`İlerleme: ${processed}/${totalRows}...`);
       
-      // Sütun Düzeni (Yeni Format):
-      // 1: Şirket Adı, 2: Acente Branş Adı, 3: Tanzim Tarihi, 4: Baş. Tarihi, 5: Bit. Tarihi, 
-      // 6: Tam Poliçe No, 7: Zeyil Adı, 8: Sigortalı, 9: Müşteri TC No, 10: Müşteri Vergi No, 11: Plaka, 12: Telefon
-      const insurer = row.getCell(1).text?.trim();
-      const policyType = row.getCell(2).text?.trim();
-      const issueDate = formatExcelDate(row.getCell(3));
-      const startDate = formatExcelDate(row.getCell(4));
-      const endDate = formatExcelDate(row.getCell(5));
-      const policyNumber = row.getCell(6).text?.trim();
-      const zeyilType = row.getCell(7).text?.trim();
-      const customerName = row.getCell(8).text?.trim();
-      const idNo = (row.getCell(9).text || row.getCell(10).text)?.trim();
-      const plate = row.getCell(11).text?.trim();
-      const phone = row.getCell(12).text?.trim();
+      const getText = (col) => {
+        if (!col) return '';
+        const c = row.getCell(col);
+        return String(c.value ?? c.text ?? '').trim();
+      };
+
+      const customerName = getText(cols.customerName);
+      const insurer = getText(cols.insurer);
+      const policyType = getText(cols.policyType);
+      const issueDate = formatExcelDate(row.getCell(cols.issueDate));
+      const startDate = formatExcelDate(row.getCell(cols.startDate));
+      const endDate = formatExcelDate(row.getCell(cols.endDate));
+      const policyNumber = getText(cols.policyNumber);
+      const plate = getText(cols.plate);
+      const zeyilType = isLegacy ? '' : getText(cols.zeyilType);
+      const recordType = isLegacy ? getText(cols.recordType) : '';
+      const idNo = isLegacy ? '' : (getText(cols.idNo) || getText(cols.taxNo));
+      const phone = isLegacy ? '' : getText(cols.phone);
 
       if (!customerName || !policyNumber) continue;
 
@@ -2254,7 +2433,6 @@ app.post('/policies/import', requireAuth, (req, res, next) => {
       }
 
       if (!customer) {
-        // Yeni müşteri
         customer = {
           id: nextCustId++,
           name: customerName,
@@ -2263,12 +2441,10 @@ app.post('/policies/import', requireAuth, (req, res, next) => {
           email: '',
           birth_date: ''
         };
-        // DB'ye hemen kaydedelim (ID çakışması olmaması için dataService üzerinden değil doğrudan modelle de yapılabilir ama dataService tercih edelim)
         const created = await dataService.createCustomer(customer);
         customer.id = created.id; // Gerçek ID'yi al
         data.customers.push(customer);
       } else {
-        // Mevcut müşteri güncelleme
         let needsUpdate = false;
         const updateData = {};
         if (idNo && !customer.id_no) { updateData.id_no = idNo; customer.id_no = idNo; needsUpdate = true; }
@@ -2291,7 +2467,9 @@ app.post('/policies/import', requireAuth, (req, res, next) => {
           start_date: startDate || '',
           end_date: endDate || '',
           description: zeyilType ? `Zeyil: ${zeyilType}` : '',
-          status: (zeyilType && zeyilType.toLowerCase().includes('iade')) ? 'İptal Edildi' : 'active',
+          status: isLegacy
+            ? ((recordType || '').toLocaleLowerCase('tr-TR').includes('iptal') ? 'cancelled' : 'active')
+            : ((zeyilType && zeyilType.toLowerCase().includes('iade')) ? 'İptal Edildi' : 'active'),
           created_at: dayjs().toISOString(),
           notified_14: false,
           notified_end: false,
@@ -2305,9 +2483,28 @@ app.post('/policies/import', requireAuth, (req, res, next) => {
         data.policies.push(newPolicy);
         importedCount++;
       } else {
-        if (zeyilType && zeyilType.toLowerCase().includes('iade') && existingPolicy.status !== 'İptal Edildi') {
-          await dataService.updatePolicy(existingPolicy.id, { status: 'İptal Edildi' });
-          existingPolicy.status = 'İptal Edildi';
+        const updates = {};
+
+        if (insurer && existingPolicy.insurer !== insurer) updates.insurer = insurer;
+        if (policyType && existingPolicy.policy_type !== policyType) updates.policy_type = policyType;
+        if (issueDate && existingPolicy.issue_date !== issueDate) updates.issue_date = issueDate;
+        if (startDate && existingPolicy.start_date !== startDate) updates.start_date = startDate;
+        if (endDate && existingPolicy.end_date !== endDate) updates.end_date = endDate;
+
+        const importStatus = isLegacy
+          ? ((recordType || '').toLocaleLowerCase('tr-TR').includes('iptal') ? 'cancelled' : 'active')
+          : ((zeyilType && zeyilType.toLowerCase().includes('iade')) ? 'İptal Edildi' : null);
+        if (importStatus && existingPolicy.status !== importStatus) updates.status = importStatus;
+
+        const currentDetails = existingPolicy.policy_details || {};
+        const plateClean = plate ? String(plate).trim() : '';
+        if (plateClean && String(currentDetails.plate || '').trim() !== plateClean) {
+          updates.policy_details = { ...currentDetails, plate: plateClean };
+        }
+
+        if (Object.keys(updates).length > 0) {
+          await dataService.updatePolicy(existingPolicy.id, updates);
+          Object.assign(existingPolicy, updates);
           updatedCount++;
         }
       }
