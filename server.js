@@ -2008,6 +2008,54 @@ app.get('/customers/:id/edit', requireAuth, async (req, res) => {
   res.render('customers/edit', { title: 'Müşteri Düzenle', customer: c, salespersons });
 });
 
+// Müşteri Bilgilerini (Telefon vb.) Excel'den Güncelleme
+app.post('/customers/import-extra', requireAuth, (req, res, next) => {
+  if (!upload) return res.status(500).send('Multer modülü eksik.');
+  upload.single('file')(req, res, next);
+}, async (req, res) => {
+  if (!req.file) return res.status(400).send('Dosya yüklenmedi');
+
+  const wb = new ExcelJS.Workbook();
+  try {
+    await wb.xlsx.readFile(req.file.path);
+    const ws = wb.getWorksheet(1);
+    const data = await getContext();
+    let updatedCount = 0;
+
+    const rows = [];
+    ws.eachRow(row => rows.push(row));
+
+    for (const row of rows) {
+      const cellText = row.getCell(1).text || '';
+      if (!cellText.includes('Telefon')) continue;
+
+      const parts = cellText.split('Telefon');
+      const rawName = parts[0].trim().split('\n')[0].trim();
+      const rawPhonePart = parts[1] || '';
+      const phoneMatch = rawPhonePart.match(/(\+?\d[\d\s]{8,})/);
+      const cleanPhone = phoneMatch ? phoneMatch[0].replace(/\s+/g, '').trim() : '';
+
+      if (rawName && cleanPhone) {
+        const customer = data.customers.find(c => c.name.toLowerCase() === rawName.toLowerCase());
+        if (customer) {
+          if (!customer.phone || customer.phone !== cleanPhone) {
+            await dataService.updateCustomer(customer.id, { phone: cleanPhone });
+            customer.phone = cleanPhone;
+            updatedCount++;
+          }
+        }
+      }
+    }
+
+    if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+    res.redirect('/customers?msg=' + encodeURIComponent(`${updatedCount} müşterinin telefon bilgisi güncellendi.`));
+  } catch (err) {
+    console.error('Import Extra Error:', err);
+    if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+    if (!res.headersSent) res.status(500).send('Hata: ' + err.message);
+  }
+});
+
 app.get('/customers/:id/vehicles/export.xlsx', requireAuth, async (req, res) => {
   const id = Number(req.params.id);
   const data = await getContext();
