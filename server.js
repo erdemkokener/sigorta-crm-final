@@ -2027,8 +2027,8 @@ app.post('/customers/import-extra', requireAuth, (req, res, next) => {
 
     for (const row of rows) {
       const cell = row.getCell(1);
-      const cellText = String(cell.value || cell.text || '');
-      if (!cellText || !cellText.includes('Telefon')) continue;
+      const cellText = ('' + (cell.value ?? cell.text ?? '')).replace(/\r/g, '\n');
+      if (cellText.indexOf('Telefon') === -1) continue;
 
       const parts = cellText.split('Telefon');
       const rawName = parts[0].trim().split('\n')[0].trim();
