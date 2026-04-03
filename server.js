@@ -194,6 +194,7 @@ app.use(session({
 app.use((req, res, next) => {
   res.locals.user = req.session.user || null;
   res.locals.fileMode = !db.isConnected();
+  res.locals.dbError = db.getLastError();
   next();
 });
 
@@ -2453,11 +2454,9 @@ app.post('/policies/delete-cancelled', requireAuth, async (req, res) => {
 });
 
 app.post('/policies/reset-data', requireAuth, async (req, res) => {
-  if (process.env.ALLOW_RESET !== 'true') {
-    return res.status(403).send('Veri sıfırlama devre dışı');
-  }
-  await dataService.resetData();
-  res.redirect('/policies?msg=' + encodeURIComponent('Tüm veriler başarıyla sıfırlandı.'));
+  // Veri sıfırlama rotası güvenlik için tamamen devre dışı bırakıldı.
+  // Eğer veriyi gerçekten sıfırlamak istiyorsanız, MongoDB üzerinden veya veri dosyasından yapmalısınız.
+  return res.status(403).send('Veri sıfırlama güvenliğiniz için devre dışı bırakıldı.');
 });
 
 app.post('/api/manual-backup', requireAuth, async (req, res) => {

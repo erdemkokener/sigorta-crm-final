@@ -44,11 +44,15 @@
   </header>
   <main class="container">
     <% if (typeof fileMode !== 'undefined' && fileMode) { %>
-      <div class="alert alert-warning d-flex align-items-center" role="alert">
-        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+      <div class="alert alert-danger d-flex align-items-center" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2 fs-3"></i>
         <div>
-          Şu an veriler dosyada tutuluyor. Bulutta (Render) deploy sonrası dosyalar sıfırlanabilir.
-          Kalıcı kayıt için Render ortamında <b>MONGODB_URI</b> ayarlayın.
+          <strong>KRİTİK UYARI:</strong> Sistem şu anda "Geçici Dosya Modu"nda çalışıyor. 
+          Render üzerindeki her yeni güncellemede verileriniz <strong>SİLİNECEKTİR</strong>. 
+          <% if (typeof dbError !== 'undefined' && dbError) { %>
+            <br><small><strong>Bağlantı Hatası:</strong> <%= dbError %></small>
+          <% } %>
+          <br>Verilerin kalıcı olması için mutlaka Render panelinden <b>MONGODB_URI</b> (MongoDB Atlas) ayarını yapmalısınız ve Atlas panelinden <b>0.0.0.0/0</b> IP izni vermelisiniz.
         </div>
       </div>
     <% } %>

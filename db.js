@@ -1,20 +1,34 @@
 const mongoose = require('mongoose');
 
 let isConnected = false;
+let lastError = null;
 
 async function connectDB() {
   if (isConnected) return;
   
   const uri = process.env.MONGODB_URI;
-  if (!uri) return; // No URI, running in file mode
+  if (!uri) {
+    lastError = 'MONGODB_URI tanımlı değil. Sistem geçici dosya modunda çalışıyor.';
+    return;
+  }
 
   try {
-    await mongoose.connect(uri);
+    await mongoose.connect(uri, {
+      serverSelectionTimeoutMS: 5000,
+      socketTimeoutMS: 45000,
+    });
     isConnected = true;
-    console.log('MongoDB bağlantısı başarılı.');
+    lastError = null;
+    console.log('--- MONGODB BAĞLANTISI BAŞARILI ---');
   } catch (err) {
-    console.error('MongoDB bağlantı hatası:', err);
+    isConnected = false;
+    lastError = err.message;
+    console.error('--- MONGODB BAĞLANTI HATASI ---', err.message);
   }
 }
 
-module.exports = { connectDB, isConnected: () => isConnected };
+module.exports = { 
+  connectDB, 
+  isConnected: () => isConnected,
+  getLastError: () => lastError 
+};
