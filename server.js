@@ -2124,33 +2124,28 @@ app.post('/policies/import', requireAuth, (req, res, next) => {
     });
 
     for (const row of rowsToProcess) {
-      // Current Export Format: 
-      // 1: Ad Soyad, 2: TC/VKN, 3: Telefon, 4: Plaka, 5: Ruhsat Tescil No, 
-      // 6: Poliçe No, 7: Tanzim Tarihi, 8: Başlangıç Tarihi, 9: Bitiş Tarihi, 
-      // 10: UAVT (Adres Kodu), 11: Poliçe Türü
+      // Sütun Düzeni: 1: Hesap Adı, 2: Ana Branş, 3: Şirket, 4: Tanzim Tarihi, 
+      // 5: Başlangıç Tarihi, 6: Bitiş Tarihi, 7: Poliçe No, 8: Plaka, 9: Kayıt Tipi
       const customerName = row.getCell(1).text;
-      const idNo = row.getCell(2).text;
-      const phone = row.getCell(3).text;
-      const plate = row.getCell(4).text;
-      const registrationNo = row.getCell(5).text;
-      const policyNumber = row.getCell(6).text;
-      const issueDate = row.getCell(7).text;
-      const startDate = row.getCell(8).text;
-      const endDate = row.getCell(9).text;
-      const addressCode = row.getCell(10).text;
-      const policyType = row.getCell(11).text;
+      const policyType = row.getCell(2).text;
+      const insurer = row.getCell(3).text;
+      const issueDate = row.getCell(4).text;
+      const startDate = row.getCell(5).text;
+      const endDate = row.getCell(6).text;
+      const policyNumber = row.getCell(7).text;
+      const plate = row.getCell(8).text;
 
       if (!customerName || !policyNumber) continue;
 
       let customer = data.customers.find(c => 
-        (idNo && c.id_no === idNo) || (c.name.toLowerCase() === customerName.toLowerCase())
+        c.name.toLowerCase() === customerName.toLowerCase()
       );
 
       if (!customer) {
         customer = await dataService.createCustomer({
           name: customerName,
-          phone: phone || '',
-          id_no: idNo || '',
+          phone: '',
+          id_no: '',
           email: '',
           birth_date: ''
         });
@@ -2161,7 +2156,7 @@ app.post('/policies/import', requireAuth, (req, res, next) => {
       if (!existingPolicy) {
         const newPolicy = await dataService.createPolicy({
           customer_id: customer.id,
-          insurer: 'Bilinmiyor',
+          insurer: insurer || 'Bilinmiyor',
           policy_type: policyType || 'Diğer',
           policy_number: policyNumber,
           issue_date: issueDate || '',
@@ -2174,8 +2169,8 @@ app.post('/policies/import', requireAuth, (req, res, next) => {
           notified_end: false,
           policy_details: {
             plate: plate || '',
-            registration_no: registrationNo || '',
-            address_code: addressCode || ''
+            registration_no: '',
+            address_code: ''
           }
         });
         data.policies.push(newPolicy);
@@ -2350,30 +2345,26 @@ app.get('/policies/template.xlsx', requireAuth, async (req, res) => {
   const wb = new ExcelJS.Workbook();
   const ws = wb.addWorksheet('Sablon');
   ws.columns = [
-    { header: 'Ad Soyad', key: 'name', width: 25 },
-    { header: 'TC/VKN', key: 'id_no', width: 15 },
-    { header: 'Telefon', key: 'phone', width: 15 },
-    { header: 'Plaka', key: 'plate', width: 15 },
-    { header: 'Ruhsat Tescil No', key: 'registration_no', width: 20 },
-    { header: 'Poliçe No', key: 'policy_number', width: 15 },
+    { header: 'Hesap Adı', key: 'name', width: 25 },
+    { header: 'Ana Branş', key: 'policy_type', width: 15 },
+    { header: 'Şirket', key: 'insurer', width: 20 },
     { header: 'Tanzim Tarihi', key: 'issue_date', width: 15 },
     { header: 'Başlangıç Tarihi', key: 'start_date', width: 15 },
     { header: 'Bitiş Tarihi', key: 'end_date', width: 15 },
-    { header: 'UAVT (Adres Kodu)', key: 'address_code', width: 20 },
-    { header: 'Poliçe Türü', key: 'policy_type', width: 15 }
+    { header: 'Poliçe No', key: 'policy_number', width: 20 },
+    { header: 'Plaka', key: 'plate', width: 15 },
+    { header: 'Kayıt Tipi', key: 'record_type', width: 15 }
   ];
   ws.addRow({
     name: 'Örnek Müşteri',
-    id_no: '11111111111',
-    phone: '5551234567',
-    plate: '34ABC123',
-    registration_no: 'AA123456',
-    policy_number: '12345678',
-    issue_date: '01.01.2026',
-    start_date: '01.01.2026',
-    end_date: '01.01.2027',
-    address_code: '1234567890',
-    policy_type: 'Trafik'
+    policy_type: 'Oto Kaza (Trafik)',
+    insurer: 'AK SİGORTA',
+    issue_date: '02.01.2025',
+    start_date: '02.01.2025',
+    end_date: '02.01.2026',
+    policy_number: '388168447',
+    plate: '35RH603',
+    record_type: 'Normal'
   });
   
   res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
