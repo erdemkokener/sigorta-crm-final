@@ -27,6 +27,7 @@ try {
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const BACKUP_CRON_TOKEN = process.env.BACKUP_CRON_TOKEN || '';
 
 const importJobs = new Map();
 
@@ -178,6 +179,10 @@ init().then(() => {
   app.listen(PORT, () => {
     console.log(`Sigorta CRM sunucu çalışıyor: http://localhost:${PORT}`);
   });
+  checkAndRunScheduledBackups().catch(err => console.error('Scheduled backup error:', err));
+  setInterval(() => {
+    checkAndRunScheduledBackups().catch(err => console.error('Scheduled backup error:', err));
+  }, 60 * 60 * 1000);
 });
 async function getContext() {
   return await dataService.getAllData();
@@ -580,6 +585,24 @@ async function checkAndRunMonthlyBackup() {
   } catch (err) {
     console.error('Otomatik yedekleme hatası:', err);
   }
+}
+
+async function checkAndRunScheduledBackups() {
+  const today = dayjs();
+  const day = today.date();
+  if (day !== 1 && day !== 28) return;
+
+  const backupDir = path.join(__dirname, 'backups');
+  if (!fs.existsSync(backupDir)) {
+    fs.mkdirSync(backupDir, { recursive: true });
+  }
+
+  const stamp = today.format('YYYY-MM-DD');
+  const flag = path.join(backupDir, `backup-${stamp}.done`);
+  if (fs.existsSync(flag)) return;
+
+  await runBackupAndMail(false);
+  fs.writeFileSync(flag, new Date().toISOString());
 }
 
 async function checkExpirationsAndNotify(force = false) {
@@ -2871,6 +2894,19 @@ app.post('/api/manual-backup', requireAuth, async (req, res) => {
   } catch (err) {
     lastSmtpError = err.message;
     res.redirect('/settings?msg=Yedekleme sırasında hata oluştu: ' + err.message);
+  }
+});
+
+app.post('/api/cron/backup', async (req, res) => {
+  const token = String(req.headers['x-cron-token'] || req.query.token || req.body?.token || '');
+  if (!BACKUP_CRON_TOKEN || token !== BACKUP_CRON_TOKEN) {
+    return res.status(403).send('Yetkisiz');
+  }
+  try {
+    await runBackupAndMail(false);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
   }
 });
 
