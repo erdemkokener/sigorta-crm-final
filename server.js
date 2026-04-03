@@ -15,6 +15,10 @@ const dataService = require('./services/dataService');
 let multer, upload;
 try {
   multer = require('multer');
+  const uploadDir = path.join(__dirname, 'uploads');
+  if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+  }
   upload = multer({ dest: 'uploads/' });
 } catch (e) {
   console.log('Multer modülü bulunamadı. Dosya yükleme çalışmayacak.');
@@ -2115,27 +2119,31 @@ app.post('/policies/import', requireAuth, (req, res, next) => {
 
     const rowsToProcess = [];
     ws.eachRow((row, rowNumber) => {
-      if (rowNumber === 1) return;
+      if (rowNumber === 1) return; // Header row
       rowsToProcess.push(row);
     });
 
     for (const row of rowsToProcess) {
+      // Current Export Format: 
+      // 1: Ad Soyad, 2: TC/VKN, 3: Telefon, 4: Plaka, 5: Ruhsat Tescil No, 
+      // 6: Poliçe No, 7: Tanzim Tarihi, 8: Başlangıç Tarihi, 9: Bitiş Tarihi, 
+      // 10: UAVT (Adres Kodu), 11: Poliçe Türü
       const customerName = row.getCell(1).text;
-      const phone = row.getCell(2).text;
-      const idNo = row.getCell(3).text;
-      const birthDate = row.getCell(4).text;
-      const insurer = row.getCell(5).text;
-      const policyType = row.getCell(6).text;
-      const policyNumber = row.getCell(7).text;
+      const idNo = row.getCell(2).text;
+      const phone = row.getCell(3).text;
+      const plate = row.getCell(4).text;
+      const registrationNo = row.getCell(5).text;
+      const policyNumber = row.getCell(6).text;
+      const issueDate = row.getCell(7).text;
       const startDate = row.getCell(8).text;
       const endDate = row.getCell(9).text;
-      const description = row.getCell(10).text;
-      const status = row.getCell(11).text;
+      const addressCode = row.getCell(10).text;
+      const policyType = row.getCell(11).text;
 
       if (!customerName || !policyNumber) continue;
 
       let customer = data.customers.find(c => 
-        (c.id_no && c.id_no === idNo) || (c.name.toLowerCase() === customerName.toLowerCase())
+        (idNo && c.id_no === idNo) || (c.name.toLowerCase() === customerName.toLowerCase())
       );
 
       if (!customer) {
@@ -2144,36 +2152,46 @@ app.post('/policies/import', requireAuth, (req, res, next) => {
           phone: phone || '',
           id_no: idNo || '',
           email: '',
-          birth_date: birthDate || ''
+          birth_date: ''
         });
         data.customers.push(customer);
       }
 
-      const existingPolicy = data.policies.find(p => p.policy_number === policyNumber && p.insurer === insurer);
+      const existingPolicy = data.policies.find(p => p.policy_number === policyNumber);
       if (!existingPolicy) {
         const newPolicy = await dataService.createPolicy({
           customer_id: customer.id,
-          insurer: insurer || 'Diğer',
+          insurer: 'Bilinmiyor',
           policy_type: policyType || 'Diğer',
           policy_number: policyNumber,
-          issue_date: '',
+          issue_date: issueDate || '',
           start_date: startDate || '',
           end_date: endDate || '',
-          description: description || '',
-          status: status || 'active',
+          description: '',
+          status: 'active',
           created_at: dayjs().toISOString(),
           notified_14: false,
-          notified_end: false
+          notified_end: false,
+          policy_details: {
+            plate: plate || '',
+            registration_no: registrationNo || '',
+            address_code: addressCode || ''
+          }
         });
         data.policies.push(newPolicy);
         importedCount++;
       }
     }
 
-    fs.unlinkSync(req.file.path);
+    if (fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path);
+    }
     res.redirect('/policies?msg=' + encodeURIComponent(`${importedCount} adet poliçe başarıyla eklendi.`));
   } catch (err) {
-    console.error(err);
+    console.error('Import Error:', err);
+    if (fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path);
+    }
     res.status(500).send('Dosya işlenirken hata oluştu: ' + err.message);
   }
 });
@@ -2332,30 +2350,30 @@ app.get('/policies/template.xlsx', requireAuth, async (req, res) => {
   const wb = new ExcelJS.Workbook();
   const ws = wb.addWorksheet('Sablon');
   ws.columns = [
-    { header: 'Müşteri Adı', key: 'name', width: 25 },
+    { header: 'Ad Soyad', key: 'name', width: 25 },
+    { header: 'TC/VKN', key: 'id_no', width: 15 },
     { header: 'Telefon', key: 'phone', width: 15 },
-    { header: 'TC/Vergi No', key: 'id_no', width: 15 },
-    { header: 'Doğum Tarihi', key: 'birth_date', width: 15 },
-    { header: 'Sigorta Şirketi', key: 'insurer', width: 20 },
-    { header: 'Poliçe Türü', key: 'policy_type', width: 15 },
-    { header: 'Poliçe No', key: 'policy_number', width: 20 },
+    { header: 'Plaka', key: 'plate', width: 15 },
+    { header: 'Ruhsat Tescil No', key: 'registration_no', width: 20 },
+    { header: 'Poliçe No', key: 'policy_number', width: 15 },
+    { header: 'Tanzim Tarihi', key: 'issue_date', width: 15 },
     { header: 'Başlangıç Tarihi', key: 'start_date', width: 15 },
     { header: 'Bitiş Tarihi', key: 'end_date', width: 15 },
-    { header: 'Poliçe Detayları', key: 'description', width: 30 },
-    { header: 'Durum (Aktif/İptal)', key: 'status', width: 15 }
+    { header: 'UAVT (Adres Kodu)', key: 'address_code', width: 20 },
+    { header: 'Poliçe Türü', key: 'policy_type', width: 15 }
   ];
   ws.addRow({
     name: 'Örnek Müşteri',
-    phone: '5551234567',
     id_no: '11111111111',
-    birth_date: '01.01.1980',
-    insurer: 'A Sigorta',
-    policy_type: 'Trafik',
+    phone: '5551234567',
+    plate: '34ABC123',
+    registration_no: 'AA123456',
     policy_number: '12345678',
+    issue_date: '01.01.2026',
     start_date: '01.01.2026',
     end_date: '01.01.2027',
-    description: 'Plaka: 34ABC123',
-    status: 'Aktif'
+    address_code: '1234567890',
+    policy_type: 'Trafik'
   });
   
   res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
