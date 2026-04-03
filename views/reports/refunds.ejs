@@ -122,7 +122,7 @@ function setDateRange(range) {
     <tbody>
       <% policies.forEach(p => { %>
         <tr>
-          <td><%= p.issue_date || p.start_date %></td>
+          <td><%= formatDate(p.issue_date || p.start_date) %></td>
           <td><%= p.policy_number %></td>
           <td><%= p.customer_name %></td>
           <td><%= p.insurer %></td>

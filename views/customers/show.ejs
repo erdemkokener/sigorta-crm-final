@@ -234,9 +234,9 @@
                 <td><a href="/policies/<%= p.id %>" class="text-decoration-none fw-bold"><%= p.policy_number %></a></td>
                 <td><%= p.insurer %></td>
                 <td><span class="badge bg-secondary"><%= p.policy_type %></span></td>
-                <td><%= p.issue_date || p.start_date %></td>
-                <td><%= p.start_date %></td>
-                <td><%= p.end_date %></td>
+                <td><%= formatDate(p.issue_date || p.start_date) %></td>
+                <td><%= formatDate(p.start_date) %></td>
+                <td><%= formatDate(p.end_date) %></td>
                 <td>
                   <% if (p.days_remaining < 0) { %>
                     <span class="text-danger">Süresi Doldu</span>
@@ -303,7 +303,7 @@
           <% } else { %>
             <% payments.forEach(function(p) { %>
               <tr>
-                <td><%= p.date || '-' %></td>
+                <td><%= formatDate(p.date) %></td>
                 <td class="text-end"><%= p.amount && p.amount.toFixed ? p.amount.toFixed(2) : p.amount %></td>
                 <td><%= p.note || '-' %></td>
                 <% if (user && user.isAdmin) { %>

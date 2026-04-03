@@ -77,15 +77,15 @@
             </div>
             <div class="col-md-6">
                 <label class="text-muted small">Tanzim Tarihi</label>
-                <div><%= policy.issue_date || '-' %></div>
+                <div><%= formatDate(policy.issue_date) %></div>
             </div>
             <div class="col-md-6">
                 <label class="text-muted small">Başlangıç Tarihi</label>
-                <div class="fw-bold text-success"><%= policy.start_date %></div>
+                <div class="fw-bold text-success"><%= formatDate(policy.start_date) %></div>
             </div>
             <div class="col-md-6">
                 <label class="text-muted small">Bitiş Tarihi</label>
-                <div class="fw-bold text-danger"><%= policy.end_date %></div>
+                <div class="fw-bold text-danger"><%= formatDate(policy.end_date) %></div>
             </div>
             <div class="col-md-6">
                 <label class="text-muted small">Durum</label>

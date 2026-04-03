@@ -175,9 +175,9 @@
           <td><%= p.insurer %></td>
           <td><span class="badge bg-info text-dark"><%= p.policy_type || 'Diğer' %></span></td>
           <td><%= p.policy_number %></td>
-          <td><%= p.issue_date || p.start_date %></td>
-          <td><%= p.start_date %></td>
-          <td><%= p.end_date %></td>
+          <td><%= formatDate(p.issue_date || p.start_date) %></td>
+          <td><%= formatDate(p.start_date) %></td>
+          <td><%= formatDate(p.end_date) %></td>
           <td>
             <% if (p.is_missed_renewal) { %>
                 <span class="badge bg-warning text-dark">Yenilenmedi</span>

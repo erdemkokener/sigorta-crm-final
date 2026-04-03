@@ -199,6 +199,11 @@ app.use((req, res, next) => {
   res.locals.user = req.session.user || null;
   res.locals.fileMode = !db.isConnected();
   res.locals.dbError = db.getLastError();
+  res.locals.formatDate = (dateStr) => {
+    if (!dateStr) return '-';
+    const d = dayjs(dateStr);
+    return d.isValid() ? d.format('DD.MM.YYYY') : dateStr;
+  };
   next();
 });
 
@@ -2127,6 +2132,22 @@ app.post('/policies/import', requireAuth, (req, res, next) => {
       rowsToProcess.push(row);
     });
 
+    // Tarih formatlama yardımcı fonksiyonu
+    const formatExcelDate = (cell) => {
+      if (!cell || !cell.value) return '';
+      if (cell.type === ExcelJS.ValueType.Date) {
+        return dayjs(cell.value).format('YYYY-MM-DD');
+      }
+      const text = cell.text?.trim();
+      if (!text) return '';
+      // Eğer GG.AA.YYYY formatındaysa YYYY-MM-DD'ye çevir
+      if (/^\d{1,2}\.\d{1,2}\.\d{4}$/.test(text)) {
+        const [d, m, y] = text.split('.');
+        return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+      }
+      return text;
+    };
+
     // Verileri gruplayarak toplu işlem yapalım (Performans için)
     let processed = 0;
     const totalRows = rowsToProcess.length;
@@ -2135,14 +2156,15 @@ app.post('/policies/import', requireAuth, (req, res, next) => {
     for (const row of rowsToProcess) {
       processed++;
       if (processed % 100 === 0) console.log(`İlerleme: ${processed}/${totalRows}...`);
+      
       // Sütun Düzeni (Yeni Format):
       // 1: Şirket Adı, 2: Acente Branş Adı, 3: Tanzim Tarihi, 4: Baş. Tarihi, 5: Bit. Tarihi, 
       // 6: Tam Poliçe No, 7: Zeyil Adı, 8: Sigortalı, 9: Müşteri TC No, 10: Müşteri Vergi No, 11: Plaka, 12: Telefon
       const insurer = row.getCell(1).text?.trim();
       const policyType = row.getCell(2).text?.trim();
-      const issueDate = row.getCell(3).text?.trim();
-      const startDate = row.getCell(4).text?.trim();
-      const endDate = row.getCell(5).text?.trim();
+      const issueDate = formatExcelDate(row.getCell(3));
+      const startDate = formatExcelDate(row.getCell(4));
+      const endDate = formatExcelDate(row.getCell(5));
       const policyNumber = row.getCell(6).text?.trim();
       const zeyilType = row.getCell(7).text?.trim();
       const customerName = row.getCell(8).text?.trim();
