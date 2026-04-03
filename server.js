@@ -199,10 +199,14 @@ app.use((req, res, next) => {
   res.locals.user = req.session.user || null;
   res.locals.fileMode = !db.isConnected();
   res.locals.dbError = db.getLastError();
-  res.locals.formatDate = (dateStr) => {
-    if (!dateStr) return '-';
-    const d = dayjs(dateStr);
-    return d.isValid() ? d.format('DD.MM.YYYY') : dateStr;
+  res.locals.formatDate = (dateVal) => {
+    if (!dateVal) return '-';
+    // Eğer zaten GG.AA.YYYY formatındaysa (string olarak gelmişse) dokunma
+    if (typeof dateVal === 'string' && /^\d{2}\.\d{2}\.\d{4}$/.test(dateVal)) return dateVal;
+    
+    const d = dayjs(dateVal);
+    if (!d.isValid()) return dateVal;
+    return d.format('DD.MM.YYYY');
   };
   next();
 });
@@ -2134,18 +2138,36 @@ app.post('/policies/import', requireAuth, (req, res, next) => {
 
     // Tarih formatlama yardımcı fonksiyonu
     const formatExcelDate = (cell) => {
-      if (!cell || !cell.value) return '';
-      if (cell.type === ExcelJS.ValueType.Date) {
-        return dayjs(cell.value).format('YYYY-MM-DD');
+      if (!cell || cell.value === null || cell.value === undefined) return '';
+      
+      // Eğer hücre tipi zaten Date ise (ExcelJS otomatik tanımışsa)
+      if (cell.type === ExcelJS.ValueType.Date || cell.value instanceof Date) {
+        const d = dayjs(cell.value);
+        return d.isValid() ? d.format('YYYY-MM-DD') : '';
       }
-      const text = cell.text?.trim();
+      
+      const text = String(cell.value || cell.text || '').trim();
       if (!text) return '';
-      // Eğer GG.AA.YYYY formatındaysa YYYY-MM-DD'ye çevir
-      if (/^\d{1,2}\.\d{1,2}\.\d{4}$/.test(text)) {
-        const [d, m, y] = text.split('.');
+      
+      // GG.AA.YYYY veya GG/AA/YYYY formatını kontrol et
+      const parts = text.split(/[\.\-\/]/);
+      if (parts.length === 3) {
+        let [d, m, y] = parts;
+        // Yılı 4 haneye tamamla (Örn: 25 -> 2025)
+        if (y.length === 2) y = '20' + y;
+        
+        // Eğer format YYYY-MM-DD ise (yıl başta gelmişse)
+        if (d.length === 4) {
+          return `${d}-${m.padStart(2, '0')}-${y.padStart(2, '0')}`;
+        }
+        
+        // Standart Türk formatı kabul et: DD-MM-YYYY
         return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
       }
-      return text;
+      
+      // Diğer formatları dayjs'e bırak
+      const d = dayjs(text);
+      return d.isValid() ? d.format('YYYY-MM-DD') : text;
     };
 
     // Verileri gruplayarak toplu işlem yapalım (Performans için)

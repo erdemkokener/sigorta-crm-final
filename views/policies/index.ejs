@@ -137,10 +137,10 @@
 </div>
 
 <div class="table-responsive">
-  <table class="table table-sm table-hover align-middle shadow-sm rounded overflow-hidden" style="font-size: 0.75rem;">
+  <table class="table table-sm table-hover align-middle shadow-sm rounded overflow-hidden" style="font-size: 0.75rem; min-width: 1200px;">
     <thead class="table-dark">
       <tr>
-        <th>Müşteri</th>
+        <th style="min-width: 150px;">Müşteri</th>
         <th>Telefon</th>
         <th>Kimlik No</th>
         <th>Sigortacı</th>
@@ -165,20 +165,20 @@
       <% } %>
       <% policies.forEach(p => { %>
         <tr class="<%= p.is_missed_renewal ? 'table-info' : (p.is_expired ? 'table-danger' : (p.is_expiring_soon ? 'table-warning' : '')) %>">
-          <td>
+          <td class="text-nowrap">
              <a href="/customers/<%= p.customer_id %>" class="text-decoration-none fw-bold text-dark">
                <%= p.customer_name || '-' %>
              </a>
           </td>
-          <td><%= p.customer_phone || '-' %></td>
-          <td><%= p.customer_id_no || '-' %></td>
-          <td><%= p.insurer %></td>
-          <td><span class="badge bg-info text-dark"><%= p.policy_type || 'Diğer' %></span></td>
-          <td><%= p.policy_number %></td>
-          <td><%= formatDate(p.issue_date || p.start_date) %></td>
-          <td><%= formatDate(p.start_date) %></td>
-          <td><%= formatDate(p.end_date) %></td>
-          <td>
+          <td class="text-nowrap"><%= p.customer_phone || '-' %></td>
+          <td class="text-nowrap"><%= p.customer_id_no || '-' %></td>
+          <td class="text-nowrap"><%= p.insurer %></td>
+          <td class="text-nowrap"><span class="badge bg-info text-dark"><%= p.policy_type || 'Diğer' %></span></td>
+          <td class="text-nowrap"><%= p.policy_number %></td>
+          <td class="text-nowrap"><%= formatDate(p.issue_date || p.start_date) %></td>
+          <td class="text-nowrap"><%= formatDate(p.start_date) %></td>
+          <td class="text-nowrap"><%= formatDate(p.end_date) %></td>
+          <td class="text-nowrap">
             <% if (p.is_missed_renewal) { %>
                 <span class="badge bg-warning text-dark">Yenilenmedi</span>
             <% } else if (p.days_remaining < 0) { %>
@@ -187,7 +187,7 @@
                 <span class="fw-bold"><%= p.days_remaining %> gün</span>
             <% } %>
           </td>
-          <td>
+          <td class="text-nowrap">
              <% if (p.is_missed_renewal) { %>
                <span class="badge bg-warning text-dark">Yenileme Fırsatı</span>
              <% } else if (p.status === 'active' || p.status === 'Aktif') { %>
@@ -200,7 +200,7 @@
                <span class="badge bg-secondary"><%= p.status %></span>
              <% } %>
           </td>
-          <td class="text-end">
+          <td class="text-end text-nowrap">
             <div class="btn-group btn-group-sm">
               <a href="/policies/<%= p.id %>" class="btn btn-outline-primary" title="Detay"><i class="bi bi-eye"></i></a>
               <a href="/policies/renew/<%= p.id %>" class="btn btn-outline-info" title="Yenile"><i class="bi bi-arrow-repeat"></i></a>
