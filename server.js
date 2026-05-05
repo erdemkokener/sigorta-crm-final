@@ -646,20 +646,20 @@ async function checkExpirationsAndNotify(force = false) {
     const end = dayjs(p.end_date).startOf('day');
     const days = end.diff(today, 'day');
     
-    // 30 Gün Kala (Yeni)
-    if ((days === 30 && !p.notified_30) || (force && days === 30)) {
+    // 7 Gün Kala (Fiyatlandırma için en uygun zaman)
+    if ((days === 7 && !p.notified_7) || (force && days === 7)) {
       const plate = (p.policy_details && p.policy_details.plate) ? p.policy_details.plate : '-';
       await sendMail(
-        `Poliçe bitimine 30 gün kaldı - ${plate}`,
+        `Poliçe bitimine 7 gün kaldı - ${plate}`,
         `Müşteri: ${customerName}\nTelefon: ${customerPhone || '-'}\nPlaka: ${plate}\nPoliçe No: ${p.policy_number}\nBitiş Tarihi: ${p.end_date}`,
-        `<p>Poliçe bitimine 30 gün kaldı.</p>
+        `<p>Poliçe bitimine 7 gün kaldı. Fiyatlandırma için en uygun zaman!</p>
          <p><b>Müşteri:</b> ${customerName}</p>
          <p><b>Telefon:</b> ${customerPhone || '-'}</p>
          <p><b>Plaka:</b> ${plate}</p>
          <p><b>Poliçe No:</b> ${p.policy_number}</p>
          <p><b>Bitiş Tarihi:</b> ${p.end_date}</p>`
       );
-      await dataService.updatePolicy(p.id, { notified_30: true });
+      await dataService.updatePolicy(p.id, { notified_7: true });
       sentCount++;
     }
 
