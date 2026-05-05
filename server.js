@@ -646,6 +646,23 @@ async function checkExpirationsAndNotify(force = false) {
     const end = dayjs(p.end_date).startOf('day');
     const days = end.diff(today, 'day');
     
+    // 30 Gün Kala (Yeni)
+    if ((days === 30 && !p.notified_30) || (force && days === 30)) {
+      const plate = (p.policy_details && p.policy_details.plate) ? p.policy_details.plate : '-';
+      await sendMail(
+        `Poliçe bitimine 30 gün kaldı - ${plate}`,
+        `Müşteri: ${customerName}\nTelefon: ${customerPhone || '-'}\nPlaka: ${plate}\nPoliçe No: ${p.policy_number}\nBitiş Tarihi: ${p.end_date}`,
+        `<p>Poliçe bitimine 30 gün kaldı.</p>
+         <p><b>Müşteri:</b> ${customerName}</p>
+         <p><b>Telefon:</b> ${customerPhone || '-'}</p>
+         <p><b>Plaka:</b> ${plate}</p>
+         <p><b>Poliçe No:</b> ${p.policy_number}</p>
+         <p><b>Bitiş Tarihi:</b> ${p.end_date}</p>`
+      );
+      await dataService.updatePolicy(p.id, { notified_30: true });
+      sentCount++;
+    }
+
     // 14 Gün Kala
     if ((days === 14 && !p.notified_14) || (force && days === 14)) {
       const plate = (p.policy_details && p.policy_details.plate) ? p.policy_details.plate : '-';
@@ -710,6 +727,22 @@ async function checkExpirationsAndNotify(force = false) {
          <p><b>Bitiş Tarihi:</b> ${p.end_date}</p>`
       );
       await dataService.updatePolicy(p.id, { notified_end: true });
+      sentCount++;
+    }
+
+    // Günü Geçmişler (Süre Dolmuş ama yenilenmemişler için ek bildirim - Örn: -1, -3, -7 gün)
+    if (days < 0 && days >= -7 && !p.notified_missed) {
+      const plate = (p.policy_details && p.policy_details.plate) ? p.policy_details.plate : '-';
+      await sendMail(
+        `Poliçe süresi doldu! (Yenilenmedi) - ${plate}`,
+        `Müşteri: ${customerName}\nPlaka: ${plate}\nPoliçe No: ${p.policy_number}\nBitiş Tarihi: ${p.end_date} (${Math.abs(days)} gün geçti)`,
+        `<p>Poliçe süresi dolmuş ancak henüz yenilenmemiş görünüyor.</p>
+         <p><b>Müşteri:</b> ${customerName}</p>
+         <p><b>Plaka:</b> ${plate}</p>
+         <p><b>Bitiş Tarihi:</b> ${p.end_date}</p>
+         <p style="color: red;"><b>Süre dolalı ${Math.abs(days)} gün oldu.</b></p>`
+      );
+      await dataService.updatePolicy(p.id, { notified_missed: true });
       sentCount++;
     }
   }
@@ -2969,10 +3002,12 @@ app.post('/api/test-mail', requireAuth, async (req, res) => {
 
 app.post('/api/trigger-notifications', requireAuth, async (req, res) => {
   try {
+    // force=true ile tüm bekleyen ve bugünün bildirimlerini anında gönderir
     const sent = await checkExpirationsAndNotify(true);
-    res.redirect('/policies?msg=' + encodeURIComponent(`${sent} adet bildirim gönderildi.`));
+    res.redirect('/policies?msg=' + encodeURIComponent(`${sent} adet bildirim başarıyla gönderildi.`));
   } catch (err) {
-    res.redirect('/policies?msg=Hata: ' + err.message);
+    console.error('Manuel bildirim hatası:', err);
+    res.redirect('/policies?msg=' + encodeURIComponent('Hata: ' + err.message));
   }
 });
 
