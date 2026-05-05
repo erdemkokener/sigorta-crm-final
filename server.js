@@ -590,19 +590,40 @@ async function checkAndRunMonthlyBackup() {
 async function checkAndRunScheduledBackups() {
   const today = dayjs();
   const day = today.date();
-  if (day !== 1 && day !== 28) return;
-
-  const backupDir = path.join(__dirname, 'backups');
-  if (!fs.existsSync(backupDir)) {
-    fs.mkdirSync(backupDir, { recursive: true });
+  
+  // Yedekleme (1 ve 28)
+  if (day === 1 || day === 28) {
+    const backupDir = path.join(__dirname, 'backups');
+    if (!fs.existsSync(backupDir)) {
+      fs.mkdirSync(backupDir, { recursive: true });
+    }
+    const stamp = today.format('YYYY-MM-DD');
+    const flag = path.join(backupDir, `backup-${stamp}.done`);
+    if (!fs.existsSync(flag)) {
+      try {
+        await runBackupAndMail(false);
+        fs.writeFileSync(flag, new Date().toISOString());
+      } catch (err) {
+        console.error('Zamanlanmış yedekleme hatası:', err);
+      }
+    }
   }
 
-  const stamp = today.format('YYYY-MM-DD');
-  const flag = path.join(backupDir, `backup-${stamp}.done`);
-  if (fs.existsSync(flag)) return;
-
-  await runBackupAndMail(false);
-  fs.writeFileSync(flag, new Date().toISOString());
+  // Bildirimler (Her gün)
+  const notifyDir = path.join(__dirname, 'notifications');
+  if (!fs.existsSync(notifyDir)) {
+    fs.mkdirSync(notifyDir, { recursive: true });
+  }
+  const notifyStamp = today.format('YYYY-MM-DD');
+  const notifyFlag = path.join(notifyDir, `notify-${notifyStamp}.done`);
+  if (!fs.existsSync(notifyFlag)) {
+    try {
+      await checkExpirationsAndNotify(false);
+      fs.writeFileSync(notifyFlag, new Date().toISOString());
+    } catch (err) {
+      console.error('Günlük bildirim hatası:', err);
+    }
+  }
 }
 
 async function checkExpirationsAndNotify(force = false) {
@@ -2905,6 +2926,19 @@ app.post('/api/cron/backup', async (req, res) => {
   try {
     await runBackupAndMail(false);
     res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+app.post('/api/cron/notifications', async (req, res) => {
+  const token = String(req.headers['x-cron-token'] || req.query.token || req.body?.token || '');
+  if (!BACKUP_CRON_TOKEN || token !== BACKUP_CRON_TOKEN) {
+    return res.status(403).send('Yetkisiz');
+  }
+  try {
+    const sentCount = await checkExpirationsAndNotify(false);
+    res.json({ ok: true, sent: sentCount });
   } catch (err) {
     res.status(500).json({ ok: false, error: err.message });
   }
