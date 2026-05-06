@@ -93,11 +93,10 @@ async function initMailer() {
   let finalPass = dbPass || process.env.SMTP_PASS;
   let finalSecure = (dbSecure !== undefined) ? dbSecure : (process.env.SMTP_SECURE === 'true');
   
-  // Force Gmail settings for better compatibility on Render/Cloud
-  // if (finalHost === 'smtp.gmail.com') { ... } block removed for simplicity and reliability with other providers
-  
-  if (finalHost === 'smtp.gmail.com') {
-      console.log('Mailer: Gmail tespit edildi, standart optimizasyonlar uygulanıyor (IPv4)...');
+  // Gmail için Render optimizasyonu: Eğer host Gmail ise ve port 587 ise, 
+  // Render genellikle bunu engeller. 465 ve Secure:true daha kararlıdır.
+  if (finalHost === 'smtp.gmail.com' && finalPort === 587 && !dbPort) {
+      console.log('Mailer: Gmail + Port 587 algılandı. Render üzerinde 465 daha güvenlidir. Otomatik deneniyor...');
   }
 
   if (MAIL_MODE === 'console' && !finalHost) {
@@ -135,21 +134,26 @@ async function initMailer() {
     
     try {
         await mailer.verify();
-        console.log('Mailer: SMTP bağlantısı başarılı.');
+        console.log(`Mailer: SMTP bağlantısı başarılı (${finalHost}:${finalPort}, Secure: ${finalSecure}).`);
     } catch (err) {
-        console.error('Mailer: SMTP bağlantı hatası:', err.message);
+        console.error(`Mailer: SMTP bağlantı hatası (${finalHost}:${finalPort}, Secure: ${finalSecure}):`, err.message);
         const code = err && err.code ? err.code : '';
         const msg = err && err.message ? err.message.toLowerCase() : '';
         const timeoutLike = code === 'ETIMEDOUT' || code === 'ECONNREFUSED' || code === 'ESOCKET' || code === 'ENOTFOUND' || msg.includes('timeout') || msg.includes('timed out') || msg.includes('refused') || msg.includes('socket') || msg.includes('not found');
-        if (finalHost === 'smtp.gmail.com' && timeoutLike) {
-             const retryConfig = { ...transportConfig, port: 465, secure: true, connectionTimeout: 15000, greetingTimeout: 15000, socketTimeout: 25000, family: 4 };
+        
+        // Gmail için otomatik port 465 denemesi (Render/Bulut kısıtlamaları için)
+        if (finalHost === 'smtp.gmail.com' && timeoutLike && finalPort !== 465) {
+             console.log('Mailer: Gmail zaman aşımı. Port 465 üzerinden güvenli bağlantı deneniyor...');
+             const retryConfig = { ...transportConfig, port: 465, secure: true, connectionTimeout: 20000, family: 4 };
              const retryMailer = nodemailer.createTransport(retryConfig);
              try {
                  await retryMailer.verify();
                  mailer = retryMailer;
+                 console.log('Mailer: Gmail Port 465 üzerinden başarıyla bağlandı.');
                  lastSmtpError = null;
                  return;
              } catch (retryErr) {
+                 console.error('Mailer: Gmail Port 465 denemesi de başarısız:', retryErr.message);
                  lastSmtpError = retryErr.message;
              }
         } else {
@@ -439,6 +443,11 @@ async function sendMail(subject, text, html, attachments = [], targetEmail = nul
     return { ok: true, info, to };
   } catch (err) {
     console.error('E-posta hatası:', err);
+    
+    // SMTP config bilgisini hata mesajına ekle
+    const hostInfo = mailer && mailer.options ? ` (${mailer.options.host}:${mailer.options.port})` : '';
+    const detailedError = (err.message || 'E-posta gönderilemedi') + hostInfo;
+
     const code = err && err.code ? err.code : '';
     const msg = err && err.message ? err.message.toLowerCase() : '';
     const timeoutLike = code === 'ETIMEDOUT' || code === 'ECONNREFUSED' || code === 'ESOCKET' || code === 'ENOTFOUND' || msg.includes('timeout') || msg.includes('timed out') || msg.includes('refused') || msg.includes('socket') || msg.includes('not found');
@@ -469,11 +478,11 @@ async function sendMail(subject, text, html, attachments = [], targetEmail = nul
                  mailer = emergencyMailer;
                  return { ok: true, info, to, note: 'Recovered via 465' };
              } catch (retryErr) {
-                 return { ok: false, error: 'Tüm denemeler başarısız: ' + (retryErr.message || ''), to };
+                 return { ok: false, error: 'Tüm denemeler başarısız: ' + (retryErr.message || '') + ' (Port 465)', to };
              }
          }
     }
-    return { ok: false, error: err.message || 'E-posta gönderilemedi', to };
+    return { ok: false, error: detailedError, to };
   }
 }
 
@@ -3287,12 +3296,12 @@ app.all('/test-mail', requireAuth, requireAdmin, async (req, res) => {
                  hint = `
                  <div class="alert alert-warning mt-3">
                     <strong>Olası Çözüm:</strong><br>
-                    Sunucunuz (Render vb.) Port 587'ye erişimi kısıtlıyor olabilir.<br>
+                    Sunucunuz (Render vb.) SMTP portlarına erişimi kısıtıyor olabilir.<br>
                     Lütfen <strong>Ayarlar</strong> sayfasından şunları deneyin:<br>
-                    1. <strong>Alternatif Port:</strong> 2525 (Secure: Hayır)<br>
-                    2. <strong>Güvenli Port:</strong> 465 (Secure: Evet)<br>
+                    1. <strong>Port:</strong> 465 ve <strong>Secure (SSL):</strong> Evet (SSL bağlantısı genelde daha kararlıdır)<br>
+                    2. <strong>Port:</strong> 2525 ve <strong>Secure (SSL):</strong> Hayır (Brevo/Sendinblue gibi servisler için idealdir)<br>
                     <br>
-                    <em>Not: Brevo/Sendinblue için Port 2525 genellikle en iyi sonucu verir.</em>
+                    <em>Not: Gmail kullanıyorsanız mutlaka <strong>Uygulama Şifresi</strong> kullandığınızdan emin olun.</em>
                  </div>`;
              }
              
