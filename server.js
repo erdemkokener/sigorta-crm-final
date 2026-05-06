@@ -643,8 +643,26 @@ async function checkExpirationsAndNotify(force = false) {
     const customerName = enriched.customer_name || '';
     const customerPhone = enriched.customer_phone || '';
 
-    const end = dayjs(p.end_date).startOf('day');
+    // Tarihi güvenli bir şekilde parse et
+    let end;
+    if (typeof p.end_date === 'string' && /^\d{2}\.\d{2}\.\d{4}$/.test(p.end_date)) {
+      const [d, m, y] = p.end_date.split('.');
+      end = dayjs(`${y}-${m}-${d}`).startOf('day');
+    } else {
+      end = dayjs(p.end_date).startOf('day');
+    }
+
+    if (!end.isValid()) {
+      console.log(`Geçersiz bitiş tarihi: ${p.end_date} (Poliçe No: ${p.policy_number})`);
+      continue;
+    }
+
     const days = end.diff(today, 'day');
+    
+    // Debug log (Sadece manuel tetiklemede konsola basar)
+    if (force) {
+      console.log(`Poliçe No: ${p.policy_number}, Bitiş: ${p.end_date}, Kalan Gün: ${days}`);
+    }
     
     // 7 Gün Kala (Fiyatlandırma için en uygun zaman)
     if ((days === 7 && !p.notified_7) || (force && days === 7)) {
