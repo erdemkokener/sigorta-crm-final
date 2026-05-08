@@ -581,8 +581,9 @@ async function checkExpirationsAndNotify(force = false) {
   let sentCount = 0;
 
   for (const p of data.policies) {
-    // Belirli poliçe türleri için hatırlatma yapma
-    if (p.policy_type === 'Kısa Süreli Trafik' || p.policy_type === '2 Aylık Trafik') continue;
+    // Belirli poliçe türleri için hatırlatma yapma (Kısa Süreli veya 2 Aylık poliçeler hariç)
+    const type = (p.policy_type || '').toLowerCase();
+    if (type.includes('kısa süreli') || type.includes('2 aylık')) continue;
 
     // Satıldı ise bildirim yapma
     if (p.status === 'Satıldı') continue;
@@ -721,8 +722,9 @@ async function checkRemindersAndNotify() {
   const data = await getContext();
   const todayStr = dayjs().format('YYYY-MM-DD');
   const hour = dayjs().hour();
-  const isMorningSlot = hour >= 9;
-  const isAfternoonSlot = hour >= 14;
+  
+  // Sadece sabah 09:00'dan sonra bir kez gönderilsin
+  const isTimeToSend = hour >= 9;
 
   let sentCount = 0;
 
@@ -730,8 +732,8 @@ async function checkRemindersAndNotify() {
     for (const r of data.reminders) {
       if (r.date !== todayStr) continue;
 
-      // Morning
-      if (isMorningSlot && !r.notified_morning) {
+      // Eğer bugün hiç bildirim gitmediyse gönder (morning veya afternoon fark etmeksizin)
+      if (isTimeToSend && !r.notified_morning && !r.notified_afternoon) {
         await sendMail(
           'Hatırlatma: ' + r.note.substring(0, 30) + (r.note.length > 30 ? '...' : ''),
           `Hatırlatma Notunuz:\n\n${r.note}\n\nTarih: ${r.date}`,
@@ -739,20 +741,11 @@ async function checkRemindersAndNotify() {
           [],
           r.email
         );
-        await dataService.updateReminder(r.id, { notified_morning: true });
-        sentCount++;
-      }
-
-      // Afternoon
-      if (isAfternoonSlot && !r.notified_afternoon) {
-        await sendMail(
-          'Hatırlatma (2. Bildirim): ' + r.note.substring(0, 30) + (r.note.length > 30 ? '...' : ''),
-          `Hatırlatma Notunuz (2. Bildirim):\n\n${r.note}\n\nTarih: ${r.date}`,
-          `<p>Hatırlatma Notunuz (2. Bildirim):</p><p><b>${r.note}</b></p><p>Tarih: <b>${r.date}</b></p>`,
-          [],
-          r.email
-        );
-        await dataService.updateReminder(r.id, { notified_afternoon: true });
+        // Hem morning hem afternoon bayrağını işaretleyelim ki bir daha atmasın
+        await dataService.updateReminder(r.id, { 
+          notified_morning: true,
+          notified_afternoon: true 
+        });
         sentCount++;
       }
     }
