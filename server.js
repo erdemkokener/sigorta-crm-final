@@ -582,8 +582,8 @@ async function checkExpirationsAndNotify(force = false) {
 
   for (const p of data.policies) {
     // Belirli poliçe türleri için hatırlatma yapma (Kısa Süreli veya 2 Aylık poliçeler hariç)
-    const type = (p.policy_type || '').toLowerCase();
-    if (type.includes('kısa süreli') || type.includes('2 aylık')) continue;
+    const cleanType = (p.policy_type || '').toLowerCase().replace(/\s+/g, '');
+    if (cleanType.includes('kısasüreli') || cleanType.includes('2aylık')) continue;
 
     // Satıldı ise bildirim yapma
     if (p.status === 'Satıldı') continue;
@@ -694,22 +694,6 @@ async function checkExpirationsAndNotify(force = false) {
          <p><b>Bitiş Tarihi:</b> ${p.end_date}</p>`
       );
       await dataService.updatePolicy(p.id, { notified_end: true });
-      sentCount++;
-    }
-
-    // Günü Geçmişler (Süre Dolmuş ama yenilenmemişler için ek bildirim - Örn: -1, -3, -7 gün)
-    if (days < 0 && days >= -7 && !p.notified_missed) {
-      const plate = (p.policy_details && p.policy_details.plate) ? p.policy_details.plate : '-';
-      await sendMail(
-        `Poliçe süresi doldu! (Yenilenmedi) - ${plate}`,
-        `Müşteri: ${customerName}\nPlaka: ${plate}\nPoliçe No: ${p.policy_number}\nBitiş Tarihi: ${p.end_date} (${Math.abs(days)} gün geçti)`,
-        `<p>Poliçe süresi dolmuş ancak henüz yenilenmemiş görünüyor.</p>
-         <p><b>Müşteri:</b> ${customerName}</p>
-         <p><b>Plaka:</b> ${plate}</p>
-         <p><b>Bitiş Tarihi:</b> ${p.end_date}</p>
-         <p style="color: red;"><b>Süre dolalı ${Math.abs(days)} gün oldu.</b></p>`
-      );
-      await dataService.updatePolicy(p.id, { notified_missed: true });
       sentCount++;
     }
   }
