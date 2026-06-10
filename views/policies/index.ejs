@@ -48,6 +48,26 @@
       </div>
     </div>
   </div>
+
+  <% if (typeof filteredCount !== 'undefined' && (qs.includes('branch=') || qs.includes('q=') || qs.includes('status='))) { %>
+  <div class="col-md-6">
+    <div class="card border-start border-info border-4 shadow-sm h-100 py-2">
+      <div class="card-body">
+        <div class="row no-gutters align-items-center">
+          <div class="col mr-2">
+            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Filtrelenmiş Sonuçlar</div>
+            <div class="h5 mb-0 font-weight-bold text-gray-800">
+              <%= filteredCount %> Poliçe | <%= filteredPremium.toFixed(2) %> TL Toplam Prim
+            </div>
+          </div>
+          <div class="col-auto">
+            <i class="bi bi-filter-square fa-2x text-info"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <% } %>
 </div>
 
 <div class="card shadow-sm mb-4">
@@ -72,6 +92,15 @@
           <option value="active" <%= s==='active'?'selected':'' %>>Aktif</option>
           <option value="cancelled" <%= s==='cancelled'?'selected':'' %>>İptal</option>
           <option value="pending" <%= s==='pending'?'selected':'' %>>Beklemede</option>
+        </select>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">Şube</label>
+        <select class="form-select" name="branch">
+          <% const b = (typeof qs !== 'undefined' && new URLSearchParams(qs).get('branch')) || '' %>
+          <option value="" <%= b===''?'selected':'' %>>Tümü</option>
+          <option value="Akhisar" <%= b==='Akhisar'?'selected':'' %>>Akhisar</option>
+          <option value="Balıkesir" <%= b==='Balıkesir'?'selected':'' %>>Balıkesir</option>
         </select>
       </div>
       <div class="col-md-2">
@@ -145,6 +174,7 @@
         <th>Kimlik No</th>
         <th>Sigortacı</th>
         <th>Tür</th>
+        <th>Şube</th>
         <th>Poliçe No</th>
         <th>Tanzim</th>
         <th>Başlangıç</th>
@@ -174,6 +204,7 @@
           <td class="text-nowrap"><%= p.customer_id_no || '-' %></td>
           <td class="text-nowrap"><%= p.insurer %></td>
           <td class="text-nowrap"><span class="badge bg-info text-dark"><%= p.policy_type || 'Diğer' %></span></td>
+          <td class="text-nowrap"><span class="badge <%= p.branch === 'Balıkesir' ? 'bg-secondary' : 'bg-light text-dark' %>"><%= p.branch || 'Akhisar' %></span></td>
           <td class="text-nowrap"><%= p.policy_number %></td>
           <td class="text-nowrap"><%= formatDate(p.issue_date || p.start_date) %></td>
           <td class="text-nowrap"><%= formatDate(p.start_date) %></td>

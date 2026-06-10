@@ -5,6 +5,7 @@ const CustomerSchema = new mongoose.Schema({
   name: { type: String, required: true },
   phone: String,
   id_no: String,
+  branch: { type: String, default: 'Akhisar' }, // Akhisar or Balıkesir
   email: String,
   profession: String,
   birth_date: String,

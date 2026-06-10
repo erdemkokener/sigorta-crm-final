@@ -5,6 +5,7 @@ const PolicySchema = new mongoose.Schema({
   customer_id: { type: Number, required: true },
   insurer: String,
   policy_number: String,
+  branch: { type: String, default: 'Akhisar' }, // Akhisar or Balıkesir
   policy_type: String,
   issue_date: String,
   start_date: String,

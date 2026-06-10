@@ -88,6 +88,13 @@
             </select>
           </div>
           <div class="col-md-6">
+            <label class="form-label">Şube</label>
+            <select name="branch" class="form-select">
+              <option value="Akhisar" <%= policy.branch === 'Akhisar' ? 'selected' : '' %>>Akhisar</option>
+              <option value="Balıkesir" <%= policy.branch === 'Balıkesir' ? 'selected' : '' %>>Balıkesir</option>
+            </select>
+          </div>
+          <div class="col-md-6">
             <label class="form-label">Poliçe No <span class="text-danger">*</span></label>
             <input type="text" class="form-control" name="policy_number" value="<%= policy.policy_number %>" required>
           </div>

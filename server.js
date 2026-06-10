@@ -246,10 +246,11 @@ async function filterPolicies(query) {
   const q = (query.q || '').toLocaleLowerCase('tr-TR');
   const insurer = (query.insurer || '').toLocaleLowerCase('tr-TR');
   const status = (query.status || '').toLocaleLowerCase('tr-TR');
+  const branch = query.branch;
   const includeMissed = query.include_missed === 'true';
   const excludeShortTerm = query.exclude_short_term === 'true';
 
-  // 1. General Filters (Search, Insurer)
+  // 1. General Filters (Search, Insurer, Branch)
   if (q) {
     items = items.filter(x =>
       String(x.customer_name || '').toLocaleLowerCase('tr-TR').includes(q) ||
@@ -262,6 +263,9 @@ async function filterPolicies(query) {
   }
   if (insurer) {
     items = items.filter(x => (x.insurer || '').toLocaleLowerCase('tr-TR').includes(insurer));
+  }
+  if (branch) {
+    items = items.filter(x => x.branch === branch);
   }
 
   // 2. Date Filtering Setup
@@ -841,6 +845,18 @@ app.get('/', async (req, res) => {
   const totalCustomerCount = data.customers.length;
   const activeCustomerIds = new Set(activePolicies.map(p => p.customer_id));
   const activeCustomerCount = activeCustomerIds.size;
+
+  // Branch Stats
+  const branchStats = {
+    Akhisar: {
+      policies: data.policies.filter(p => (p.branch || 'Akhisar') === 'Akhisar').length,
+      customers: data.customers.filter(c => (c.branch || 'Akhisar') === 'Akhisar').length,
+    },
+    Balıkesir: {
+      policies: data.policies.filter(p => p.branch === 'Balıkesir').length,
+      customers: data.customers.filter(c => c.branch === 'Balıkesir').length,
+    }
+  };
   
   const policyTypes = {};
   activePolicies.forEach(p => {
@@ -872,6 +888,7 @@ app.get('/', async (req, res) => {
       totalPolicyCount,
       activeCustomerCount,
       totalCustomerCount,
+      branchStats,
       policyTypes,
       policyTypesMonthly
     }
@@ -1348,6 +1365,7 @@ app.post('/users/:id/delete', requireAuth, requireAdmin, async (req, res) => {
 app.get('/customers', requireAuth, async (req, res) => {
   const data = await getContext();
   const q = (req.query.q || '').toLocaleLowerCase('tr-TR');
+  const branch = req.query.branch;
   const birthdaysFilter = req.query.birthdays === 'today';
   const debtorsFilter = req.query.filter === 'debtors';
 
@@ -1367,6 +1385,10 @@ app.get('/customers', requireAuth, async (req, res) => {
     const balance = (totalPremium - totalPaidPolicy) + manualDebt - (totalCollections - totalApplied);
     return { ...c, balance };
   });
+
+  if (branch) {
+    customers = customers.filter(c => c.branch === branch);
+  }
 
   if (q) {
     customers = customers.filter(c =>
@@ -1412,21 +1434,28 @@ app.get('/customers', requireAuth, async (req, res) => {
       .reduce((sum, c) => sum + Math.abs(c.balance), 0);
   }
 
+  const filteredCount = customers.length;
+  const filteredBalance = customers.reduce((sum, c) => sum + (c.balance || 0), 0);
+
   res.render('customers/index', { 
     title: debtorsFilter ? 'Bakiye Listesi' : (birthdaysFilter ? 'Doğum Günü Olan Müşteriler' : 'Müşteriler'), 
     customers, 
     q, 
+    branch,
     birthdaysFilter, 
     debtorsFilter,
     qs,
     totalReceivable,
-    totalPayable
+    totalPayable,
+    filteredCount,
+    filteredBalance
   });
 });
 
 app.get('/customers/export.xlsx', requireAuth, async (req, res) => {
   const data = await getContext();
   const q = (req.query.q || '').toLocaleLowerCase('tr-TR');
+  const branch = req.query.branch;
   const birthdaysFilter = req.query.birthdays === 'today';
   const debtorsFilter = req.query.filter === 'debtors';
 
@@ -1444,6 +1473,10 @@ app.get('/customers/export.xlsx', requireAuth, async (req, res) => {
     const balance = (totalPremium - totalPaidPolicy) + manualDebt - (totalCollections - totalApplied);
     return { ...c, balance };
   });
+
+  if (branch) {
+    customers = customers.filter(c => c.branch === branch);
+  }
 
   if (q) {
     customers = customers.filter(c =>
@@ -1574,7 +1607,7 @@ app.get('/customers/new', requireAuth, async (req, res) => {
 });
 
 app.post('/customers', requireAuth, async (req, res) => {
-  const { name, phone, id_no, email, birth_date, salesperson_id } = req.body;
+  const { name, phone, id_no, email, birth_date, salesperson_id, branch } = req.body;
   if (!name) return res.status(400).send('Müşteri adı zorunlu');
   
   const data = await getContext();
@@ -1590,6 +1623,7 @@ app.post('/customers', requireAuth, async (req, res) => {
     phone: phone || '',
     id_no: id_no || '',
     email: email || '',
+    branch: branch || 'Akhisar',
     profession: req.body.profession || '',
     birth_date: birth_date || '',
     salesperson_id: salesperson_id ? Number(salesperson_id) : null,
@@ -2272,6 +2306,7 @@ app.post('/customers/:id', requireAuth, async (req, res) => {
       phone: req.body.phone,
       id_no: req.body.id_no,
       email: req.body.email,
+      branch: req.body.branch || 'Akhisar',
       profession: req.body.profession,
       birth_date: req.body.birth_date,
       salesperson_id: req.body.salesperson_id ? Number(req.body.salesperson_id) : null,
@@ -2304,7 +2339,20 @@ app.get('/policies', requireAuth, async (req, res) => {
   const qs = new URLSearchParams(req.query).toString();
   const totalPolicies = data.policies.length;
   const totalCustomers = data.customers.length;
-  res.render('policies/index', { policies: items, title: 'Poliçeler', qs, totalPolicies, totalCustomers });
+  
+  // Filtrelenmiş toplamlar
+  const filteredCount = items.length;
+  const filteredPremium = items.reduce((sum, p) => sum + Number(p.premium || 0), 0);
+  
+  res.render('policies/index', { 
+    policies: items, 
+    title: 'Poliçeler', 
+    qs, 
+    totalPolicies, 
+    totalCustomers,
+    filteredCount,
+    filteredPremium
+  });
 });
 
 app.get('/policies/import', requireAuth, (req, res) => {
@@ -2377,7 +2425,8 @@ async function runPoliciesImportJob(jobId, filePath) {
           idNo: findCol('Müşteri TC No', 'Musteri TC No', 'TC', 'TCKN') || 9,
           taxNo: findCol('Müşteri Vergi No', 'Musteri Vergi No', 'VKN', 'Vergi No') || 10,
           plate: findCol('Plaka') || 11,
-          phone: findCol('Telefon') || 12
+          phone: findCol('Telefon') || 12,
+          branch: findCol('Şube', 'Sube', 'Bölge', 'Bolge') || 13
         };
 
     const formatExcelDate = (cell) => {
@@ -2451,6 +2500,11 @@ async function runPoliciesImportJob(jobId, filePath) {
       const recordType = isLegacy ? getText(row, cols.recordType) : '';
       const idNo = isLegacy ? '' : (getText(row, cols.idNo) || getText(row, cols.taxNo));
       const phone = isLegacy ? '' : getText(row, cols.phone);
+      const rowBranchRaw = isLegacy ? '' : getText(row, cols.branch);
+      let rowBranch = 'Akhisar';
+      if (rowBranchRaw && (rowBranchRaw.toLocaleLowerCase('tr-TR').includes('balıkesir') || rowBranchRaw.toLocaleLowerCase('tr-TR').includes('balikesir'))) {
+        rowBranch = 'Balıkesir';
+      }
 
       if (!customerName || !policyNumber) continue;
 
@@ -2464,6 +2518,7 @@ async function runPoliciesImportJob(jobId, filePath) {
           phone: phone || '',
           id_no: idNo || '',
           email: '',
+          branch: rowBranch,
           birth_date: ''
         });
         customer = created;
@@ -2474,6 +2529,9 @@ async function runPoliciesImportJob(jobId, filePath) {
         const updates = {};
         if (idNo && !customer.id_no) updates.id_no = idNo;
         if (phone && !customer.phone) updates.phone = phone;
+        // Müşterinin şubesi Balıkesir olarak geldiyse ve henüz Akhisar ise güncelle
+        if (rowBranch === 'Balıkesir' && (customer.branch || 'Akhisar') === 'Akhisar') updates.branch = 'Balıkesir';
+
         if (Object.keys(updates).length > 0) {
           await dataService.updateCustomer(customer.id, updates);
           Object.assign(customer, updates);
@@ -2489,6 +2547,7 @@ async function runPoliciesImportJob(jobId, filePath) {
           insurer: insurer || 'Bilinmiyor',
           policy_type: policyType || 'Diğer',
           policy_number: policyNumber,
+          branch: rowBranch,
           issue_date: issueDate || '',
           start_date: startDate || '',
           end_date: endDate || '',
@@ -2515,6 +2574,7 @@ async function runPoliciesImportJob(jobId, filePath) {
         if (issueDate && existingPolicy.issue_date !== issueDate) updates.issue_date = issueDate;
         if (startDate && existingPolicy.start_date !== startDate) updates.start_date = startDate;
         if (endDate && existingPolicy.end_date !== endDate) updates.end_date = endDate;
+        if (rowBranch === 'Balıkesir' && (existingPolicy.branch || 'Akhisar') === 'Akhisar') updates.branch = 'Balıkesir';
 
         const importStatus = isLegacy
           ? ((recordType || '').toLocaleLowerCase('tr-TR').includes('iptal') ? 'cancelled' : 'active')
@@ -2683,7 +2743,7 @@ app.get('/policies/related/:id', requireAuth, async (req, res) => {
 
 app.post('/policies', requireAuth, async (req, res) => {
   try {
-    const { customer_id, insurer, policy_number, start_date, end_date, description, status, issue_date, policy_type, premium, premium_paid, payment_note, commission, commission_refund, custom_reminder_date, custom_reminder_note, salesperson_commission, salesperson_id } = req.body;
+    const { customer_id, insurer, policy_number, branch, start_date, end_date, description, status, issue_date, policy_type, premium, premium_paid, payment_note, commission, commission_refund, custom_reminder_date, custom_reminder_note, salesperson_commission, salesperson_id } = req.body;
     
     if (!customer_id || !insurer || !policy_number || !start_date || !end_date) {
       return res.status(400).send('Eksik alanlar mevcut');
@@ -2694,6 +2754,7 @@ app.post('/policies', requireAuth, async (req, res) => {
       customer_id: Number(customer_id),
       insurer,
       policy_number,
+      branch: branch || 'Akhisar',
       issue_date: issue_date || '',
       start_date,
       end_date,
@@ -2854,12 +2915,13 @@ app.post('/policies/:id/delete', requireAuth, async (req, res) => {
 app.post('/policies/:id', requireAuth, async (req, res) => {
   try {
     const id = Number(req.params.id);
-    const { customer_id, insurer, policy_number, start_date, end_date, description, status, issue_date, policy_type, premium, premium_paid, payment_note, commission, commission_refund, custom_reminder_date, custom_reminder_note, salesperson_commission, salesperson_id } = req.body;
+    const { customer_id, insurer, policy_number, branch, start_date, end_date, description, status, issue_date, policy_type, premium, premium_paid, payment_note, commission, commission_refund, custom_reminder_date, custom_reminder_note, salesperson_commission, salesperson_id } = req.body;
     
     await dataService.updatePolicy(id, {
       customer_id: Number(customer_id),
       insurer,
       policy_number,
+      branch: branch || 'Akhisar',
       issue_date: issue_date || '',
       start_date,
       end_date,

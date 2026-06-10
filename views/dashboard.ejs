@@ -49,6 +49,44 @@
   </div>
 </div>
 
+<!-- Şube İstatistikleri -->
+<div class="row g-3 mb-4">
+  <div class="col-md-6">
+    <div class="card h-100 shadow-sm border-start border-primary border-4">
+      <div class="card-body">
+        <h6 class="text-primary fw-bold mb-3"><i class="bi bi-geo-alt"></i> Akhisar Şubesi</h6>
+        <div class="row text-center">
+          <div class="col-6 border-end">
+            <h4 class="mb-0"><%= stats.branchStats.Akhisar.policies %></h4>
+            <small class="text-muted">Poliçe</small>
+          </div>
+          <div class="col-6">
+            <h4 class="mb-0"><%= stats.branchStats.Akhisar.customers %></h4>
+            <small class="text-muted">Müşteri</small>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card h-100 shadow-sm border-start border-info border-4">
+      <div class="card-body">
+        <h6 class="text-info fw-bold mb-3"><i class="bi bi-geo-alt-fill"></i> Balıkesir İrtibat Ofisi</h6>
+        <div class="row text-center">
+          <div class="col-6 border-end">
+            <h4 class="mb-0"><%= stats.branchStats.Balıkesir.policies %></h4>
+            <small class="text-muted">Poliçe</small>
+          </div>
+          <div class="col-6">
+            <h4 class="mb-0"><%= stats.branchStats.Balıkesir.customers %></h4>
+            <small class="text-muted">Müşteri</small>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Policy Type Chart Modal -->
 <div class="modal fade" id="policyChartModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-lg">

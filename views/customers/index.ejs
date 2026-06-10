@@ -132,17 +132,25 @@
 <div class="card mb-4 shadow-sm">
   <div class="card-body">
     <form class="row g-3" method="get" action="/customers">
-      <div class="col-md-10">
+      <div class="col-md-7">
         <label for="q" class="visually-hidden">Arama</label>
         <div class="input-group">
           <span class="input-group-text"><i class="bi bi-search"></i></span>
           <input type="text" class="form-control" id="q" name="q" placeholder="Ad, TCKN, Telefon, E-posta veya Plaka ara..." value="<%= q || '' %>">
         </div>
       </div>
+      <div class="col-md-3">
+        <select class="form-select" name="branch">
+          <% const b = (typeof branch !== 'undefined' ? branch : ''); %>
+          <option value="" <%= b===''?'selected':'' %>>Tüm Şubeler</option>
+          <option value="Akhisar" <%= b==='Akhisar'?'selected':'' %>>Akhisar</option>
+          <option value="Balıkesir" <%= b==='Balıkesir'?'selected':'' %>>Balıkesir</option>
+        </select>
+      </div>
       <div class="col-md-2">
-        <div class="d-grid gap-2">
-          <button type="submit" class="btn btn-primary">Ara</button>
-          <% if (q) { %>
+        <div class="d-grid gap-2 d-md-flex">
+          <button type="submit" class="btn btn-primary flex-grow-1">Ara</button>
+          <% if (q || (typeof branch !== 'undefined' && branch)) { %>
             <a href="/customers" class="btn btn-outline-secondary">Temizle</a>
           <% } %>
         </div>
@@ -150,6 +158,20 @@
     </form>
   </div>
 </div>
+
+<% if (typeof filteredCount !== 'undefined' && (q || (typeof branch !== 'undefined' && branch))) { %>
+<div class="alert alert-info shadow-sm mb-4">
+  <div class="d-flex justify-content-between align-items-center">
+    <span>
+      <i class="bi bi-filter-circle"></i> 
+      <strong><%= branch || 'Tüm Şubeler' %></strong> için 
+      <strong><%= filteredCount %></strong> müşteri bulundu. 
+      Toplam Bakiye: <strong><%= filteredBalance.toFixed(2) %> TL</strong>
+    </span>
+    <a href="/customers" class="btn btn-sm btn-outline-info">Filtreyi Temizle</a>
+  </div>
+</div>
+<% } %>
 
 <div class="table-responsive">
   <table class="table table-striped table-hover align-middle">
@@ -159,6 +181,7 @@
         <th>Bakiye</th>
         <th>Telefon</th>
         <th>TCKN</th>
+        <th>Şube</th>
         <th>E-posta</th>
         <th>Meslek</th>
         <th>Doğum Tarihi</th>
@@ -187,6 +210,7 @@
           </td>
           <td><%= c.phone || '-' %></td>
           <td><%= c.id_no || '-' %></td>
+          <td><span class="badge <%= c.branch === 'Balıkesir' ? 'bg-secondary' : 'bg-light text-dark' %>"><%= c.branch || 'Akhisar' %></span></td>
           <td><%= c.email || '-' %></td>
           <td><%= c.profession || '-' %></td>
           <td><%= c.birth_date || '-' %></td>
