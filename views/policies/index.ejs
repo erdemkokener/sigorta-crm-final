@@ -166,28 +166,28 @@
 </div>
 
 <div class="table-responsive">
-  <table class="table table-sm table-hover align-middle shadow-sm rounded overflow-hidden" style="font-size: 0.75rem; min-width: 1200px;">
+  <table class="table table-sm table-hover align-middle shadow-sm rounded overflow-hidden" style="font-size: 0.7rem; width: 100%; table-layout: fixed;">
     <thead class="table-dark">
       <tr>
-        <th style="min-width: 150px;">Müşteri</th>
-        <th>Telefon</th>
-        <th>Kimlik No</th>
-        <th>Sigortacı</th>
-        <th>Tür</th>
-        <th>Şube</th>
-        <th>Poliçe No</th>
-        <th>Tanzim</th>
-        <th>Başlangıç</th>
-        <th>Bitiş</th>
-        <th>Kalan</th>
-        <th>Durum</th>
-        <th class="text-end">İşlem</th>
+        <th style="width: 12%;">Müşteri</th>
+        <th style="width: 9%;">Telefon</th>
+        <th style="width: 9%;">Kimlik No</th>
+        <th style="width: 10%;">Sigortacı</th>
+        <th style="width: 10%;">Tür</th>
+        <th style="width: 6%;">Şube</th>
+        <th style="width: 10%;">Poliçe No</th>
+        <th style="width: 7%;">Tanzim</th>
+        <th style="width: 7%;">Başlangıç</th>
+        <th style="width: 7%;">Bitiş</th>
+        <th style="width: 5%;">Kalan</th>
+        <th style="width: 6%;">Durum</th>
+        <th style="text-align: right; width: 8%;">İşlem</th>
       </tr>
     </thead>
     <tbody>
       <% if (policies.length === 0) { %>
         <tr>
-          <td colspan="12" class="text-center py-5 text-muted">
+          <td colspan="13" class="text-center py-5 text-muted">
             <i class="bi bi-inbox display-4 d-block mb-3"></i>
             Kayıt bulunamadı.
           </td>
@@ -195,49 +195,49 @@
       <% } %>
       <% policies.forEach(p => { %>
         <tr class="<%= p.is_missed_renewal ? 'table-info' : (p.is_expired ? 'table-danger' : (p.is_expiring_soon ? 'table-warning' : '')) %>">
-          <td class="text-nowrap">
+          <td class="text-truncate" title="<%= p.customer_name %>">
              <a href="/customers/<%= p.customer_id %>" class="text-decoration-none fw-bold text-dark">
                <%= p.customer_name || '-' %>
              </a>
           </td>
-          <td class="text-nowrap"><%= p.customer_phone || '-' %></td>
+          <td class="text-nowrap" style="font-size: 0.65rem;"><%= p.customer_phone || '-' %></td>
           <td class="text-nowrap"><%= p.customer_id_no || '-' %></td>
-          <td class="text-nowrap"><%= p.insurer %></td>
-          <td class="text-nowrap"><span class="badge bg-info text-dark"><%= p.policy_type || 'Diğer' %></span></td>
-          <td class="text-nowrap"><span class="badge <%= p.branch === 'Balıkesir' ? 'bg-secondary' : 'bg-light text-dark' %>"><%= p.branch || 'Akhisar' %></span></td>
-          <td class="text-nowrap"><%= p.policy_number %></td>
+          <td class="text-truncate" title="<%= p.insurer %>"><%= p.insurer %></td>
+          <td class="text-truncate"><span class="badge bg-info text-dark p-1" style="font-size: 0.6rem;"><%= p.policy_type || 'Diğer' %></span></td>
+          <td><span class="badge <%= p.branch === 'Balıkesir' ? 'bg-secondary' : 'bg-light text-dark' %> p-1" style="font-size: 0.6rem;"><%= (p.branch || 'Akhisar').substring(0,3) %></span></td>
+          <td class="text-truncate" title="<%= p.policy_number %>"><%= p.policy_number %></td>
           <td class="text-nowrap"><%= formatDate(p.issue_date || p.start_date) %></td>
           <td class="text-nowrap"><%= formatDate(p.start_date) %></td>
           <td class="text-nowrap"><%= formatDate(p.end_date) %></td>
           <td class="text-nowrap">
             <% if (p.is_missed_renewal) { %>
-                <span class="badge bg-warning text-dark">Yenilenmedi</span>
+                <span class="badge bg-warning text-dark p-1" style="font-size: 0.6rem;">Yenile</span>
             <% } else if (p.days_remaining < 0) { %>
-                <span class="badge bg-danger">Süresi Doldu</span>
+                <span class="badge bg-danger p-1" style="font-size: 0.6rem;">Doldu</span>
             <% } else { %>
-                <span class="fw-bold"><%= p.days_remaining %> gün</span>
+                <span class="fw-bold"><%= p.days_remaining %>g</span>
             <% } %>
           </td>
           <td class="text-nowrap">
              <% if (p.is_missed_renewal) { %>
-               <span class="badge bg-warning text-dark">Yenileme Fırsatı</span>
+               <span class="badge bg-warning text-dark p-1" style="font-size: 0.6rem;">Fırsat</span>
              <% } else if (p.status === 'active' || p.status === 'Aktif') { %>
-               <span class="badge bg-success">Aktif</span>
+               <span class="badge bg-success p-1" style="font-size: 0.6rem;">Aktif</span>
              <% } else if (p.status === 'cancelled' || p.status === 'İptal') { %>
-               <span class="badge bg-danger">İptal</span>
+               <span class="badge bg-danger p-1" style="font-size: 0.6rem;">İptal</span>
              <% } else if (p.status === 'Satıldı') { %>
-               <span class="badge bg-dark">Satıldı</span>
+               <span class="badge bg-dark p-1" style="font-size: 0.6rem;">Satıldı</span>
              <% } else { %>
-               <span class="badge bg-secondary"><%= p.status %></span>
+               <span class="badge bg-secondary p-1" style="font-size: 0.6rem;"><%= p.status %></span>
              <% } %>
           </td>
-          <td class="text-end text-nowrap">
-            <div class="btn-group btn-group-sm">
-              <a href="/policies/<%= p.id %>" class="btn btn-outline-primary" title="Detay"><i class="bi bi-eye"></i></a>
-              <a href="/policies/renew/<%= p.id %>" class="btn btn-outline-info" title="Yenile"><i class="bi bi-arrow-repeat"></i></a>
-              <a href="/policies/<%= p.id %>/edit" class="btn btn-outline-warning" title="Düzenle"><i class="bi bi-pencil"></i></a>
+          <td class="text-end text-nowrap p-1">
+            <div class="btn-group btn-group-xs">
+              <a href="/policies/<%= p.id %>" class="btn btn-sm btn-outline-primary p-1" title="Detay"><i class="bi bi-eye"></i></a>
+              <a href="/policies/renew/<%= p.id %>" class="btn btn-sm btn-outline-info p-1" title="Yenile"><i class="bi bi-arrow-repeat"></i></a>
+              <a href="/policies/<%= p.id %>/edit" class="btn btn-sm btn-outline-warning p-1" title="Düzenle"><i class="bi bi-pencil"></i></a>
               <form action="/policies/<%= p.id %>/delete" method="post" class="d-inline" onsubmit="return confirm('Silmek istediğinize emin misiniz?')">
-                <button class="btn btn-outline-danger" title="Sil"><i class="bi bi-trash"></i></button>
+                <button class="btn btn-sm btn-outline-danger p-1" title="Sil"><i class="bi bi-trash"></i></button>
               </form>
             </div>
           </td>
@@ -246,3 +246,21 @@
     </tbody>
   </table>
 </div>
+
+<style>
+  .btn-group-xs > .btn, .btn-xs {
+    padding: 0.1rem 0.25rem;
+    font-size: 0.75rem;
+    line-height: 1;
+    border-radius: 0.2rem;
+  }
+  .table-sm th, .table-sm td {
+    padding: 0.3rem 0.2rem !important;
+  }
+  .text-truncate {
+    max-width: 1px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+</style>

@@ -174,67 +174,66 @@
 <% } %>
 
 <div class="table-responsive">
-  <table class="table table-striped table-hover align-middle">
+  <table class="table table-sm table-striped table-hover align-middle shadow-sm rounded overflow-hidden" style="font-size: 0.75rem; width: 100%; table-layout: fixed;">
     <thead class="table-light">
       <tr>
-        <th>Ad Soyad</th>
-        <th>Bakiye</th>
-        <th>Telefon</th>
-        <th>TCKN</th>
-        <th>Şube</th>
-        <th>E-posta</th>
-        <th>Meslek</th>
-        <th>Doğum Tarihi</th>
-        <th class="text-end">İşlem</th>
+        <th style="width: 15%;">Ad Soyad</th>
+        <th style="width: 10%;">Bakiye</th>
+        <th style="width: 10%;">Telefon</th>
+        <th style="width: 10%;">TCKN</th>
+        <th style="width: 8%;">Şube</th>
+        <th style="width: 15%;">E-posta</th>
+        <th style="width: 10%;">Meslek</th>
+        <th style="width: 10%;">Doğum</th>
+        <th style="text-align: right; width: 12%;">İşlem</th>
       </tr>
     </thead>
     <tbody>
       <% if (customers.length === 0) { %>
-        <tr><td colspan="7" class="text-center py-4 text-muted">Kayıtlı müşteri bulunamadı.</td></tr>
+        <tr><td colspan="9" class="text-center py-4 text-muted">Kayıtlı müşteri bulunamadı.</td></tr>
       <% } %>
       <% customers.forEach(c => { %>
         <tr>
-          <td>
+          <td class="text-truncate" title="<%= c.name %>">
             <a href="/customers/<%= c.id %>" class="text-decoration-none fw-bold">
               <i class="bi bi-person"></i> <%= c.name %>
             </a>
           </td>
           <td>
             <% if (c.balance && c.balance > 0.01) { %>
-               <span class="badge bg-danger"><%= c.balance.toFixed(2) %> TL</span>
+               <span class="badge bg-danger p-1" style="font-size: 0.7rem;"><%= c.balance.toFixed(0) %> TL</span>
             <% } else if (c.balance && c.balance < -0.01) { %>
-               <span class="badge bg-success"><%= Math.abs(c.balance).toFixed(2) %> TL (Alacak)</span>
+               <span class="badge bg-success p-1" style="font-size: 0.7rem;"><%= Math.abs(c.balance).toFixed(0) %> TL</span>
             <% } else { %>
-               <span class="badge bg-secondary">0.00 TL</span>
+               <span class="badge bg-secondary p-1" style="font-size: 0.7rem;">0 TL</span>
             <% } %>
           </td>
-          <td><%= c.phone || '-' %></td>
-          <td><%= c.id_no || '-' %></td>
-          <td><span class="badge <%= c.branch === 'Balıkesir' ? 'bg-secondary' : 'bg-light text-dark' %>"><%= c.branch || 'Akhisar' %></span></td>
-          <td><%= c.email || '-' %></td>
-          <td><%= c.profession || '-' %></td>
-          <td><%= c.birth_date || '-' %></td>
-          <td class="text-end">
-            <div class="btn-group btn-group-sm">
+          <td class="text-nowrap" style="font-size: 0.7rem;"><%= c.phone || '-' %></td>
+          <td class="text-nowrap"><%= c.id_no || '-' %></td>
+          <td><span class="badge <%= c.branch === 'Balıkesir' ? 'bg-secondary' : 'bg-light text-dark' %> p-1" style="font-size: 0.65rem;"><%= (c.branch || 'Akhisar').substring(0,3) %></span></td>
+          <td class="text-truncate" title="<%= c.email %>"><%= c.email || '-' %></td>
+          <td class="text-truncate" title="<%= c.profession %>"><%= c.profession || '-' %></td>
+          <td class="text-nowrap"><%= c.birth_date || '-' %></td>
+          <td class="text-end text-nowrap p-1">
+            <div class="btn-group btn-group-xs">
               <% if (c.phone) { %>
                 <a
                   href="https://wa.me/<%= String(c.phone || '').replace(/\D/g, '') %>?text=<%= encodeURIComponent('Sayın ' + (c.name || '') + ', doğum gününüzü kutlar, sağlıklı günler dileriz. Erdem KÖKENER Sigorta WİN') %>"
                   target="_blank"
-                  class="btn btn-outline-success"
-                  title="WhatsApp ile Mesaj Gönder"
+                  class="btn btn-outline-success p-1"
+                  title="WhatsApp"
                 >
                   <i class="bi bi-whatsapp"></i>
                 </a>
               <% } %>
-              <a href="/customers/<%= c.id %>" class="btn btn-outline-primary" title="Detay"><i class="bi bi-eye"></i></a>
+              <a href="/customers/<%= c.id %>" class="btn btn-outline-primary p-1" title="Detay"><i class="bi bi-eye"></i></a>
               <% if (c.balance && c.balance > 0.01) { %>
-                <a href="/customers/<%= c.id %>/debts/export-excel" class="btn btn-outline-dark" title="Excel Borç Listesi"><i class="bi bi-file-earmark-excel"></i></a>
-                <a href="/customers/<%= c.id %>/debts/export-pdf" class="btn btn-outline-dark" title="PDF Borç Listesi"><i class="bi bi-file-earmark-pdf"></i></a>
+                <a href="/customers/<%= c.id %>/debts/export-excel" class="btn btn-outline-dark p-1" title="Excel"><i class="bi bi-file-earmark-excel"></i></a>
               <% } %>
-              <a href="/customers/<%= c.id %>/edit" class="btn btn-outline-warning" title="Düzenle"><i class="bi bi-pencil"></i></a>
+              <a href="/customers/<%= c.id %>/edit" class="btn btn-outline-warning p-1" title="Düzenle"><i class="bi bi-pencil"></i></a>
               <% if (user && user.isAdmin) { %>
                 <form action="/customers/<%= c.id %>/delete" method="post" class="d-inline" onsubmit="return confirm('Müşteri silinecek. Emin misiniz?')">
-                  <button type="submit" class="btn btn-outline-danger" title="Sil"><i class="bi bi-trash"></i></button>
+                  <button type="submit" class="btn btn-outline-danger p-1" title="Sil"><i class="bi bi-trash"></i></button>
                 </form>
               <% } %>
             </div>
@@ -244,3 +243,21 @@
     </tbody>
   </table>
 </div>
+
+<style>
+  .btn-group-xs > .btn {
+    padding: 0.1rem 0.25rem;
+    font-size: 0.75rem;
+    line-height: 1;
+    border-radius: 0.2rem;
+  }
+  .table-sm th, .table-sm td {
+    padding: 0.3rem 0.2rem !important;
+  }
+  .text-truncate {
+    max-width: 1px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+</style>
