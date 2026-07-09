@@ -76,6 +76,14 @@
             </datalist>
           </div>
           <div class="col-md-6">
+            <label class="form-label">Acente</label>
+            <select name="agency" class="form-select">
+              <option value="">Seçiniz...</option>
+              <option value="WİN" <%= policy.agency === 'WİN' ? 'selected' : '' %>>WİN</option>
+              <option value="ETG" <%= policy.agency === 'ETG' ? 'selected' : '' %>>ETG</option>
+            </select>
+          </div>
+          <div class="col-md-6">
             <label class="form-label">Poliçe Türü</label>
             <select class="form-select" name="policy_type">
               <option value="Trafik" <%= policy.policy_type === 'Trafik' ? 'selected' : '' %>>Trafik</option>

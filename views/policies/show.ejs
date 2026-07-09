@@ -68,6 +68,10 @@
                 <div class="fw-bold"><%= policy.insurer %></div>
             </div>
             <div class="col-md-6">
+                <label class="text-muted small">Acente</label>
+                <div class="fw-bold"><%= policy.agency || '-' %></div>
+            </div>
+            <div class="col-md-6">
                 <label class="text-muted small">Poliçe Türü</label>
                 <div><span class="badge bg-info text-dark"><%= policy.policy_type || 'Diğer' %></span></div>
             </div>

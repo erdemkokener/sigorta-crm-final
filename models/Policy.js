@@ -4,6 +4,7 @@ const PolicySchema = new mongoose.Schema({
   id: { type: Number, required: true, unique: true }, // Legacy ID support
   customer_id: { type: Number, required: true },
   insurer: String,
+  agency: String,
   policy_number: String,
   branch: { type: String, default: 'Akhisar' }, // Akhisar or Balıkesir
   policy_type: String,

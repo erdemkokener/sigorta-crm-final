@@ -2677,6 +2677,7 @@ app.get('/policies/renew/:id', requireAuth, async (req, res) => {
   const prefill = {
     customer_id: oldPolicy.customer_id,
     salesperson_id: oldPolicy.salesperson_id,
+    agency: oldPolicy.agency || '',
     policy_type: oldPolicy.policy_type,
     description: oldPolicy.description,
     policy_details: oldPolicy.policy_details || {},
@@ -2719,6 +2720,7 @@ app.get('/policies/related/:id', requireAuth, async (req, res) => {
   const prefill = {
     customer_id: basePolicy.customer_id,
     salesperson_id: basePolicy.salesperson_id || '',
+    agency: basePolicy.agency || '',
     // Kullanıcı poliçe türünü seçecek
     // Şirket ve poliçe no kullanıcı tarafından girilecek
     insurer: '',
@@ -2754,7 +2756,7 @@ app.get('/policies/related/:id', requireAuth, async (req, res) => {
 
 app.post('/policies', requireAuth, async (req, res) => {
   try {
-    const { customer_id, insurer, policy_number, branch, start_date, end_date, description, status, issue_date, policy_type, premium, premium_paid, payment_note, commission, commission_refund, custom_reminder_date, custom_reminder_note, salesperson_commission, salesperson_id } = req.body;
+    const { customer_id, insurer, agency, policy_number, branch, start_date, end_date, description, status, issue_date, policy_type, premium, premium_paid, payment_note, commission, commission_refund, custom_reminder_date, custom_reminder_note, salesperson_commission, salesperson_id } = req.body;
     
     if (!customer_id || !insurer || !policy_number || !start_date || !end_date) {
       return res.status(400).send('Eksik alanlar mevcut');
@@ -2764,6 +2766,7 @@ app.post('/policies', requireAuth, async (req, res) => {
     await dataService.createPolicy({
       customer_id: Number(customer_id),
       insurer,
+      agency: agency || '',
       policy_number,
       branch: normalizeBranch(branch),
       issue_date: issue_date || '',
@@ -2926,11 +2929,12 @@ app.post('/policies/:id/delete', requireAuth, async (req, res) => {
 app.post('/policies/:id', requireAuth, async (req, res) => {
   try {
     const id = Number(req.params.id);
-    const { customer_id, insurer, policy_number, branch, start_date, end_date, description, status, issue_date, policy_type, premium, premium_paid, payment_note, commission, commission_refund, custom_reminder_date, custom_reminder_note, salesperson_commission, salesperson_id } = req.body;
+    const { customer_id, insurer, agency, policy_number, branch, start_date, end_date, description, status, issue_date, policy_type, premium, premium_paid, payment_note, commission, commission_refund, custom_reminder_date, custom_reminder_note, salesperson_commission, salesperson_id } = req.body;
     
     await dataService.updatePolicy(id, {
       customer_id: Number(customer_id),
       insurer,
+      agency: agency || '',
       policy_number,
       branch: normalizeBranch(branch),
       issue_date: issue_date || '',
