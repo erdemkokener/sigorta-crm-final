@@ -1,351 +1,177 @@
-<div class="row justify-content-center">
-  <div class="col-md-8">
-    <div class="card shadow-sm">
-      <div class="card-header bg-light">
-        <h5 class="mb-0">Poliçe Düzenle: <%= policy.policy_number %></h5>
+<div class="card mb-4">
+  <div class="card-header">
+    <% if (policy) { %>
+      Poliçe Düzenle
+    <% } else { %>
+      Yeni Poliçe
+    <% } %>
+  </div>
+  <div class="card-body">
+    <form method="post" action="<%= policy ? `/policies/${policy.id}/edit` : `/policies/new` %>">
+      <div class="row mb-3">
+        <div class="col-md-6">
+          <label for="customer_id" class="form-label">Müşteri *</label>
+          <select class="form-select" id="customer_id" name="customer_id" required>
+            <option value="">Seçiniz...</option>
+            <% customers.forEach(customer => { %>
+              <option value="<%= customer.id %>" <%= policy && policy.customer_id == customer.id ? 'selected' : '' %>>
+                <%= customer.name %> <%= customer.phone ? `(${customer.phone})` : '' %>
+              </option>
+            <% }) %>
+          </select>
+        </div>
+        <div class="col-md-6">
+          <label for="branch" class="form-label">Şube *</label>
+          <select class="form-select" id="branch" name="branch" required>
+            <option value="Akhisar" <%= policy && policy.branch === 'Akhisar' ? 'selected' : '' %>>Akhisar</option>
+            <option value="Balıkesir" <%= policy && policy.branch === 'Balıkesir' ? 'selected' : '' %>>Balıkesir</option>
+            <option value="Ada Şube" <%= policy && policy.branch === 'Ada Şube' ? 'selected' : '' %>>Ada Şube</option>
+            <option value="İlke Şube" <%= policy && policy.branch === 'İlke Şube' ? 'selected' : '' %>>İlke Şube</option>
+          </select>
+        </div>
       </div>
-      <div class="card-body">
-        <form action="/policies/<%= policy.id %>" method="post" class="row g-3">
-          <div class="col-md-12">
-            <label class="form-label">Müşteri <span class="text-danger">*</span></label>
-            <select class="form-select" name="customer_id" required>
-              <% customers.forEach(c => { %>
-                <option value="<%= c.id %>" <%= (policy.customer_id===c.id)?'selected':'' %>><%= c.name %> (<%= c.phone || '-' %>)</option>
-              <% }) %>
-            </select>
-          </div>
+      
+      <div class="row mb-3">
+        <div class="col-md-4">
+          <label for="insurer" class="form-label">Sigorta Şirketi *</label>
+          <select class="form-select" id="insurer" name="insurer" required>
+            <option value="">Seçiniz...</option>
+            <option value="Anadolu Sigorta" <%= policy && policy.insurer === 'Anadolu Sigorta' ? 'selected' : '' %>>Anadolu Sigorta</option>
+            <option value="Allianz" <%= policy && policy.insurer === 'Allianz' ? 'selected' : '' %>>Allianz</option>
+            <option value="Eureko" <%= policy && policy.insurer === 'Eureko' ? 'selected' : '' %>>Eureko</option>
+            <option value="Halk Sigorta" <%= policy && policy.insurer === 'Halk Sigorta' ? 'selected' : '' %>>Halk Sigorta</option>
+            <option value="Mapfre" <%= policy && policy.insurer === 'Mapfre' ? 'selected' : '' %>>Mapfre</option>
+            <option value="Sigortam.net" <%= policy && policy.insurer === 'Sigortam.net' ? 'selected' : '' %>>Sigortam.net</option>
+            <option value="Turkiye Sigorta" <%= policy && policy.insurer === 'Turkiye Sigorta' ? 'selected' : '' %>>Türkiye Sigorta</option>
+            <option value="Win Sigorta" <%= policy && policy.insurer === 'Win Sigorta' ? 'selected' : '' %>>Win Sigorta</option>
+            <option value="ETG Sigorta" <%= policy && policy.insurer === 'ETG Sigorta' ? 'selected' : '' %>>ETG Sigorta</option>
+          </select>
+        </div>
+        <div class="col-md-4">
+          <label for="policy_type" class="form-label">Poliçe Türü *</label>
+          <select class="form-select" id="policy_type" name="policy_type" required>
+            <option value="">Seçiniz...</option>
+            <option value="Kasko" <%= policy && policy.policy_type === 'Kasko' ? 'selected' : '' %>>Kasko</option>
+            <option value="Trafik" <%= policy && policy.policy_type === 'Trafik' ? 'selected' : '' %>>Trafik</option>
+            <option value="DASK" <%= policy && policy.policy_type === 'DASK' ? 'selected' : '' %>>DASK</option>
+            <option value="Konut" <%= policy && policy.policy_type === 'Konut' ? 'selected' : '' %>>Konut</option>
+            <option value="Sağlık" <%= policy && policy.policy_type === 'Sağlık' ? 'selected' : '' %>>Sağlık</option>
+            <option value="Seyahat" <%= policy && policy.policy_type === 'Seyahat' ? 'selected' : '' %>>Seyahat</option>
+          </select>
+        </div>
+        <div class="col-md-4">
+          <label for="policy_number" class="form-label">Poliçe Numarası</label>
+          <input type="text" class="form-control" id="policy_number" name="policy_number" value="<%= policy ? policy.policy_number : '' %>">
+        </div>
+      </div>
 
-          <div class="col-md-6">
-            <label class="form-label">Satışçı / Aracı</label>
-            <select name="salesperson_id" class="form-select">
-              <option value="">Seçiniz...</option>
-              <% if (typeof salespersons !== 'undefined') { %>
-                <% salespersons.forEach(s => { %>
-                  <option value="<%= s.id %>" <%= (policy.salesperson_id === s.id) ? 'selected' : '' %>><%= s.name %></option>
-                <% }); %>
-              <% } %>
-            </select>
-          </div>
+      <div class="row mb-3">
+        <div class="col-md-4">
+          <label for="issue_date" class="form-label">Düzenleme Tarihi</label>
+          <input type="date" class="form-control" id="issue_date" name="issue_date" value="<%= policy ? policy.issue_date : '' %>">
+        </div>
+        <div class="col-md-4">
+          <label for="start_date" class="form-label">Başlangıç Tarihi *</label>
+          <input type="date" class="form-control" id="start_date" name="start_date" value="<%= policy ? policy.start_date : '' %>" required>
+        </div>
+        <div class="col-md-4">
+          <label for="end_date" class="form-label">Bitiş Tarihi *</label>
+          <input type="date" class="form-control" id="end_date" name="end_date" value="<%= policy ? policy.end_date : '' %>" required>
+        </div>
+      </div>
 
-          <div class="col-md-6">
-            <label class="form-label">Sigorta Şirketi <span class="text-danger">*</span></label>
-            <input type="text" class="form-control" name="insurer" value="<%= policy.insurer %>" list="insurerList" required>
-            <datalist id="insurerList">
-              <option value="Quick Sigorta">
-              <option value="Şeker Sigorta">
-              <option value="Turk Pandi Sigorta">
-              <option value="Zurich Sigorta">
-              <option value="Ray Sigorta">
-              <option value="Tmt Sigorta">
-              <option value="Türkiye Sigorta">
-              <option value="Unico Sigorta">
-              <option value="Turk Nippon Sigorta">
-              <option value="Sompo Sigorta">
-              <option value="Ak Sigorta">
-              <option value="Allianz Sigorta">
-              <option value="Ankara Sigorta">
-              <option value="Axa Sigorta">
-              <option value="Bnp Paribas Cardif Sigorta">
-              <option value="Corpus Sigorta">
-              <option value="Anadolu Sigorta">
-              <option value="Atradius Sigorta">
-              <option value="Bereket Sigorta">
-              <option value="Coface Sigorta">
-              <option value="Ana Sigorta">
-              <option value="Atlas Mutel Sigorta">
-              <option value="Bereket Tekafül Sigorta">
-              <option value="Doğa Sigorta">
-              <option value="Dubai Sigorta">
-              <option value="Ethica Sigorta">
-              <option value="Eulerhermes Sigorta">
-              <option value="GRI Sigorta">
-              <option value="HDI Sigorta">
-              <option value="Hepiyi Sigorta">
-              <option value="Mapfre Sigorta">
-              <option value="Orient Sigorta">
-              <option value="Neova Sigorta">
-              <option value="Magdeburger Sigorta">
-              <option value="Gulf Sigorta">
-              <option value="Generali Sigorta">
-              <option value="Eurekao Sigorta">
-              <option value="Groupama Sigorta">
-              <option value="Koru Sigorta">
-              <option value="Merkez Sigorta">
-            </datalist>
-          </div>
-          <div class="col-md-6">
-            <label class="form-label">Poliçe Türü</label>
-            <select class="form-select" name="policy_type">
-              <option value="Trafik" <%= policy.policy_type === 'Trafik' ? 'selected' : '' %>>Trafik</option>
-              <option value="Kasko" <%= policy.policy_type === 'Kasko' ? 'selected' : '' %>>Kasko</option>
-              <option value="Konut" <%= policy.policy_type === 'Konut' ? 'selected' : '' %>>Konut</option>
-              <option value="DASK" <%= policy.policy_type === 'DASK' ? 'selected' : '' %>>DASK</option>
-              <option value="Sağlık" <%= policy.policy_type === 'Sağlık' ? 'selected' : '' %>>Sağlık</option>
-              <option value="Tehlikeli Madde Mali Sorumluluk" <%= policy.policy_type === 'Tehlikeli Madde Mali Sorumluluk' ? 'selected' : '' %>>Tehlikeli Madde Mali Sorumluluk</option>
-              <option value="Koltuk Sigortası" <%= policy.policy_type === 'Koltuk Sigortası' ? 'selected' : '' %>>Koltuk Sigortası</option>
-              <option value="Kısa Süreli Trafik" <%= policy.policy_type === 'Kısa Süreli Trafik' ? 'selected' : '' %>>Kısa Süreli Trafik</option>
-              <option value="Diğer" <%= (!policy.policy_type || policy.policy_type === 'Diğer') ? 'selected' : '' %>>Diğer</option>
-            </select>
-          </div>
-          <div class="col-md-6">
-            <label class="form-label">Şube</label>
-            <select name="branch" class="form-select">
-              <option value="Akhisar" <%= policy.branch === 'Akhisar' ? 'selected' : '' %>>Akhisar</option>
-              <option value="Balıkesir" <%= policy.branch === 'Balıkesir' ? 'selected' : '' %>>Balıkesir</option>
-            </select>
-          </div>
-          <div class="col-md-6">
-            <label class="form-label">Poliçe No <span class="text-danger">*</span></label>
-            <input type="text" class="form-control" name="policy_number" value="<%= policy.policy_number %>" required>
-          </div>
+      <div class="row mb-3">
+        <div class="col-md-6">
+          <label for="premium" class="form-label">Prim (TL)</label>
+          <input type="number" step="0.01" class="form-control" id="premium" name="premium" value="<%= policy ? policy.premium : '' %>">
+        </div>
+        <div class="col-md-6">
+          <label for="premium_paid" class="form-label">Ödenen Prim (TL)</label>
+          <input type="number" step="0.01" class="form-control" id="premium_paid" name="premium_paid" value="<%= policy ? policy.premium_paid : '' %>">
+        </div>
+      </div>
 
-          <div class="col-md-4 trafik-kasko-field" style="display:none">
-            <label class="form-label">Plaka</label>
-            <input type="text" class="form-control" name="policy_details[plate]" value="<%= (policy.policy_details && policy.policy_details.plate) || '' %>">
-          </div>
-          <div class="col-md-4 trafik-kasko-field" style="display:none">
-            <label class="form-label">Ruhsat Tescil No</label>
-            <input type="text" class="form-control" name="policy_details[registration_no]" value="<%= (policy.policy_details && policy.policy_details.registration_no) || '' %>">
-          </div>
-          <div class="col-md-4 trafik-kasko-field" style="display:none">
-            <label class="form-label">Araç Cinsi</label>
-            <input class="form-control" name="policy_details[vehicle_type]" list="vehicleTypeList" value="<%= (policy.policy_details && policy.policy_details.vehicle_type) || '' %>" placeholder="Seçiniz veya yazınız">
-            <datalist id="vehicleTypeList">
-              <option value="Otomobil">
-              <option value="Kamyonet">
-              <option value="Motosiklet">
-              <option value="Kamyon">
-              <option value="Minibüs">
-              <option value="Otobüs">
-              <option value="Çekici">
-              <option value="Römork">
-              <option value="Traktör">
-              <option value="Arazi Taşıtı">
-              <option value="Özel Amaçlı Taşıt">
-            </datalist>
-          </div>
-          <div class="col-md-4">
-            <label class="form-label">Vize Bitiş Tarihi (Araç Muayene)</label>
-            <input type="date" class="form-control" name="policy_details[visa_date]" value="<%= (policy.policy_details && policy.policy_details.visa_date) || '' %>">
-            <div class="form-text small">Sıfır: 3 Yıl, Oto/Motor: 2 Yıl, Ticari: 1 Yıl</div>
-          </div>
-          <div class="col-md-4 kasko-only-field" style="display:none">
-            <label class="form-label">Meslek (Opsiyonel)</label>
-            <input type="text" class="form-control" name="policy_details[profession]" value="<%= (policy.policy_details && policy.policy_details.profession) || '' %>">
-          </div>
+      <div class="mb-3">
+        <label for="description" class="form-label">Açıklama</label>
+        <textarea class="form-control" id="description" name="description" rows="3"><%= policy ? policy.description : '' %></textarea>
+      </div>
 
-          <div class="col-md-4 dask-field" style="display:none">
-            <label class="form-label">Metrekare (m²)</label>
-            <input type="text" class="form-control" name="policy_details[area_sqm]" value="<%= (policy.policy_details && policy.policy_details.area_sqm) || '' %>">
-          </div>
-          <div class="col-md-4 dask-field" style="display:none">
-            <label class="form-label">Bina Yaşı</label>
-            <input type="text" class="form-control" name="policy_details[building_age]" value="<%= (policy.policy_details && policy.policy_details.building_age) || '' %>">
-          </div>
-          <div class="col-md-4 dask-field" style="display:none">
-            <label class="form-label">Binadaki Kat Sayısı</label>
-            <input type="text" class="form-control" name="policy_details[total_floors]" value="<%= (policy.policy_details && policy.policy_details.total_floors) || '' %>">
-          </div>
-          <div class="col-md-4 dask-field" style="display:none">
-            <label class="form-label">Bulunduğu Kat</label>
-            <input type="text" class="form-control" name="policy_details[floor_no]" value="<%= (policy.policy_details && policy.policy_details.floor_no) || '' %>">
-          </div>
-          <div class="col-md-8 dask-field" style="display:none">
-            <label class="form-label">Adres Kodu</label>
-            <input type="text" class="form-control" name="policy_details[address_code]" value="<%= (policy.policy_details && policy.policy_details.address_code) || '' %>">
-          </div>
-          <div class="col-12 health-field" style="display:none">
-            <label class="form-label">Sağlık Poliçesindeki Kişiler</label>
-            <div id="healthPersonsContainer">
-              <% const healthPersons = (policy.policy_details && policy.policy_details.health_persons) || []; %>
-              <% if (healthPersons.length === 0) { %>
-                <div class="row g-2 health-person-row" data-index="0">
-                  <div class="col-md-3">
-                    <input type="text" class="form-control" name="policy_details[health_persons][0][name]" placeholder="Ad Soyad">
-                  </div>
-                  <div class="col-md-3">
-                    <input type="text" class="form-control" name="policy_details[health_persons][0][id_no]" placeholder="TCKN">
-                  </div>
-                  <div class="col-md-3">
-                    <input type="date" class="form-control" name="policy_details[health_persons][0][birth_date]" placeholder="Doğum Tarihi">
-                  </div>
-                  <div class="col-md-3">
-                    <input type="text" class="form-control" name="policy_details[health_persons][0][relation]" placeholder="Yakınlık (Örn. Eş)">
-                  </div>
-                </div>
-              <% } else { %>
-                <% healthPersons.forEach(function(hp, idx) { %>
-                  <div class="row g-2 health-person-row" data-index="<%= idx %>">
-                    <div class="col-md-3">
-                      <input type="text" class="form-control" name="policy_details[health_persons][<%= idx %>][name]" value="<%= hp.name || '' %>" placeholder="Ad Soyad">
-                    </div>
-                    <div class="col-md-3">
-                      <input type="text" class="form-control" name="policy_details[health_persons][<%= idx %>][id_no]" value="<%= hp.id_no || '' %>" placeholder="TCKN">
-                    </div>
-                    <div class="col-md-3">
-                      <input type="date" class="form-control" name="policy_details[health_persons][<%= idx %>][birth_date]" value="<%= hp.birth_date || '' %>" placeholder="Doğum Tarihi">
-                    </div>
-                    <div class="col-md-3">
-                      <input type="text" class="form-control" name="policy_details[health_persons][<%= idx %>][relation]" value="<%= hp.relation || '' %>" placeholder="Yakınlık (Örn. Eş)">
-                    </div>
-                  </div>
-                <% }); %>
-              <% } %>
-            </div>
-            <button type="button" class="btn btn-sm btn-outline-secondary mt-2" id="addHealthPersonBtn">Kişi Ekle</button>
-          </div>
-          <div class="col-md-6">
-            <label class="form-label">Tanzim Tarihi</label>
-            <input type="date" class="form-control" name="issue_date" value="<%= policy.issue_date || '' %>">
-          </div>
-          <div class="col-md-6">
-            <label class="form-label">Başlangıç Tarihi <span class="text-danger">*</span></label>
-            <input type="date" class="form-control" name="start_date" value="<%= policy.start_date %>" required>
-          </div>
-          <div class="col-md-6">
-            <label class="form-label">Bitiş Tarihi <span class="text-danger">*</span></label>
-            <input type="date" class="form-control" name="end_date" value="<%= policy.end_date %>" required>
-          </div>
-          <div class="col-md-12">
-            <label class="form-label">Poliçe Bilgileri / Açıklama</label>
-            <textarea class="form-control" name="description" rows="2"><%= policy.description || '' %></textarea>
-          </div>
-          <div class="col-md-4">
-            <label class="form-label">Toplam Prim Tutarı</label>
-            <input type="number" step="0.01" class="form-control" name="premium" value="<%= typeof policy.premium_total !== 'undefined' ? policy.premium_total : (policy.premium || '') %>">
-          </div>
-          <div class="col-md-4">
-            <label class="form-label">Ödenen Tutar</label>
-            <input type="number" step="0.01" class="form-control" name="premium_paid" value="<%= typeof policy.premium_paid !== 'undefined' ? policy.premium_paid : '' %>">
-          </div>
-          <div class="col-md-4">
-            <label class="form-label">Ödeme Dekontu / Açıklama</label>
-            <input type="text" class="form-control" name="payment_note" value="<%= policy.payment_note || '' %>">
-          </div>
-          <div class="col-md-4">
-            <label class="form-label">Acente Komisyonu (Kâr)</label>
-            <input type="number" step="0.01" class="form-control" name="commission" value="<%= policy.commission || '' %>">
-          </div>
-          <div class="col-md-4">
-            <label class="form-label">İade / İskonto Tutarı</label>
-            <input type="number" step="0.01" class="form-control" name="commission_refund" value="<%= policy.commission_refund || '' %>">
-          </div>
-          <div class="col-md-4">
-            <label class="form-label">Satışçı Komisyonu</label>
-            <input type="number" step="0.01" class="form-control" name="salesperson_commission" value="<%= policy.salesperson_commission || '' %>">
-          </div>
-          <div class="col-md-6">
-            <label class="form-label">Durum</label>
-            <select class="form-select" name="status">
-              <option value="active" <%= policy.status === 'active' ? 'selected' : '' %>>Aktif</option>
-              <option value="cancelled" <%= policy.status === 'cancelled' ? 'selected' : '' %>>İptal</option>
-              <option value="pending" <%= policy.status === 'pending' ? 'selected' : '' %>>Beklemede</option>
-            </select>
-          </div>
-
-          <div class="col-md-12 border-top pt-3 mt-3">
-            <h6>Özel Hatırlatma</h6>
-            <div class="row g-3">
+      <div class="card mb-3">
+        <div class="card-header">
+          <button class="btn btn-outline-secondary btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#policyDetails">
+            Poliçe Detayları
+          </button>
+        </div>
+        <div id="policyDetails" class="collapse">
+          <div class="card-body">
+            <h6 class="card-subtitle mb-3 text-muted">Araç Bilgileri</h6>
+            <div class="row mb-2">
               <div class="col-md-4">
-                <label class="form-label">Hatırlatma Tarihi</label>
-                <input type="date" class="form-control" name="custom_reminder_date" value="<%= policy.custom_reminder_date || '' %>">
+                <label for="plate" class="form-label">Plaka</label>
+                <input type="text" class="form-control" id="plate" name="plate" value="<%= policy && policy.policy_details ? policy.policy_details.plate : '' %>">
               </div>
-              <div class="col-md-8">
-                <label class="form-label">Hatırlatma Notu</label>
-                <input type="text" class="form-control" name="custom_reminder_note" placeholder="Örn: Yenileme teklifini 14 gün önce hatırlat" value="<%= policy.custom_reminder_note || '' %>">
+              <div class="col-md-4">
+                <label for="registration_no" class="form-label">Tescil No</label>
+                <input type="text" class="form-control" id="registration_no" name="registration_no" value="<%= policy && policy.policy_details ? policy.policy_details.registration_no : '' %>">
+              </div>
+              <div class="col-md-4">
+                <label for="vehicle_type" class="form-label">Araç Türü</label>
+                <input type="text" class="form-control" id="vehicle_type" name="vehicle_type" value="<%= policy && policy.policy_details ? policy.policy_details.vehicle_type : '' %>">
+              </div>
+            </div>
+            
+            <div class="row mb-2">
+              <div class="col-md-4">
+                <label for="visa_date" class="form-label">Vize Tarihi</label>
+                <input type="date" class="form-control" id="visa_date" name="visa_date" value="<%= policy && policy.policy_details ? policy.policy_details.visa_date : '' %>">
+              </div>
+              <div class="col-md-4">
+                <label for="sale_date" class="form-label">Satış Tarihi</label>
+                <input type="date" class="form-control" id="sale_date" name="sale_date" value="<%= policy && policy.policy_details ? policy.policy_details.sale_date : '' %>">
+              </div>
+              <div class="col-md-4">
+                <label for="profession" class="form-label">Meslek</label>
+                <input type="text" class="form-control" id="profession" name="profession" value="<%= policy && policy.policy_details ? policy.policy_details.profession : '' %>">
+              </div>
+            </div>
+
+            <h6 class="card-subtitle mb-3 text-muted mt-4">Konut Bilgileri</h6>
+            <div class="row mb-2">
+              <div class="col-md-4">
+                <label for="notary_name" class="form-label">Noter</label>
+                <input type="text" class="form-control" id="notary_name" name="notary_name" value="<%= policy && policy.policy_details ? policy.policy_details.notary_name : '' %>">
+              </div>
+              <div class="col-md-4">
+                <label for="journal_no" class="form-label">Yevmiye No</label>
+                <input type="text" class="form-control" id="journal_no" name="journal_no" value="<%= policy && policy.policy_details ? policy.policy_details.journal_no : '' %>">
+              </div>
+              <div class="col-md-4">
+                <label for="area_sqm" class="form-label">Alan (m²)</label>
+                <input type="number" class="form-control" id="area_sqm" name="area_sqm" value="<%= policy && policy.policy_details ? policy.policy_details.area_sqm : '' %>">
+              </div>
+            </div>
+            <div class="row mb-2">
+              <div class="col-md-4">
+                <label for="building_age" class="form-label">Bina Yaşı</label>
+                <input type="text" class="form-control" id="building_age" name="building_age" value="<%= policy && policy.policy_details ? policy.policy_details.building_age : '' %>">
+              </div>
+              <div class="col-md-4">
+                <label for="total_floors" class="form-label">Toplam Kat</label>
+                <input type="text" class="form-control" id="total_floors" name="total_floors" value="<%= policy && policy.policy_details ? policy.policy_details.total_floors : '' %>">
+              </div>
+              <div class="col-md-4">
+                <label for="floor_no" class="form-label">Kat No</label>
+                <input type="text" class="form-control" id="floor_no" name="floor_no" value="<%= policy && policy.policy_details ? policy.policy_details.floor_no : '' %>">
               </div>
             </div>
           </div>
-
-
-          <div class="col-12 mt-4 text-end">
-            <button type="submit" class="btn btn-warning"><i class="bi bi-pencil-square"></i> Güncelle</button>
-            <a href="/policies/<%= policy.id %>" class="btn btn-secondary"><i class="bi bi-x"></i> İptal</a>
-          </div>
-        </form>
+        </div>
       </div>
-    </div>
+
+      <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-primary">Kaydet</button>
+        <a href="/policies" class="btn btn-secondary">İptal</a>
+      </div>
+    </form>
   </div>
 </div>
-<script>
-  const startDateInput = document.querySelector('input[name="start_date"]');
-  const endDateInput = document.querySelector('input[name="end_date"]');
-  const policyTypeSelect = document.querySelector('select[name="policy_type"]');
-  const trafikKaskoFields = document.querySelectorAll('.trafik-kasko-field');
-  const kaskoOnlyFields = document.querySelectorAll('.kasko-only-field');
-  const daskFields = document.querySelectorAll('.dask-field');
-  const healthFields = document.querySelectorAll('.health-field');
-  const healthPersonsContainer = document.getElementById('healthPersonsContainer');
-  const addHealthPersonBtn = document.getElementById('addHealthPersonBtn');
-
-  function updateEndDate() {
-    const startDateVal = startDateInput.value;
-    if (!startDateVal) return;
-
-    const startDate = new Date(startDateVal);
-    const policyType = policyTypeSelect.value;
-    let endDate = new Date(startDate);
-
-    if (policyType === 'Kısa Süreli Trafik') {
-      endDate.setDate(startDate.getDate() + 60);
-    } else {
-      endDate.setFullYear(startDate.getFullYear() + 1);
-    }
-
-    const yyyy = endDate.getFullYear();
-    const mm = String(endDate.getMonth() + 1).padStart(2, '0');
-    const dd = String(endDate.getDate()).padStart(2, '0');
-    endDateInput.value = `${yyyy}-${mm}-${dd}`;
-  }
-
-  function updateSpecialFields() {
-    const policyType = policyTypeSelect.value;
-    trafikKaskoFields.forEach(function (el) {
-      el.style.display = (policyType === 'Trafik' || policyType === 'Kasko' || policyType === 'Tehlikeli Madde Mali Sorumluluk' || policyType === 'Koltuk Sigortası' || policyType === 'Kısa Süreli Trafik') ? '' : 'none';
-    });
-    kaskoOnlyFields.forEach(function (el) {
-      el.style.display = policyType === 'Kasko' ? '' : 'none';
-    });
-    daskFields.forEach(function (el) {
-      el.style.display = (policyType === 'DASK' || policyType === 'Konut') ? '' : 'none';
-    });
-    healthFields.forEach(function (el) {
-      el.style.display = policyType === 'Sağlık' ? '' : 'none';
-    });
-  }
-
-  function addHealthPersonRow() {
-    if (!healthPersonsContainer) return;
-    const rows = healthPersonsContainer.querySelectorAll('.health-person-row');
-    const nextIndex = rows.length;
-    const row = document.createElement('div');
-    row.className = 'row g-2 health-person-row';
-    row.setAttribute('data-index', String(nextIndex));
-    row.innerHTML = ''
-      + '<div class="col-md-3">'
-      + '<input type="text" class="form-control" name="policy_details[health_persons][' + nextIndex + '][name]" placeholder="Ad Soyad">'
-      + '</div>'
-      + '<div class="col-md-3">'
-      + '<input type="text" class="form-control" name="policy_details[health_persons][' + nextIndex + '][id_no]" placeholder="TCKN">'
-      + '</div>'
-      + '<div class="col-md-3">'
-      + '<input type="date" class="form-control" name="policy_details[health_persons][' + nextIndex + '][birth_date]" placeholder="Doğum Tarihi">'
-      + '</div>'
-      + '<div class="col-md-3">'
-      + '<input type="text" class="form-control" name="policy_details[health_persons][' + nextIndex + '][relation]" placeholder="Yakınlık (Örn. Eş)">'
-      + '</div>';
-    healthPersonsContainer.appendChild(row);
-  }
-
-  startDateInput.addEventListener('change', updateEndDate);
-  policyTypeSelect.addEventListener('change', function () {
-    updateEndDate();
-    updateSpecialFields();
-  });
-
-  if (addHealthPersonBtn) {
-    addHealthPersonBtn.addEventListener('click', addHealthPersonRow);
-  }
-
-  updateSpecialFields();
-</script>

@@ -1,263 +1,78 @@
-<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-  <h1 class="h2"><%= birthdaysFilter ? 'Doğum Günü Olan Müşteriler' : 'Müşteriler' %></h1>
-  <div class="btn-toolbar mb-2 mb-md-0">
-    <div class="btn-group me-2">
-      <a href="/customers/export.xlsx?<%= typeof qs !== 'undefined' ? qs : '' %>" class="btn btn-sm btn-outline-secondary"><i class="bi bi-file-earmark-excel"></i> Excel'e Aktar</a>
-      <a href="/policies" class="btn btn-sm btn-outline-secondary"><i class="bi bi-file-text"></i> Poliçeler</a>
+<div class="mb-4">
+  <div class="row">
+    <div class="col-md-8">
+      <h2>Müşteriler</h2>
     </div>
-    <a href="/customers?filter=debtors" class="btn btn-sm btn-outline-danger me-2"><i class="bi bi-wallet2"></i> Borçlu Müşteriler</a>
-    <a href="/customers?birthdays=today" class="btn btn-sm btn-outline-success me-2"><i class="bi bi-gift"></i> Doğum Günü Olanlar</a>
-    <button type="button" class="btn btn-sm btn-outline-info me-2" data-bs-toggle="modal" data-bs-target="#importExtraModal">
-      <i class="bi bi-telephone-plus"></i> Telefonları Güncelle
-    </button>
-    <a href="/customers/new" class="btn btn-sm btn-primary"><i class="bi bi-person-plus"></i> Yeni Müşteri</a>
-  </div>
-</div>
-
-<!-- Müşteri Telefon Güncelleme Modalı -->
-<div class="modal fade" id="importExtraModal" tabindex="-1">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">Telefon Bilgilerini Güncelle</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
-      <form action="/customers/import-extra" method="POST" enctype="multipart/form-data">
-        <div class="modal-body">
-          <p class="small text-muted">Karmaşık formatlı (İsim ve Telefon aynı hücrede olan) Excel dosyanızı buradan yükleyebilirsiniz. Sistem isim eşleşmesine göre telefonları güncelleyecektir.</p>
-          <div class="mb-3">
-            <label class="form-label">Excel Dosyası Seçin</label>
-            <input type="file" class="form-control" name="file" accept=".xlsx" required>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button>
-          <button type="submit" class="btn btn-primary">Yükle ve Güncelle</button>
-        </div>
-      </form>
+    <div class="col-md-4 text-end">
+      <a href="/customers/new" class="btn btn-primary">
+        <i class="bi bi-plus-circle"></i> Yeni Müşteri
+      </a>
     </div>
   </div>
 </div>
 
-<% if (typeof debtorsFilter !== 'undefined' && debtorsFilter) { %>
-  <div class="row mb-4">
-    <div class="col-md-4">
-      <div class="card border-left-danger shadow-sm h-100 py-2">
-        <div class="card-body">
-          <div class="row no-gutters align-items-center">
-            <div class="col mr-2">
-              <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">Toplam Alacak (Müşteri Borcu)</div>
-              <div class="h5 mb-0 font-weight-bold text-gray-800"><%= totalReceivable.toFixed(2) %> TL</div>
-            </div>
-            <div class="col-auto">
-              <i class="bi bi-arrow-down-circle fa-2x text-gray-300"></i>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="col-md-4">
-      <div class="card border-left-success shadow-sm h-100 py-2">
-        <div class="card-body">
-          <div class="row no-gutters align-items-center">
-            <div class="col mr-2">
-              <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Toplam Verecek (Bizim Borcumuz)</div>
-              <div class="h5 mb-0 font-weight-bold text-gray-800"><%= totalPayable.toFixed(2) %> TL</div>
-            </div>
-            <div class="col-auto">
-              <i class="bi bi-arrow-up-circle fa-2x text-gray-300"></i>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="col-md-4">
-      <div class="card border-left-info shadow-sm h-100 py-2">
-        <div class="card-body">
-          <div class="row no-gutters align-items-center">
-            <div class="col mr-2">
-              <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Net Durum</div>
-              <% const net = totalReceivable - totalPayable; %>
-              <div class="h5 mb-0 font-weight-bold <%= net > 0 ? 'text-success' : 'text-danger' %>">
-                <%= net > 0 ? '+' : '' %><%= net.toFixed(2) %> TL
-              </div>
-            </div>
-            <div class="col-auto">
-              <i class="bi bi-wallet2 fa-2x text-gray-300"></i>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="alert alert-secondary d-flex justify-content-between align-items-center">
-    <div>
-      <i class="bi bi-info-circle-fill me-2"></i>
-      <strong>Bakiye Listesi Görüntüleniyor</strong>
-      <span class="ms-2 badge bg-dark"><%= customers.length %> Kayıt</span>
-    </div>
-    <a href="/customers" class="btn btn-sm btn-outline-dark">Filtreyi Temizle</a>
-  </div>
-<% } %>
-
-<% if (birthdaysFilter && customers.length > 0) { %>
-  <div class="alert alert-success d-flex justify-content-between align-items-start">
-    <div>
-      <div class="fw-bold mb-1">Bugün doğum günü olan müşteriler</div>
-      <ul class="mb-0">
-        <% customers.forEach(c => { %>
-          <li>
-            <strong><%= c.name %></strong>
-            <% if (c.phone) { %>
-              -
-              <a
-                href="https://wa.me/<%= String(c.phone || '').replace(/\D/g, '') %>?text=<%= encodeURIComponent('Sayın ' + (c.name || '') + ', doğum gününüzü kutlar, sağlıklı günler dileriz. Erdem KÖKENER Sigorta WİN') %>"
-                target="_blank"
-              >
-                WhatsApp ile mesaj gönder
-              </a>
-            <% } else { %>
-              - Telefon numarası kayıtlı değil
-            <% } %>
-          </li>
-        <% }) %>
-      </ul>
-    </div>
-  </div>
-<% } %>
-
-<div class="card mb-4 shadow-sm">
+<div class="card mb-4">
   <div class="card-body">
-    <form class="row g-3" method="get" action="/customers">
-      <div class="col-md-7">
-        <label for="q" class="visually-hidden">Arama</label>
-        <div class="input-group">
-          <span class="input-group-text"><i class="bi bi-search"></i></span>
-          <input type="text" class="form-control" id="q" name="q" placeholder="Ad, TCKN, Telefon, E-posta veya Plaka ara..." value="<%= q || '' %>">
-        </div>
+    <form method="get" action="/customers" class="row g-3">
+      <div class="col-md-4">
+        <input type="text" class="form-control" name="q" placeholder="Ara..." value="<%= query.q || '' %>">
       </div>
-      <div class="col-md-3">
+      <div class="col-md-4">
         <select class="form-select" name="branch">
-          <% const b = (typeof branch !== 'undefined' ? branch : ''); %>
-          <option value="" <%= b===''?'selected':'' %>>Tüm Şubeler</option>
-          <option value="Akhisar" <%= b==='Akhisar'?'selected':'' %>>Akhisar</option>
-          <option value="Balıkesir" <%= b==='Balıkesir'?'selected':'' %>>Balıkesir</option>
+          <option value="">Tüm Şubeler</option>
+          <option value="Akhisar" <%= query.branch === 'Akhisar' ? 'selected' : '' %>>Akhisar</option>
+          <option value="Balıkesir" <%= query.branch === 'Balıkesir' ? 'selected' : '' %>>Balıkesir</option>
+          <option value="Ada Şube" <%= query.branch === 'Ada Şube' ? 'selected' : '' %>>Ada Şube</option>
+          <option value="İlke Şube" <%= query.branch === 'İlke Şube' ? 'selected' : '' %>>İlke Şube</option>
         </select>
       </div>
-      <div class="col-md-2">
-        <div class="d-grid gap-2 d-md-flex">
-          <button type="submit" class="btn btn-primary flex-grow-1">Ara</button>
-          <% if (q || (typeof branch !== 'undefined' && branch)) { %>
-            <a href="/customers" class="btn btn-outline-secondary">Temizle</a>
-          <% } %>
-        </div>
+      <div class="col-md-4 d-flex gap-2">
+        <button type="submit" class="btn btn-primary flex-grow-1">Filtrele</button>
+        <a href="/customers" class="btn btn-outline-secondary">Sıfırla</a>
       </div>
     </form>
   </div>
 </div>
 
-<% if (typeof filteredCount !== 'undefined' && (q || (typeof branch !== 'undefined' && branch))) { %>
-<div class="alert alert-info shadow-sm mb-4">
-  <div class="d-flex justify-content-between align-items-center">
-    <span>
-      <i class="bi bi-filter-circle"></i> 
-      <strong><%= branch || 'Tüm Şubeler' %></strong> için 
-      <strong><%= filteredCount %></strong> müşteri bulundu. 
-      Toplam Bakiye: <strong><%= filteredBalance.toFixed(2) %> TL</strong>
-    </span>
-    <a href="/customers" class="btn btn-sm btn-outline-info">Filtreyi Temizle</a>
+<div class="card">
+  <div class="card-body">
+    <div class="table-responsive">
+      <table class="table table-hover">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Ad Soyad</th>
+            <th>Şube</th>
+            <th>TC / VKN</th>
+            <th>Telefon</th>
+            <th>E-posta</th>
+            <th>İşlemler</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% if (customers.length === 0) { %>
+            <tr>
+              <td colspan="7" class="text-center text-muted py-4">Müşteri bulunamadı</td>
+            </tr>
+          <% } %>
+          <% customers.forEach(customer => { %>
+            <tr>
+              <td><%= customer.id %></td>
+              <td><%= customer.name %></td>
+              <td><span class="badge bg-secondary"><%= customer.branch %></span></td>
+              <td><%= customer.id_no || '-' %></td>
+              <td><%= customer.phone || '-' %></td>
+              <td><%= customer.email || '-' %></td>
+              <td>
+                <div class="d-flex gap-1">
+                  <a href="/customers/<%= customer.id %>" class="btn btn-sm btn-outline-info">Görüntüle</a>
+                  <a href="/customers/<%= customer.id %>/edit" class="btn btn-sm btn-outline-primary">Düzenle</a>
+                </div>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
   </div>
 </div>
-<% } %>
-
-<div class="table-responsive">
-  <table class="table table-sm table-striped table-hover align-middle shadow-sm rounded overflow-hidden" style="font-size: 0.75rem; width: 100%; table-layout: fixed;">
-    <thead class="table-light">
-      <tr>
-        <th style="width: 15%;">Ad Soyad</th>
-        <th style="width: 10%;">Bakiye</th>
-        <th style="width: 10%;">Telefon</th>
-        <th style="width: 10%;">TCKN</th>
-        <th style="width: 8%;">Şube</th>
-        <th style="width: 15%;">E-posta</th>
-        <th style="width: 10%;">Meslek</th>
-        <th style="width: 10%;">Doğum</th>
-        <th style="text-align: right; width: 12%;">İşlem</th>
-      </tr>
-    </thead>
-    <tbody>
-      <% if (customers.length === 0) { %>
-        <tr><td colspan="9" class="text-center py-4 text-muted">Kayıtlı müşteri bulunamadı.</td></tr>
-      <% } %>
-      <% customers.forEach(c => { %>
-        <tr>
-          <td class="text-truncate" title="<%= c.name %>">
-            <a href="/customers/<%= c.id %>" class="text-decoration-none fw-bold">
-              <i class="bi bi-person"></i> <%= c.name %>
-            </a>
-          </td>
-          <td>
-            <% if (c.balance && c.balance > 0.01) { %>
-               <span class="badge bg-danger p-1" style="font-size: 0.7rem;"><%= c.balance.toFixed(0) %> TL</span>
-            <% } else if (c.balance && c.balance < -0.01) { %>
-               <span class="badge bg-success p-1" style="font-size: 0.7rem;"><%= Math.abs(c.balance).toFixed(0) %> TL</span>
-            <% } else { %>
-               <span class="badge bg-secondary p-1" style="font-size: 0.7rem;">0 TL</span>
-            <% } %>
-          </td>
-          <td class="text-nowrap" style="font-size: 0.7rem;"><%= c.phone || '-' %></td>
-          <td class="text-nowrap"><%= c.id_no || '-' %></td>
-          <td><span class="badge <%= c.branch === 'Balıkesir' ? 'bg-secondary' : 'bg-light text-dark' %> p-1" style="font-size: 0.65rem;"><%= (c.branch || 'Akhisar').substring(0,3) %></span></td>
-          <td class="text-truncate" title="<%= c.email %>"><%= c.email || '-' %></td>
-          <td class="text-truncate" title="<%= c.profession %>"><%= c.profession || '-' %></td>
-          <td class="text-nowrap"><%= c.birth_date || '-' %></td>
-          <td class="text-end text-nowrap p-1">
-            <div class="btn-group btn-group-xs">
-              <% if (c.phone) { %>
-                <a
-                  href="https://wa.me/<%= String(c.phone || '').replace(/\D/g, '') %>?text=<%= encodeURIComponent('Sayın ' + (c.name || '') + ', doğum gününüzü kutlar, sağlıklı günler dileriz. Erdem KÖKENER Sigorta WİN') %>"
-                  target="_blank"
-                  class="btn btn-outline-success p-1"
-                  title="WhatsApp"
-                >
-                  <i class="bi bi-whatsapp"></i>
-                </a>
-              <% } %>
-              <a href="/customers/<%= c.id %>" class="btn btn-outline-primary p-1" title="Detay"><i class="bi bi-eye"></i></a>
-              <% if (c.balance && c.balance > 0.01) { %>
-                <a href="/customers/<%= c.id %>/debts/export-excel" class="btn btn-outline-dark p-1" title="Excel"><i class="bi bi-file-earmark-excel"></i></a>
-              <% } %>
-              <a href="/customers/<%= c.id %>/edit" class="btn btn-outline-warning p-1" title="Düzenle"><i class="bi bi-pencil"></i></a>
-              <% if (user && user.isAdmin) { %>
-                <form action="/customers/<%= c.id %>/delete" method="post" class="d-inline" onsubmit="return confirm('Müşteri silinecek. Emin misiniz?')">
-                  <button type="submit" class="btn btn-outline-danger p-1" title="Sil"><i class="bi bi-trash"></i></button>
-                </form>
-              <% } %>
-            </div>
-          </td>
-        </tr>
-      <% }) %>
-    </tbody>
-  </table>
-</div>
-
-<style>
-  .btn-group-xs > .btn {
-    padding: 0.1rem 0.25rem;
-    font-size: 0.75rem;
-    line-height: 1;
-    border-radius: 0.2rem;
-  }
-  .table-sm th, .table-sm td {
-    padding: 0.3rem 0.2rem !important;
-  }
-  .text-truncate {
-    max-width: 1px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-</style>
