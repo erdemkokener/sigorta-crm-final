@@ -1,123 +1,266 @@
-<div class="mb-4">
-  <div class="row">
-    <div class="col-md-8">
-      <h2>Poliçeler</h2>
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+  <h1 class="h2">Poliçeler</h1>
+  <div class="btn-toolbar mb-2 mb-md-0">
+    <div class="btn-group me-2">
+      <form action="/api/trigger-notifications" method="POST" class="d-inline">
+        <button type="submit" class="btn btn-sm btn-outline-primary" title="Poliçe sürelerini kontrol et ve mailleri gönder">
+          <i class="bi bi-envelope-check"></i> Bildirimleri Çalıştır
+        </button>
+      </form>
+      <a href="/policies?filter=today" class="btn btn-sm btn-outline-danger">Bugün Bitenler</a>
+      <a href="/policies?filter=tomorrow" class="btn btn-sm btn-outline-warning">Yarın Bitenler</a>
+      <a href="/policies/export.xlsx?<%= qs %>" class="btn btn-sm btn-outline-secondary"><i class="bi bi-file-earmark-excel"></i> Excel'e Aktar</a>
+      <a href="/policies/import" class="btn btn-sm btn-outline-secondary"><i class="bi bi-upload"></i> Excel Yükle</a>
     </div>
-    <div class="col-md-4 text-end">
-      <a href="/policies/new" class="btn btn-primary">
-        <i class="bi bi-plus-circle"></i> Yeni Poliçe
-      </a>
-    </div>
+    <a href="/policies/new" class="btn btn-sm btn-primary"><i class="bi bi-plus-lg"></i> Yeni Poliçe</a>
   </div>
 </div>
 
-<div class="card mb-4">
+<div class="row mb-4">
+  <div class="col-md-3">
+    <div class="card border-left-primary shadow-sm h-100 py-2">
+      <div class="card-body">
+        <div class="row no-gutters align-items-center">
+          <div class="col mr-2">
+            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Toplam Müşteri</div>
+            <div class="h5 mb-0 font-weight-bold text-gray-800"><%= typeof totalCustomers !== 'undefined' ? totalCustomers : '-' %></div>
+          </div>
+          <div class="col-auto">
+            <i class="bi bi-people fa-2x text-gray-300"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-3">
+    <div class="card border-left-success shadow-sm h-100 py-2">
+      <div class="card-body">
+        <div class="row no-gutters align-items-center">
+          <div class="col mr-2">
+            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Toplam Poliçe</div>
+            <div class="h5 mb-0 font-weight-bold text-gray-800"><%= typeof totalPolicies !== 'undefined' ? totalPolicies : '-' %></div>
+          </div>
+          <div class="col-auto">
+            <i class="bi bi-file-text fa-2x text-gray-300"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <% if (typeof filteredCount !== 'undefined' && (qs.includes('branch=') || qs.includes('q=') || qs.includes('status='))) { %>
+  <div class="col-md-6">
+    <div class="card border-start border-info border-4 shadow-sm h-100 py-2">
+      <div class="card-body">
+        <div class="row no-gutters align-items-center">
+          <div class="col mr-2">
+            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Filtrelenmiş Sonuçlar</div>
+            <div class="h5 mb-0 font-weight-bold text-gray-800">
+              <%= filteredCount %> Poliçe | <%= filteredPremium.toFixed(2) %> TL Toplam Prim
+            </div>
+          </div>
+          <div class="col-auto">
+            <i class="bi bi-filter-square fa-2x text-info"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <% } %>
+</div>
+
+<div class="card shadow-sm mb-4">
+  <div class="card-header bg-light">
+    <h6 class="mb-0">Filtrele</h6>
+  </div>
   <div class="card-body">
-    <form method="get" action="/policies" class="row g-3">
+    <form class="row g-3" method="get" action="/policies">
       <div class="col-md-3">
-        <input type="text" class="form-control" name="q" placeholder="Ara..." value="<%= query.q || '' %>">
+        <label class="form-label">Arama</label>
+        <input type="text" class="form-control" name="q" placeholder="Müşteri, Poliçe No..." value="<%= (typeof qs !== 'undefined' && new URLSearchParams(qs).get('q')) || '' %>">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Sigortacı</label>
+        <input type="text" class="form-control" name="insurer" value="<%= (typeof qs !== 'undefined' && new URLSearchParams(qs).get('insurer')) || '' %>">
       </div>
       <div class="col-md-2">
+        <label class="form-label">Durum</label>
+        <select class="form-select" name="status">
+          <% const s = (typeof qs !== 'undefined' && new URLSearchParams(qs).get('status')) || '' %>
+          <option value="" <%= s===''?'selected':'' %>>Tümü</option>
+          <option value="active" <%= s==='active'?'selected':'' %>>Aktif</option>
+          <option value="cancelled" <%= s==='cancelled'?'selected':'' %>>İptal</option>
+          <option value="pending" <%= s==='pending'?'selected':'' %>>Beklemede</option>
+        </select>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">Şube</label>
         <select class="form-select" name="branch">
-          <option value="">Tüm Şubeler</option>
-          <option value="Akhisar" <%= query.branch === 'Akhisar' ? 'selected' : '' %>>Akhisar</option>
-          <option value="Balıkesir" <%= query.branch === 'Balıkesir' ? 'selected' : '' %>>Balıkesir</option>
-          <option value="Ada Şube" <%= query.branch === 'Ada Şube' ? 'selected' : '' %>>Ada Şube</option>
-          <option value="İlke Şube" <%= query.branch === 'İlke Şube' ? 'selected' : '' %>>İlke Şube</option>
+          <% const b = (typeof qs !== 'undefined' && new URLSearchParams(qs).get('branch')) || '' %>
+          <option value="" <%= b===''?'selected':'' %>>Tümü</option>
+          <option value="Akhisar" <%= b==='Akhisar'?'selected':'' %>>Akhisar</option>
+          <option value="Balıkesir" <%= b==='Balıkesir'?'selected':'' %>>Balıkesir</option>
         </select>
       </div>
       <div class="col-md-2">
-        <select class="form-select" name="insurer">
-          <option value="">Tüm Sigortalar</option>
-          <option value="Anadolu Sigorta" <%= query.insurer === 'Anadolu Sigorta' ? 'selected' : '' %>>Anadolu Sigorta</option>
-          <option value="Allianz" <%= query.insurer === 'Allianz' ? 'selected' : '' %>>Allianz</option>
-          <option value="Eureko" <%= query.insurer === 'Eureko' ? 'selected' : '' %>>Eureko</option>
-          <option value="Halk Sigorta" <%= query.insurer === 'Halk Sigorta' ? 'selected' : '' %>>Halk Sigorta</option>
-          <option value="Mapfre" <%= query.insurer === 'Mapfre' ? 'selected' : '' %>>Mapfre</option>
-          <option value="Sigortam.net" <%= query.insurer === 'Sigortam.net' ? 'selected' : '' %>>Sigortam.net</option>
-          <option value="Turkiye Sigorta" <%= query.insurer === 'Turkiye Sigorta' ? 'selected' : '' %>>Türkiye Sigorta</option>
-          <option value="Win Sigorta" <%= query.insurer === 'Win Sigorta' ? 'selected' : '' %>>Win Sigorta</option>
-          <option value="ETG Sigorta" <%= query.insurer === 'ETG Sigorta' ? 'selected' : '' %>>ETG Sigorta</option>
-        </select>
+        <label class="form-label">Bitiş (Başlangıç)</label>
+        <input type="date" class="form-control" name="end_from" value="<%= (typeof qs !== 'undefined' && new URLSearchParams(qs).get('end_from')) || '' %>">
       </div>
       <div class="col-md-2">
-        <select class="form-select" name="filter">
-          <option value="">Tüm Tarihler</option>
-          <option value="today" <%= query.filter === 'today' ? 'selected' : '' %>>Bugün</option>
-          <option value="tomorrow" <%= query.filter === 'tomorrow' ? 'selected' : '' %>>Yarın</option>
-          <option value="week" <%= query.filter === 'week' ? 'selected' : '' %>>Bu Hafta</option>
-        </select>
+        <label class="form-label">Bitiş (Bitiş)</label>
+        <input type="date" class="form-control" name="end_to" value="<%= (typeof qs !== 'undefined' && new URLSearchParams(qs).get('end_to')) || '' %>">
       </div>
-      <div class="col-md-3 d-flex gap-2">
-        <button type="submit" class="btn btn-primary flex-grow-1">Filtrele</button>
-        <a href="/policies" class="btn btn-outline-secondary">Sıfırla</a>
+      <div class="col-md-2">
+        <label class="form-label">Tanzim (Başlangıç)</label>
+        <input type="date" class="form-control" name="issue_from" value="<%= (typeof qs !== 'undefined' && new URLSearchParams(qs).get('issue_from')) || '' %>">
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">Tanzim (Bitiş)</label>
+        <input type="date" class="form-control" name="issue_to" value="<%= (typeof qs !== 'undefined' && new URLSearchParams(qs).get('issue_to')) || '' %>">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Sıralama</label>
+        <div class="input-group">
+          <select class="form-select" name="sort_by">
+            <% const sb = (typeof qs !== 'undefined' && new URLSearchParams(qs).get('sort_by')) || 'end_date' %>
+            <option value="end_date" <%= sb==='end_date'?'selected':'' %>>Bitiş Tarihi</option>
+            <option value="start_date" <%= sb==='start_date'?'selected':'' %>>Başlangıç Tarihi</option>
+            <option value="issue_date" <%= sb==='issue_date'?'selected':'' %>>Tanzim Tarihi</option>
+          </select>
+          <select class="form-select" name="sort_order" style="max-width: 100px;">
+            <% const so = (typeof qs !== 'undefined' && new URLSearchParams(qs).get('sort_order')) || 'desc' %>
+            <option value="asc" <%= so==='asc'?'selected':'' %>>Artan</option>
+            <option value="desc" <%= so==='desc'?'selected':'' %>>Azalan</option>
+          </select>
+        </div>
+      </div>
+      <div class="col-12">
+        <div class="form-check form-check-inline">
+          <% const incMissed = (typeof qs !== 'undefined' && new URLSearchParams(qs).get('include_missed')) === 'true' %>
+          <input class="form-check-input" type="checkbox" name="include_missed" value="true" id="includeMissedCheck" <%= incMissed ? 'checked' : '' %>>
+          <label class="form-check-label" for="includeMissedCheck">
+            Geçmiş (Yenilenmemiş) Poliçeleri Dahil Et
+          </label>
+        </div>
+        <div class="form-check form-check-inline">
+          <% const excShort = (typeof qs !== 'undefined' && new URLSearchParams(qs).get('exclude_short_term')) === 'true' %>
+          <input class="form-check-input" type="checkbox" name="exclude_short_term" value="true" id="excludeShortTermCheck" <%= excShort ? 'checked' : '' %>>
+          <label class="form-check-label" for="excludeShortTermCheck">
+            Kısa Dönemli (Geçici) Poliçeleri Gizle
+          </label>
+        </div>
+      </div>
+      <div class="col-12 text-end">
+        <button type="submit" class="btn btn-primary"><i class="bi bi-funnel"></i> Filtrele</button>
+        <a href="/policies" class="btn btn-outline-secondary">Temizle</a>
       </div>
     </form>
   </div>
 </div>
 
-<div class="card">
-  <div class="card-body">
-    <div class="table-responsive">
-      <table class="table table-hover">
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>Müşteri</th>
-            <th>Şube</th>
-            <th>Sigorta</th>
-            <th>Tür</th>
-            <th>Poliçe No</th>
-            <th>Başlangıç</th>
-            <th>Bitiş</th>
-            <th>Prim</th>
-            <th>Kalan</th>
-            <th>Durum</th>
-            <th>İşlemler</th>
-          </tr>
-        </thead>
-        <tbody>
-          <% if (policies.length === 0) { %>
-            <tr>
-              <td colspan="12" class="text-center text-muted py-4">Poliçe bulunamadı</td>
-            </tr>
-          <% } %>
-          <% policies.forEach(policy => { %>
-            <tr class="<%= policy.is_missed_renewal ? 'table-warning' : '' %>">
-              <td><%= policy.id %></td>
-              <td>
-                <%= policy.customer_name %>
-                <small class="text-muted d-block"><%= policy.customer_phone %></small>
-              </td>
-              <td><span class="badge bg-secondary"><%= policy.branch %></span></td>
-              <td><%= policy.insurer %></td>
-              <td><%= policy.policy_type %></td>
-              <td><%= policy.policy_number || '-' %></td>
-              <td><%= formatDate(policy.start_date) %></td>
-              <td><%= formatDate(policy.end_date) %></td>
-              <td><%= policy.premium ? policy.premium.toLocaleString('tr-TR') + ' TL' : '-' %></td>
-              <td><%= policy.premium_remaining > 0 ? policy.premium_remaining.toLocaleString('tr-TR') + ' TL' : '-' %></td>
-              <td>
-                <% if (policy.is_missed_renewal) { %>
-                  <span class="badge bg-warning text-dark">Yenileme Günü</span>
-                <% } else if (policy.is_expired) { %>
-                  <span class="badge bg-danger">Süresi Dolmuş</span>
-                <% } else if (policy.is_expiring_soon) { %>
-                  <span class="badge bg-warning text-dark">Yakında Doluyor</span>
-                <% } else { %>
-                  <span class="badge bg-success">Aktif</span>
-                <% } %>
-              </td>
-              <td>
-                <div class="d-flex gap-1">
-                  <a href="/policies/<%= policy.id %>" class="btn btn-sm btn-outline-info">Görüntüle</a>
-                  <a href="/policies/<%= policy.id %>/edit" class="btn btn-sm btn-outline-primary">Düzenle</a>
-                </div>
-              </td>
-            </tr>
-          <% }) %>
-        </tbody>
-      </table>
-    </div>
-  </div>
+<div class="d-flex justify-content-end mb-3">
+    <form action="/api/trigger-notifications" method="post">
+      <button class="btn btn-warning btn-sm"><i class="bi bi-bell"></i> Bildirimleri Kontrol Et</button>
+    </form>
 </div>
+
+<div class="table-responsive">
+  <table class="table table-sm table-hover align-middle shadow-sm rounded overflow-hidden" style="font-size: 0.7rem; width: 100%; table-layout: fixed;">
+    <thead class="table-dark">
+      <tr>
+        <th style="width: 12%;">Müşteri</th>
+        <th style="width: 9%;">Telefon</th>
+        <th style="width: 9%;">Kimlik No</th>
+        <th style="width: 10%;">Sigortacı</th>
+        <th style="width: 10%;">Tür</th>
+        <th style="width: 6%;">Şube</th>
+        <th style="width: 10%;">Poliçe No</th>
+        <th style="width: 7%;">Tanzim</th>
+        <th style="width: 7%;">Başlangıç</th>
+        <th style="width: 7%;">Bitiş</th>
+        <th style="width: 5%;">Kalan</th>
+        <th style="width: 6%;">Durum</th>
+        <th style="text-align: right; width: 8%;">İşlem</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% if (policies.length === 0) { %>
+        <tr>
+          <td colspan="13" class="text-center py-5 text-muted">
+            <i class="bi bi-inbox display-4 d-block mb-3"></i>
+            Kayıt bulunamadı.
+          </td>
+        </tr>
+      <% } %>
+      <% policies.forEach(p => { %>
+        <tr class="<%= p.is_missed_renewal ? 'table-info' : (p.is_expired ? 'table-danger' : (p.is_expiring_soon ? 'table-warning' : '')) %>">
+          <td class="text-truncate" title="<%= p.customer_name %>">
+             <a href="/customers/<%= p.customer_id %>" class="text-decoration-none fw-bold text-dark">
+               <%= p.customer_name || '-' %>
+             </a>
+          </td>
+          <td class="text-nowrap" style="font-size: 0.65rem;"><%= p.customer_phone || '-' %></td>
+          <td class="text-nowrap"><%= p.customer_id_no || '-' %></td>
+          <td class="text-truncate" title="<%= p.insurer %>"><%= p.insurer %></td>
+          <td class="text-truncate"><span class="badge bg-info text-dark p-1" style="font-size: 0.6rem;"><%= p.policy_type || 'Diğer' %></span></td>
+          <td><span class="badge <%= p.branch === 'Balıkesir' ? 'bg-secondary' : 'bg-light text-dark' %> p-1" style="font-size: 0.6rem;"><%= (p.branch || 'Akhisar').substring(0,3) %></span></td>
+          <td class="text-truncate" title="<%= p.policy_number %>"><%= p.policy_number %></td>
+          <td class="text-nowrap"><%= formatDate(p.issue_date || p.start_date) %></td>
+          <td class="text-nowrap"><%= formatDate(p.start_date) %></td>
+          <td class="text-nowrap"><%= formatDate(p.end_date) %></td>
+          <td class="text-nowrap">
+            <% if (p.is_missed_renewal) { %>
+                <span class="badge bg-warning text-dark p-1" style="font-size: 0.6rem;">Yenile</span>
+            <% } else if (p.days_remaining < 0) { %>
+                <span class="badge bg-danger p-1" style="font-size: 0.6rem;">Doldu</span>
+            <% } else { %>
+                <span class="fw-bold"><%= p.days_remaining %>g</span>
+            <% } %>
+          </td>
+          <td class="text-nowrap">
+             <% if (p.is_missed_renewal) { %>
+               <span class="badge bg-warning text-dark p-1" style="font-size: 0.6rem;">Fırsat</span>
+             <% } else if (p.status === 'active' || p.status === 'Aktif') { %>
+               <span class="badge bg-success p-1" style="font-size: 0.6rem;">Aktif</span>
+             <% } else if (p.status === 'cancelled' || p.status === 'İptal') { %>
+               <span class="badge bg-danger p-1" style="font-size: 0.6rem;">İptal</span>
+             <% } else if (p.status === 'Satıldı') { %>
+               <span class="badge bg-dark p-1" style="font-size: 0.6rem;">Satıldı</span>
+             <% } else { %>
+               <span class="badge bg-secondary p-1" style="font-size: 0.6rem;"><%= p.status %></span>
+             <% } %>
+          </td>
+          <td class="text-end text-nowrap p-1">
+            <div class="btn-group btn-group-xs">
+              <a href="/policies/<%= p.id %>" class="btn btn-sm btn-outline-primary p-1" title="Detay"><i class="bi bi-eye"></i></a>
+              <a href="/policies/renew/<%= p.id %>" class="btn btn-sm btn-outline-info p-1" title="Yenile"><i class="bi bi-arrow-repeat"></i></a>
+              <a href="/policies/<%= p.id %>/edit" class="btn btn-sm btn-outline-warning p-1" title="Düzenle"><i class="bi bi-pencil"></i></a>
+              <form action="/policies/<%= p.id %>/delete" method="post" class="d-inline" onsubmit="return confirm('Silmek istediğinize emin misiniz?')">
+                <button class="btn btn-sm btn-outline-danger p-1" title="Sil"><i class="bi bi-trash"></i></button>
+              </form>
+            </div>
+          </td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</div>
+
+<style>
+  .btn-group-xs > .btn, .btn-xs {
+    padding: 0.1rem 0.25rem;
+    font-size: 0.75rem;
+    line-height: 1;
+    border-radius: 0.2rem;
+  }
+  .table-sm th, .table-sm td {
+    padding: 0.3rem 0.2rem !important;
+  }
+  .text-truncate {
+    max-width: 1px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+</style>

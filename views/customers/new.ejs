@@ -1,71 +1,68 @@
-<div class="card mb-4">
-  <div class="card-header">
-    <% if (customer) { %>
-      Müşteri Düzenle
-    <% } else { %>
-      Yeni Müşteri
-    <% } %>
-  </div>
-  <div class="card-body">
-    <form method="post" action="<%= customer ? `/customers/${customer.id}/edit` : `/customers/new` %>">
-      <div class="row mb-3">
-        <div class="col-md-6">
-          <label for="name" class="form-label">Ad Soyad *</label>
-          <input type="text" class="form-control" id="name" name="name" value="<%= customer ? customer.name : '' %>" required>
-        </div>
-        <div class="col-md-6">
-          <label for="phone" class="form-label">Telefon</label>
-          <input type="text" class="form-control" id="phone" name="phone" value="<%= customer ? customer.phone : '' %>">
-        </div>
+<div class="row justify-content-center">
+  <div class="col-md-8">
+    <div class="card shadow-sm">
+      <div class="card-header bg-light">
+        <h5 class="mb-0">Yeni Müşteri Ekle</h5>
       </div>
-      <div class="row mb-3">
-        <div class="col-md-4">
-          <label for="id_no" class="form-label">TC / VKN</label>
-          <input type="text" class="form-control" id="id_no" name="id_no" value="<%= customer ? customer.id_no : '' %>">
-        </div>
-        <div class="col-md-4">
-          <label for="branch" class="form-label">Şube</label>
-          <select class="form-select" id="branch" name="branch">
-            <option value="Akhisar" <%= customer && customer.branch === 'Akhisar' ? 'selected' : '' %>>Akhisar</option>
-            <option value="Balıkesir" <%= customer && customer.branch === 'Balıkesir' ? 'selected' : '' %>>Balıkesir</option>
-            <option value="Ada Şube" <%= customer && customer.branch === 'Ada Şube' ? 'selected' : '' %>>Ada Şube</option>
-            <option value="İlke Şube" <%= customer && customer.branch === 'İlke Şube' ? 'selected' : '' %>>İlke Şube</option>
-          </select>
-        </div>
-        <div class="col-md-4">
-          <label for="email" class="form-label">E-posta</label>
-          <input type="email" class="form-control" id="email" name="email" value="<%= customer ? customer.email : '' %>">
-        </div>
+      <div class="card-body">
+        <form action="/customers" method="post" class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label">Ad Soyad <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" name="name" required>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Telefon</label>
+            <input type="tel" class="form-control" name="phone" placeholder="+90 5xx xxx xx xx">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">TCKN / Vergi No</label>
+            <input type="text" class="form-control" name="id_no">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">E-posta</label>
+            <input type="email" class="form-control" name="email">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Meslek</label>
+            <input type="text" class="form-control" name="profession">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Doğum Tarihi</label>
+            <input type="date" class="form-control" name="birth_date">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Satışçı / Aracı</label>
+            <select name="salesperson_id" class="form-select">
+              <option value="">Seçiniz...</option>
+              <% if (typeof salespersons !== 'undefined') { %>
+                <% salespersons.forEach(s => { %>
+                  <option value="<%= s.id %>"><%= s.name %></option>
+                <% }); %>
+              <% } %>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Şube</label>
+            <select name="branch" class="form-select">
+              <option value="Akhisar" selected>Akhisar</option>
+              <option value="Balıkesir">Balıkesir</option>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Açılış Bakiyesi / Manuel Borç (TL)</label>
+            <input type="number" step="0.01" class="form-control" name="manual_debt" value="0">
+            <div class="form-text">Poliçelerden bağımsız borç girmek için kullanın.</div>
+          </div>
+          <div class="col-md-12">
+            <label class="form-label">Müşteri Notu</label>
+            <textarea class="form-control" name="note" rows="2" placeholder="Örneğin: Taksitleri genelde geciktirir, akşam saatlerinde aranmak ister"></textarea>
+          </div>
+          <div class="col-12 mt-4 text-end">
+            <button type="submit" class="btn btn-primary"><i class="bi bi-save"></i> Kaydet</button>
+            <a href="/customers" class="btn btn-secondary"><i class="bi bi-x"></i> İptal</a>
+          </div>
+        </form>
       </div>
-      <div class="row mb-3">
-        <div class="col-md-4">
-          <label for="profession" class="form-label">Meslek</label>
-          <input type="text" class="form-control" id="profession" name="profession" value="<%= customer ? customer.profession : '' %>">
-        </div>
-        <div class="col-md-4">
-          <label for="birth_date" class="form-label">Doğum Tarihi</label>
-          <input type="date" class="form-control" id="birth_date" name="birth_date" value="<%= customer ? customer.birth_date : '' %>">
-        </div>
-        <div class="col-md-4">
-          <label for="salesperson_id" class="form-label">Satışçı</label>
-          <select class="form-select" id="salesperson_id" name="salesperson_id">
-            <option value="">Seçiniz...</option>
-            <% salespersons.forEach(salesperson => { %>
-              <option value="<%= salesperson.id %>" <%= customer && customer.salesperson_id == salesperson.id ? 'selected' : '' %>>
-                <%= salesperson.name %>
-              </option>
-            <% }) %>
-          </select>
-        </div>
-      </div>
-      <div class="mb-3">
-        <label for="note" class="form-label">Müşteri Notu</label>
-        <textarea class="form-control" id="note" name="note" rows="3"><%= customer ? customer.note : '' %></textarea>
-      </div>
-      <div class="d-flex gap-2">
-        <button type="submit" class="btn btn-primary">Kaydet</button>
-        <a href="/customers" class="btn btn-secondary">İptal</a>
-      </div>
-    </form>
+    </div>
   </div>
 </div>
