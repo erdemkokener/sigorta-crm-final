@@ -44,10 +44,8 @@
           <div class="col-md-6">
             <label class="form-label">Şube</label>
             <select name="branch" class="form-select" <%= user && !user.isAdmin ? 'disabled' : '' %>>
-              <option value="Akhisar" <%= customer.branch === 'Akhisar' ? 'selected' : '' %>>Akhisar</option>
-              <option value="Balıkesir" <%= customer.branch === 'Balıkesir' ? 'selected' : '' %>>Balıkesir</option>
-              <option value="Ada Şube" <%= customer.branch === 'Ada Şube' ? 'selected' : '' %>>Ada Şube</option>
-              <option value="İlke Şube" <%= customer.branch === 'İlke Şube' ? 'selected' : '' %>>İlke Şube</option>
+              <option value="İlke Şube" <%= (!customer.branch || customer.branch === 'İlke Şube' || customer.branch === 'Akhisar') ? 'selected' : '' %>>İlke Şube</option>
+              <option value="Ada Şube" <%= (customer.branch === 'Ada Şube' || customer.branch === 'Balıkesir') ? 'selected' : '' %>>Ada Şube</option>
             </select>
           </div>
           <div class="col-md-6">

@@ -107,10 +107,9 @@
           <div class="col-md-6">
             <label class="form-label">Şube</label>
             <select name="branch" class="form-select">
-              <option value="Akhisar" <%= (typeof prefill !== 'undefined' && prefill.branch === 'Akhisar') ? 'selected' : '' %>>Akhisar</option>
-              <option value="Balıkesir" <%= (typeof prefill !== 'undefined' && prefill.branch === 'Balıkesir') ? 'selected' : '' %>>Balıkesir</option>
-              <option value="Ada Şube" <%= (typeof prefill !== 'undefined' && prefill.branch === 'Ada Şube') ? 'selected' : '' %>>Ada Şube</option>
-              <option value="İlke Şube" <%= (typeof prefill !== 'undefined' && prefill.branch === 'İlke Şube') ? 'selected' : '' %>>İlke Şube</option>
+              <% const branchVal = (typeof prefill !== 'undefined' && prefill.branch) ? prefill.branch : ''; %>
+              <option value="İlke Şube" <%= (!branchVal || branchVal === 'İlke Şube' || branchVal === 'Akhisar') ? 'selected' : '' %>>İlke Şube</option>
+              <option value="Ada Şube" <%= (branchVal === 'Ada Şube' || branchVal === 'Balıkesir') ? 'selected' : '' %>>Ada Şube</option>
             </select>
           </div>
           <div class="col-md-6">

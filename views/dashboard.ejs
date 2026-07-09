@@ -54,14 +54,14 @@
   <div class="col-md-6">
     <div class="card h-100 shadow-sm border-start border-primary border-4">
       <div class="card-body">
-        <h6 class="text-primary fw-bold mb-3"><i class="bi bi-geo-alt"></i> Akhisar Şubesi</h6>
+        <h6 class="text-primary fw-bold mb-3"><i class="bi bi-geo-alt"></i> İlke Şube</h6>
         <div class="row text-center">
           <div class="col-6 border-end">
-            <h4 class="mb-0"><%= stats.branchStats.Akhisar.policies %></h4>
+            <h4 class="mb-0"><%= stats.branchStats['İlke Şube'].policies %></h4>
             <small class="text-muted">Poliçe</small>
           </div>
           <div class="col-6">
-            <h4 class="mb-0"><%= stats.branchStats.Akhisar.customers %></h4>
+            <h4 class="mb-0"><%= stats.branchStats['İlke Şube'].customers %></h4>
             <small class="text-muted">Müşteri</small>
           </div>
         </div>
@@ -71,37 +71,15 @@
   <div class="col-md-6">
     <div class="card h-100 shadow-sm border-start border-info border-4">
       <div class="card-body">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-          <h6 class="text-info fw-bold mb-0"><i class="bi bi-geo-alt-fill"></i> Balıkesir İrtibat Ofisi</h6>
-          <span class="badge bg-light text-info border border-info">Hedef: 350</span>
-        </div>
-        <div class="row text-center mb-3">
+        <h6 class="text-info fw-bold mb-3"><i class="bi bi-geo-alt-fill"></i> Ada Şube</h6>
+        <div class="row text-center">
           <div class="col-6 border-end">
-            <h4 class="mb-0"><%= stats.branchStats.Balıkesir.policies %></h4>
+            <h4 class="mb-0"><%= stats.branchStats['Ada Şube'].policies %></h4>
             <small class="text-muted">Poliçe</small>
           </div>
           <div class="col-6">
-            <h4 class="mb-0"><%= stats.branchStats.Balıkesir.customers %></h4>
+            <h4 class="mb-0"><%= stats.branchStats['Ada Şube'].customers %></h4>
             <small class="text-muted">Müşteri</small>
-          </div>
-        </div>
-        
-        <!-- Balıkesir Şube Hedef İlerleme -->
-        <% 
-          const target = 350;
-          const current = stats.branchStats.Balıkesir.customers;
-          const percent = Math.min(Math.round((current / target) * 100), 100);
-        %>
-        <div class="mt-2">
-          <div class="d-flex justify-content-between small mb-1">
-            <span>Şubeleşme Hedefi</span>
-            <span class="fw-bold"><%= percent %>%</span>
-          </div>
-          <div class="progress" style="height: 8px;">
-            <div class="progress-bar bg-info progress-bar-striped progress-bar-animated" role="progressbar" style="width: <%= percent %>%"></div>
-          </div>
-          <div class="text-center mt-1">
-            <small class="text-muted">Şube açılışı için kalan: <strong><%= Math.max(target - current, 0) %></strong> müşteri</small>
           </div>
         </div>
       </div>

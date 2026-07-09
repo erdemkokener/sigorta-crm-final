@@ -238,6 +238,21 @@ function attachCustomer(p, data) {
   };
 }
 
+function normalizeBranch(raw) {
+  const text = String(raw || '').trim();
+  if (!text) return 'İlke Şube';
+  const lower = text.toLocaleLowerCase('tr-TR');
+  if (lower.includes('balıkesir') || lower.includes('balikesir') || lower.includes('ada')) return 'Ada Şube';
+  if (lower.includes('akhisar') || lower.includes('ilke')) return 'İlke Şube';
+  if (text === 'Ada Şube' || text === 'İlke Şube') return text;
+  return 'İlke Şube';
+}
+
+function branchMatches(value, filter) {
+  if (!filter) return true;
+  return normalizeBranch(value) === normalizeBranch(filter);
+}
+
 async function filterPolicies(query) {
   const data = await getContext();
   let allPolicies = data.policies.map(p => attachCustomer(p, data));
@@ -265,7 +280,7 @@ async function filterPolicies(query) {
     items = items.filter(x => (x.insurer || '').toLocaleLowerCase('tr-TR').includes(insurer));
   }
   if (branch) {
-    items = items.filter(x => x.branch === branch);
+    items = items.filter(x => branchMatches(x.branch, branch));
   }
 
   // 2. Date Filtering Setup
@@ -848,13 +863,13 @@ app.get('/', async (req, res) => {
 
   // Branch Stats
   const branchStats = {
-    Akhisar: {
-      policies: data.policies.filter(p => (p.branch || 'Akhisar') === 'Akhisar').length,
-      customers: data.customers.filter(c => (c.branch || 'Akhisar') === 'Akhisar').length,
+    'İlke Şube': {
+      policies: data.policies.filter(p => normalizeBranch(p.branch) === 'İlke Şube').length,
+      customers: data.customers.filter(c => normalizeBranch(c.branch) === 'İlke Şube').length,
     },
-    Balıkesir: {
-      policies: data.policies.filter(p => p.branch === 'Balıkesir').length,
-      customers: data.customers.filter(c => c.branch === 'Balıkesir').length,
+    'Ada Şube': {
+      policies: data.policies.filter(p => normalizeBranch(p.branch) === 'Ada Şube').length,
+      customers: data.customers.filter(c => normalizeBranch(c.branch) === 'Ada Şube').length,
     }
   };
   
@@ -1387,7 +1402,7 @@ app.get('/customers', requireAuth, async (req, res) => {
   });
 
   if (branch) {
-    customers = customers.filter(c => c.branch === branch);
+    customers = customers.filter(c => branchMatches(c.branch, branch));
   }
 
   if (q) {
@@ -1475,7 +1490,7 @@ app.get('/customers/export.xlsx', requireAuth, async (req, res) => {
   });
 
   if (branch) {
-    customers = customers.filter(c => c.branch === branch);
+    customers = customers.filter(c => branchMatches(c.branch, branch));
   }
 
   if (q) {
@@ -1623,7 +1638,7 @@ app.post('/customers', requireAuth, async (req, res) => {
     phone: phone || '',
     id_no: id_no || '',
     email: email || '',
-    branch: branch || 'Akhisar',
+    branch: normalizeBranch(branch),
     profession: req.body.profession || '',
     birth_date: birth_date || '',
     salesperson_id: salesperson_id ? Number(salesperson_id) : null,
@@ -2306,7 +2321,7 @@ app.post('/customers/:id', requireAuth, async (req, res) => {
       phone: req.body.phone,
       id_no: req.body.id_no,
       email: req.body.email,
-      branch: req.body.branch || 'Akhisar',
+      branch: normalizeBranch(req.body.branch),
       profession: req.body.profession,
       birth_date: req.body.birth_date,
       salesperson_id: req.body.salesperson_id ? Number(req.body.salesperson_id) : null,
@@ -2501,10 +2516,7 @@ async function runPoliciesImportJob(jobId, filePath) {
       const idNo = isLegacy ? '' : (getText(row, cols.idNo) || getText(row, cols.taxNo));
       const phone = isLegacy ? '' : getText(row, cols.phone);
       const rowBranchRaw = isLegacy ? '' : getText(row, cols.branch);
-      let rowBranch = 'Akhisar';
-      if (rowBranchRaw && (rowBranchRaw.toLocaleLowerCase('tr-TR').includes('balıkesir') || rowBranchRaw.toLocaleLowerCase('tr-TR').includes('balikesir'))) {
-        rowBranch = 'Balıkesir';
-      }
+      const rowBranch = normalizeBranch(rowBranchRaw);
 
       if (!customerName || !policyNumber) continue;
 
@@ -2529,8 +2541,7 @@ async function runPoliciesImportJob(jobId, filePath) {
         const updates = {};
         if (idNo && !customer.id_no) updates.id_no = idNo;
         if (phone && !customer.phone) updates.phone = phone;
-        // Müşterinin şubesi Balıkesir olarak geldiyse ve henüz Akhisar ise güncelle
-        if (rowBranch === 'Balıkesir' && (customer.branch || 'Akhisar') === 'Akhisar') updates.branch = 'Balıkesir';
+        if (rowBranch && normalizeBranch(customer.branch) !== rowBranch) updates.branch = rowBranch;
 
         if (Object.keys(updates).length > 0) {
           await dataService.updateCustomer(customer.id, updates);
@@ -2574,7 +2585,7 @@ async function runPoliciesImportJob(jobId, filePath) {
         if (issueDate && existingPolicy.issue_date !== issueDate) updates.issue_date = issueDate;
         if (startDate && existingPolicy.start_date !== startDate) updates.start_date = startDate;
         if (endDate && existingPolicy.end_date !== endDate) updates.end_date = endDate;
-        if (rowBranch === 'Balıkesir' && (existingPolicy.branch || 'Akhisar') === 'Akhisar') updates.branch = 'Balıkesir';
+        if (rowBranch && normalizeBranch(existingPolicy.branch) !== rowBranch) updates.branch = rowBranch;
 
         const importStatus = isLegacy
           ? ((recordType || '').toLocaleLowerCase('tr-TR').includes('iptal') ? 'cancelled' : 'active')
@@ -2754,7 +2765,7 @@ app.post('/policies', requireAuth, async (req, res) => {
       customer_id: Number(customer_id),
       insurer,
       policy_number,
-      branch: branch || 'Akhisar',
+      branch: normalizeBranch(branch),
       issue_date: issue_date || '',
       start_date,
       end_date,
@@ -2921,7 +2932,7 @@ app.post('/policies/:id', requireAuth, async (req, res) => {
       customer_id: Number(customer_id),
       insurer,
       policy_number,
-      branch: branch || 'Akhisar',
+      branch: normalizeBranch(branch),
       issue_date: issue_date || '',
       start_date,
       end_date,

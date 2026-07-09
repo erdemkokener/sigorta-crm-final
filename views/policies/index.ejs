@@ -99,10 +99,8 @@
         <select class="form-select" name="branch">
           <% const b = (typeof qs !== 'undefined' && new URLSearchParams(qs).get('branch')) || '' %>
           <option value="" <%= b===''?'selected':'' %>>Tümü</option>
-          <option value="Akhisar" <%= b==='Akhisar'?'selected':'' %>>Akhisar</option>
-          <option value="Balıkesir" <%= b==='Balıkesir'?'selected':'' %>>Balıkesir</option>
-          <option value="Ada Şube" <%= b==='Ada Şube'?'selected':'' %>>Ada Şube</option>
-          <option value="İlke Şube" <%= b==='İlke Şube'?'selected':'' %>>İlke Şube</option>
+          <option value="İlke Şube" <%= (b==='İlke Şube' || b==='Akhisar') ? 'selected' : '' %>>İlke Şube</option>
+          <option value="Ada Şube" <%= (b==='Ada Şube' || b==='Balıkesir') ? 'selected' : '' %>>Ada Şube</option>
         </select>
       </div>
       <div class="col-md-2">
@@ -206,7 +204,8 @@
           <td class="text-nowrap"><%= p.customer_id_no || '-' %></td>
           <td class="text-truncate" title="<%= p.insurer %>"><%= p.insurer %></td>
           <td class="text-truncate"><span class="badge bg-info text-dark p-1" style="font-size: 0.6rem;"><%= p.policy_type || 'Diğer' %></span></td>
-          <td><span class="badge <%= p.branch === 'Balıkesir' ? 'bg-secondary' : 'bg-light text-dark' %> p-1" style="font-size: 0.6rem;"><%= (p.branch || 'Akhisar').substring(0,3) %></span></td>
+          <% const displayBranch = (p.branch === 'Balıkesir') ? 'Ada Şube' : ((p.branch === 'Akhisar' || !p.branch) ? 'İlke Şube' : p.branch); %>
+          <td><span class="badge <%= displayBranch === 'Ada Şube' ? 'bg-secondary' : 'bg-light text-dark' %> p-1" style="font-size: 0.6rem;"><%= displayBranch.substring(0,3) %></span></td>
           <td class="text-truncate" title="<%= p.policy_number %>"><%= p.policy_number %></td>
           <td class="text-nowrap"><%= formatDate(p.issue_date || p.start_date) %></td>
           <td class="text-nowrap"><%= formatDate(p.start_date) %></td>

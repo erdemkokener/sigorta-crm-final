@@ -92,10 +92,8 @@
           <div class="col-md-6">
             <label class="form-label">Şube</label>
             <select name="branch" class="form-select">
-              <option value="Akhisar" <%= policy.branch === 'Akhisar' ? 'selected' : '' %>>Akhisar</option>
-              <option value="Balıkesir" <%= policy.branch === 'Balıkesir' ? 'selected' : '' %>>Balıkesir</option>
-              <option value="Ada Şube" <%= policy.branch === 'Ada Şube' ? 'selected' : '' %>>Ada Şube</option>
-              <option value="İlke Şube" <%= policy.branch === 'İlke Şube' ? 'selected' : '' %>>İlke Şube</option>
+              <option value="İlke Şube" <%= (!policy.branch || policy.branch === 'İlke Şube' || policy.branch === 'Akhisar') ? 'selected' : '' %>>İlke Şube</option>
+              <option value="Ada Şube" <%= (policy.branch === 'Ada Şube' || policy.branch === 'Balıkesir') ? 'selected' : '' %>>Ada Şube</option>
             </select>
           </div>
           <div class="col-md-6">
