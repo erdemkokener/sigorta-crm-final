@@ -49,7 +49,7 @@
     </div>
   </div>
 
-  <% if (typeof filteredCount !== 'undefined' && (qs.includes('branch=') || qs.includes('q=') || qs.includes('status='))) { %>
+  <% if (typeof filteredCount !== 'undefined' && (qs.includes('branch=') || qs.includes('q=') || qs.includes('status=') || qs.includes('agency='))) { %>
   <div class="col-md-6">
     <div class="card border-start border-info border-4 shadow-sm h-100 py-2">
       <div class="card-body">
@@ -83,6 +83,15 @@
       <div class="col-md-3">
         <label class="form-label">Sigortacı</label>
         <input type="text" class="form-control" name="insurer" value="<%= (typeof qs !== 'undefined' && new URLSearchParams(qs).get('insurer')) || '' %>">
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">Acente</label>
+        <% const agency = (typeof qs !== 'undefined' && new URLSearchParams(qs).get('agency')) || '' %>
+        <select class="form-select" name="agency">
+          <option value="" <%= agency===''?'selected':'' %>>Tümü</option>
+          <option value="WİN" <%= agency==='WİN'?'selected':'' %>>WİN</option>
+          <option value="ETG" <%= agency==='ETG'?'selected':'' %>>ETG</option>
+        </select>
       </div>
       <div class="col-md-2">
         <label class="form-label">Durum</label>
@@ -173,6 +182,7 @@
         <th style="width: 9%;">Telefon</th>
         <th style="width: 9%;">Kimlik No</th>
         <th style="width: 10%;">Sigortacı</th>
+        <th style="width: 7%;">Acente</th>
         <th style="width: 10%;">Tür</th>
         <th style="width: 6%;">Şube</th>
         <th style="width: 10%;">Poliçe No</th>
@@ -187,7 +197,7 @@
     <tbody>
       <% if (policies.length === 0) { %>
         <tr>
-          <td colspan="13" class="text-center py-5 text-muted">
+          <td colspan="14" class="text-center py-5 text-muted">
             <i class="bi bi-inbox display-4 d-block mb-3"></i>
             Kayıt bulunamadı.
           </td>
@@ -203,6 +213,7 @@
           <td class="text-nowrap" style="font-size: 0.65rem;"><%= p.customer_phone || '-' %></td>
           <td class="text-nowrap"><%= p.customer_id_no || '-' %></td>
           <td class="text-truncate" title="<%= p.insurer %>"><%= p.insurer %></td>
+          <td class="text-nowrap"><%= p.agency || '-' %></td>
           <td class="text-truncate"><span class="badge bg-info text-dark p-1" style="font-size: 0.6rem;"><%= p.policy_type || 'Diğer' %></span></td>
           <% const displayBranch = (p.branch === 'Balıkesir') ? 'Ada Şube' : ((p.branch === 'Akhisar' || !p.branch) ? 'İlke Şube' : p.branch); %>
           <td><span class="badge <%= displayBranch === 'Ada Şube' ? 'bg-secondary' : 'bg-light text-dark' %> p-1" style="font-size: 0.6rem;"><%= displayBranch.substring(0,3) %></span></td>

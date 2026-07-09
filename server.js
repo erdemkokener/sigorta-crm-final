@@ -260,6 +260,7 @@ async function filterPolicies(query) {
 
   const q = (query.q || '').toLocaleLowerCase('tr-TR');
   const insurer = (query.insurer || '').toLocaleLowerCase('tr-TR');
+  const agency = (query.agency || '').toLocaleUpperCase('tr-TR');
   const status = (query.status || '').toLocaleLowerCase('tr-TR');
   const branch = query.branch;
   const includeMissed = query.include_missed === 'true';
@@ -278,6 +279,9 @@ async function filterPolicies(query) {
   }
   if (insurer) {
     items = items.filter(x => (x.insurer || '').toLocaleLowerCase('tr-TR').includes(insurer));
+  }
+  if (agency) {
+    items = items.filter(x => String(x.agency || '').toLocaleUpperCase('tr-TR') === agency);
   }
   if (branch) {
     items = items.filter(x => branchMatches(x.branch, branch));
